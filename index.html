@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JR Eventos — Sonido e Iluminación Profesional</title>
+<meta name="description" content="JR Eventos: producción de eventos, sonido e iluminación profesional en Ecuador. Eventos corporativos y masivos.">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --bg-soft: #12121f;
+    --card: #181828;
+    --border: rgba(255,255,255,.08);
+    --text: #f2f2f8;
+    --muted: #a0a0b8;
+    --accent: #7c3aed;
+    --accent-2: #06b6d4;
+    --accent-3: #f472b6;
+    --whatsapp: #25d366;
+    --radius: 18px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--accent); color: #fff; }
+
+  /* ---------- Navbar ---------- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 6%;
+    background: rgba(10,10,18,.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-decoration: none;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: .95rem;
+    font-weight: 500;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    padding: 9px 20px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-3));
+    color: #fff !important;
+    font-weight: 600;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,.4); }
+  .menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 1.6rem; cursor: pointer; }
+
+  /* ---------- Hero ---------- */
+  header {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 6% 80px;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124,58,237,.28), transparent),
+      radial-gradient(ellipse 50% 40% at 80% 30%, rgba(6,182,212,.22), transparent),
+      radial-gradient(ellipse 55% 45% at 55% 90%, rgba(244,114,182,.16), transparent),
+      var(--bg);
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.05);
+    color: var(--muted);
+    font-size: .85rem;
+    margin-bottom: 28px;
+  }
+  .hero-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 12px var(--accent-2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 50% { opacity: .4; } }
+  h1 {
+    font-size: clamp(2.6rem, 7vw, 5rem);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: -1px;
+    max-width: 850px;
+  }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero-sub {
+    margin-top: 22px;
+    max-width: 620px;
+    color: var(--muted);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+  }
+  .hero-actions { margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 34px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent-3));
+    color: #fff;
+    box-shadow: 0 8px 30px rgba(124,58,237,.35);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(124,58,237,.5); }
+  .btn-ghost {
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { transform: translateY(-3px); background: rgba(255,255,255,.1); }
+  .hero-stats {
+    margin-top: 70px;
+    display: flex;
+    gap: clamp(30px, 6vw, 80px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat b { display: block; font-size: 2rem; font-weight: 800; }
+  .stat span { color: var(--muted); font-size: .9rem; }
+
+  /* ---------- Secciones ---------- */
+  section { padding: 100px 6%; max-width: 1200px; margin: 0 auto; }
+  .section-tag {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(124,58,237,.15);
+    color: #b794f6;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -.5px; margin-bottom: 16px; }
+  .section-sub { color: var(--muted); max-width: 640px; margin-bottom: 50px; }
+
+  /* Misión / Visión */
+  .mv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px; }
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 34px;
+    overflow: hidden;
+    transition: transform .25s, border-color .25s;
+  }
+  .card:hover { transform: translateY(-6px); border-color: rgba(124,58,237,.5); }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3));
+  }
+  .card .icon {
+    width: 58px; height: 58px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 16px;
+    font-size: 1.7rem;
+    margin-bottom: 22px;
+    background: rgba(124,58,237,.15);
+  }
+  .card h3 { font-size: 1.35rem; margin-bottom: 12px; }
+  .card p { color: var(--muted); }
+
+  /* Servicios */
+  .servicios { background: var(--bg-soft); max-width: none; }
+  .servicios .inner { max-width: 1200px; margin: 0 auto; }
+  .serv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px; }
+  .serv-card {
+    position: relative;
+    border-radius: var(--radius);
+    padding: 44px 36px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform .25s;
+  }
+  .serv-card:hover { transform: translateY(-6px); }
+  .serv-corp { background: linear-gradient(145deg, rgba(6,182,212,.14), var(--card) 60%); }
+  .serv-masivo { background: linear-gradient(145deg, rgba(244,114,182,.14), var(--card) 60%); }
+  .serv-card .icon { font-size: 2.4rem; margin-bottom: 18px; }
+  .serv-card h3 { font-size: 1.5rem; margin-bottom: 12px; }
+  .serv-card p { color: var(--muted); margin-bottom: 22px; }
+  .serv-card ul { list-style: none; }
+  .serv-card li { color: var(--muted); padding: 6px 0; display: flex; gap: 10px; align-items: baseline; }
+  .serv-card li::before { content: "✦"; color: var(--accent-2); font-size: .8rem; }
+  .serv-masivo li::before { color: var(--accent-3); }
+
+  /* Contacto */
+  .contacto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
+  .social-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 30px 28px;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+  }
+  .social-card:hover { transform: translateY(-6px); }
+  .social-card .s-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px;
+  }
+  .social-card .s-icon svg { width: 26px; height: 26px; fill: #fff; }
+  .social-card b { font-size: 1.1rem; }
+  .social-card span { color: var(--muted); font-size: .88rem; }
+  .sc-wa .s-icon { background: #25d366; }
+  .sc-wa:hover { border-color: #25d366; box-shadow: 0 10px 30px rgba(37,211,102,.25); }
+  .sc-ig .s-icon { background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af); }
+  .sc-ig:hover { border-color: #dd2a7b; box-shadow: 0 10px 30px rgba(221,42,123,.25); }
+  .sc-fb .s-icon { background: #1877f2; }
+  .sc-fb:hover { border-color: #1877f2; box-shadow: 0 10px 30px rgba(24,119,242,.25); }
+  .sc-tt .s-icon { background: #111; border: 1px solid #333; }
+  .sc-tt:hover { border-color: #69c9d0; box-shadow: 0 10px 30px rgba(105,201,208,.25); }
+
+  /* CTA banner */
+  .cta-banner {
+    margin: 0 6% 100px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 24px;
+    padding: 70px 8%;
+    text-align: center;
+    background:
+      radial-gradient(ellipse 70% 100% at 50% 0%, rgba(124,58,237,.35), transparent),
+      var(--card);
+    border: 1px solid rgba(124,58,237,.35);
+  }
+  .cta-banner h2 { margin-bottom: 14px; }
+  .cta-banner p { color: var(--muted); margin-bottom: 32px; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 36px 6%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  /* WhatsApp flotante */
+  .wa-float {
+    position: fixed;
+    bottom: 26px; right: 26px;
+    z-index: 200;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--whatsapp);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 26px rgba(37,211,102,.45);
+    transition: transform .2s;
+  }
+  .wa-float:hover { transform: scale(1.1); }
+  .wa-float svg { width: 30px; height: 30px; fill: #fff; }
+
+  /* Animación de aparición: solo se oculta si JavaScript está activo (clase .js),
+     así el contenido nunca queda invisible en visores sin JS */
+  .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+  .js .reveal.visible { opacity: 1; transform: none; }
+
+  /* Responsive */
+  @media (max-width: 760px) {
+    .menu-btn { display: block; }
+    .nav-links {
+      position: fixed;
+      top: 62px; left: 0; right: 0;
+      flex-direction: column;
+      background: rgba(10,10,18,.97);
+      padding: 24px;
+      gap: 18px;
+      border-bottom: 1px solid var(--border);
+      display: none;
+    }
+    .nav-links.open { display: flex; }
+    section { padding: 70px 6%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<nav>
+  <a href="#inicio" class="logo">JR EVENTOS</a>
+  <button class="menu-btn" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menú">☰</button>
+  <ul class="nav-links">
+    <li><a href="#nosotros">Nosotros</a></li>
+    <li><a href="#servicios">Servicios</a></li>
+    <li><a href="#contacto">Contacto</a></li>
+    <li><a href="https://wa.me/593992865420" target="_blank" rel="noopener" class="nav-cta">Cotiza tu evento</a></li>
+  </ul>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header id="inicio">
+  <div class="hero-badge"><span class="dot"></span> Producción de eventos en Ecuador</div>
+  <h1>Sonido e iluminación que hacen <span class="grad">inolvidable</span> tu evento</h1>
+  <p class="hero-sub">Servicios profesionales de sonido, iluminación y producción para todo tipo de eventos, garantizando calidad y satisfacción total.</p>
+  <div class="hero-actions">
+    <a href="https://wa.me/593992865420" target="_blank" rel="noopener" class="btn btn-primary">Cotizar por WhatsApp</a>
+    <a href="#servicios" class="btn btn-ghost">Ver servicios</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><b>+100</b><span>Eventos producidos</span></div>
+    <div class="stat"><b>100%</b><span>Satisfacción garantizada</span></div>
+    <div class="stat"><b>24/7</b><span>Atención al cliente</span></div>
+  </div>
+</header>
+
+<!-- ================= MISIÓN / VISIÓN ================= -->
+<section id="nosotros">
+  <span class="section-tag">Nosotros</span>
+  <h2>Quiénes somos</h2>
+  <p class="section-sub">Una empresa comprometida con la excelencia en cada producción.</p>
+  <div class="mv-grid">
+    <div class="card reveal">
+      <div class="icon">🎯</div>
+      <h3>Misión</h3>
+      <p>Ofrecer servicios de sonido e iluminación profesional para todo tipo de eventos, garantizando calidad y satisfacción total.</p>
+    </div>
+    <div class="card reveal">
+      <div class="icon">🚀</div>
+      <h3>Visión</h3>
+      <p>Ser una empresa líder en producción de eventos en Ecuador, reconocida por innovación, calidad y excelencia en servicio.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICIOS ================= -->
+<section class="servicios" id="servicios">
+  <div class="inner">
+    <span class="section-tag">Servicios</span>
+    <h2>Nuestros servicios</h2>
+    <p class="section-sub">Producción integral para eventos de cualquier escala.</p>
+    <div class="serv-grid">
+      <div class="serv-card serv-corp reveal">
+        <div class="icon">💼</div>
+        <h3>Eventos Corporativos</h3>
+        <p>Organizamos eventos empresariales, conferencias y presentaciones profesionales.</p>
+        <ul>
+          <li>Conferencias y seminarios</li>
+          <li>Lanzamientos de producto</li>
+          <li>Presentaciones ejecutivas</li>
+          <li>Sonido y proyección profesional</li>
+        </ul>
+      </div>
+      <div class="serv-card serv-masivo reveal">
+        <div class="icon">🎤</div>
+        <h3>Eventos Masivos</h3>
+        <p>Montaje y producción de conciertos, ferias y festivales con sonido e iluminación de alta potencia.</p>
+        <ul>
+          <li>Conciertos y festivales</li>
+          <li>Ferias y exposiciones</li>
+          <li>Iluminación de alta potencia</li>
+          <li>Escenarios y estructuras</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACTO ================= -->
+<section id="contacto">
+  <span class="section-tag">Contacto</span>
+  <h2>Contáctanos</h2>
+  <p class="section-sub">Estamos en todas las redes. Escríbenos y hagamos realidad tu evento.</p>
+  <div class="contacto-grid">
+    <a class="social-card sc-wa reveal" href="https://wa.me/593992865420" target="_blank" rel="noopener">
+      <div class="s-icon"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.12c-.25.7-1.45 1.33-2 1.38-.51.05-1.16.07-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.59-.37.79-.37.2 0 .39 0 .56.01.18.01.42-.07.66.5.25.59.85 2.05.92 2.2.07.15.12.32.02.52-.1.2-.15.32-.3.5-.15.17-.31.39-.44.52-.15.15-.3.31-.13.61.17.3.77 1.26 1.65 2.05 1.13 1.01 2.08 1.32 2.38 1.47.3.15.47.12.64-.07.17-.2.74-.86.93-1.16.2-.3.39-.25.66-.15.27.1 1.71.81 2 .96.3.15.49.22.56.35.08.13.08.72-.17 1.42z"/></svg></div>
+      <b>WhatsApp</b>
+      <span>+593 99 286 5420</span>
+    </a>
+    <a class="social-card sc-ig reveal" href="https://instagram.com/eventosjreventos" target="_blank" rel="noopener">
+      <div class="s-icon"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.31 1.46-.72 2.13-1.38.66-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.31-.79-.72-1.46-1.38-2.13C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.15a4 4 0 1 1 0-7.99 4 4 0 0 1 0 7.99zM19.85 5.6a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg></div>
+      <b>Instagram</b>
+      <span>@eventosjreventos</span>
+    </a>
+    <a class="social-card sc-fb reveal" href="https://facebook.com/eventosjreventos" target="_blank" rel="noopener">
+      <div class="s-icon"><svg viewBox="0 0 24 24"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.02 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.7 4.53-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.09 24 12.07z"/></svg></div>
+      <b>Facebook</b>
+      <span>/eventosjreventos</span>
+    </a>
+    <a class="social-card sc-tt reveal" href="https://tiktok.com/@eventosjreventos" target="_blank" rel="noopener">
+      <div class="s-icon"><svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.9 2.9 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .58.04.86.13V9.4a6.33 6.33 0 0 0-5.39 10.69 6.33 6.33 0 0 0 10.86-4.43V8.56a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.01z"/></svg></div>
+      <b>TikTok</b>
+      <span>@eventosjreventos</span>
+    </a>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<div class="cta-banner reveal">
+  <h2>¿Listo para tu próximo evento?</h2>
+  <p>Cuéntanos tu idea y nosotros nos encargamos de la producción completa.</p>
+  <a href="https://wa.me/593992865420" target="_blank" rel="noopener" class="btn btn-primary">Escríbenos ahora</a>
+</div>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <span>© JR Eventos 2025 — Todos los derechos reservados</span>
+  <span>Ecuador · Sonido · Iluminación · Producción</span>
+</footer>
+
+<!-- WhatsApp flotante -->
+<a class="wa-float" href="https://wa.me/593992865420" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.83 14.12c-.25.7-1.45 1.33-2 1.38-.51.05-1.16.07-1.87-.12-.43-.14-.98-.32-1.69-.62-2.98-1.29-4.92-4.29-5.07-4.49-.15-.2-1.21-1.61-1.21-3.07 0-1.46.77-2.18 1.04-2.48.27-.3.59-.37.79-.37.2 0 .39 0 .56.01.18.01.42-.07.66.5.25.59.85 2.05.92 2.2.07.15.12.32.02.52-.1.2-.15.32-.3.5-.15.17-.31.39-.44.52-.15.15-.3.31-.13.61.17.3.77 1.26 1.65 2.05 1.13 1.01 2.08 1.32 2.38 1.47.3.15.47.12.64-.07.17-.2.74-.86.93-1.16.2-.3.39-.25.66-.15.27.1 1.71.81 2 .96.3.15.49.22.56.35.08.13.08.72-.17 1.42z"/></svg>
+</a>
+
+<script>
+  // Activar animaciones solo cuando JavaScript está disponible
+  document.documentElement.classList.add('js');
+
+  // Animación de aparición al hacer scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Cerrar menú móvil al hacer clic en un enlace
+  document.querySelectorAll('.nav-links a').forEach(a =>
+    a.addEventListener('click', () => document.querySelector('.nav-links').classList.remove('open'))
+  );
+</script>
+
+</body>
+</html>
