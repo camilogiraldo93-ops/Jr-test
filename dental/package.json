@@ -1,0 +1,16 @@
+{
+  "name": "dentalgest",
+  "version": "1.0.0",
+  "description": "Sistema de gestión para consultorios dentales: agenda multinivel, expedientes, consentimientos informados y contabilidad.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "seed": "node --no-warnings seed.js",
+    "seed:reset": "node --no-warnings seed.js --reset",
+    "test": "node --no-warnings --test --test-concurrency=1 --test-timeout=540000 test/api.e2e.test.js test/ui.e2e.test.js",
+    "test:api": "node --no-warnings --test --test-timeout=120000 test/api.e2e.test.js",
+    "test:ui": "node --no-warnings --test --test-timeout=540000 test/ui.e2e.test.js"
+  }
+}

@@ -1,0 +1,477 @@
+import { api, ErrorApi } from '../api.js';
+import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, confirmar,
+  fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO } from '../ui.js';
+import { abrirFormularioCita } from './formCita.js';
+import { verConsentimiento } from './consentimiento.js';
+
+const SIGUIENTES = {
+  agendada: ['confirmada', 'en_curso', 'cancelada', 'no_asistio'],
+  confirmada: ['en_curso', 'completada', 'cancelada', 'no_asistio'],
+  en_curso: ['completada', 'cancelada'],
+  completada: [],
+  cancelada: ['agendada'],
+  no_asistio: ['agendada'],
+};
+
+function leerArchivo(file) {
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader();
+    lector.onload = () => resolver(lector.result);
+    lector.onerror = () => rechazar(new Error(`No se pudo leer el archivo ${file.name}.`));
+    lector.readAsDataURL(file);
+  });
+}
+
+export async function vistaCita({ param, usuario, refrescar, navegar }) {
+  const id = Number(param);
+  if (!Number.isInteger(id)) return vacio('Cita no válida.');
+
+  const [cita, catalogo] = await Promise.all([api.cita(id), api.catalogo()]);
+  const puedeClinico = ['admin', 'doctor'].includes(usuario.rol);
+  const puedeCobrar = ['admin', 'recepcion'].includes(usuario.rol);
+  const activa = !['cancelada', 'no_asistio'].includes(cita.estado);
+
+  /* ---------------------------- Cambio de estado -------------------------- */
+  const accionesEstado = el('div', { clase: 'acciones' }, SIGUIENTES[cita.estado].map((e) =>
+    el('button', {
+      clase: e === 'cancelada' || e === 'no_asistio' ? 'btn sec chico' : 'btn chico',
+      type: 'button', texto: ETIQUETAS_ESTADO[e],
+      onclick: async () => {
+        if (['cancelada', 'no_asistio'].includes(e)) {
+          const ok = await confirmar(`Marcar como ${ETIQUETAS_ESTADO[e]}`,
+            `¿Confirmas cambiar la cita #${cita.id} a "${ETIQUETAS_ESTADO[e]}"? El horario quedará libre en la agenda.`);
+          if (!ok) return;
+        }
+        try {
+          await api.cambiarEstadoCita(cita.id, e);
+          exito(`La cita ahora está "${ETIQUETAS_ESTADO[e]}".`);
+          await refrescar();
+        } catch (err) {
+          error(err instanceof ErrorApi ? err.message : 'No se pudo cambiar el estado.');
+        }
+      },
+    })));
+
+  /* ----------------------------- Tratamientos ---------------------------- */
+  function abrirTratamiento() {
+    const selCat = selector('catalogo_id', [
+      { valor: '', texto: '— Tratamiento libre —' },
+      ...catalogo.map((c) => ({ valor: c.id, texto: `${c.nombre} (${fmtDinero(c.precio_base)})` })),
+    ], '');
+    const inNombre = entrada('nombre', { required: true, placeholder: 'Nombre del tratamiento realizado' });
+    const inDientes = entrada('dientes', { placeholder: 'Ej.: 16, 26 (separados por coma)' });
+    const selEstadoDiente = selector('estado_diente', [
+      { valor: '', texto: 'No modificar el odontograma' },
+      ...['sano', 'caries', 'obturado', 'corona', 'ausente', 'endodoncia', 'implante', 'fractura', 'sellante']
+        .map((e) => ({ valor: e, texto: `Marcar como ${e}` })),
+    ], '');
+    const inNotas = area('notas_clinicas', { placeholder: 'Hallazgos, materiales usados, indicaciones…' });
+    const inPrecio = entrada('precio', { type: 'number', step: '0.01', min: '0', value: '0' });
+    const chkConsent = el('input', { type: 'checkbox' });
+    const chkCargo = el('input', { type: 'checkbox', checked: true });
+
+    selCat.addEventListener('change', () => {
+      const c = catalogo.find((x) => String(x.id) === selCat.value);
+      if (c) {
+        inNombre.value = c.nombre;
+        inPrecio.value = String(c.precio_base);
+        chkConsent.checked = !!c.requiere_consentimiento;
+      }
+    });
+
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar tratamiento' });
+    const m = modal({
+      titulo: 'Registrar tratamiento realizado',
+      ancho: true,
+      cuerpo: el('div', {}, [
+        campo('Tratamiento del catálogo', selCat, 'Al elegir uno se completan nombre, precio y consentimiento.'),
+        campo('Nombre del tratamiento *', inNombre),
+        el('div', { clase: 'fila' }, [
+          campo('Piezas dentales', inDientes),
+          campo('Estado del odontograma', selEstadoDiente),
+          campo('Precio', inPrecio),
+        ]),
+        campo('Notas clínicas', inNotas),
+        el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
+          chkConsent, el('span', { texto: 'Requiere consentimiento informado (se genera automáticamente)' }),
+        ]),
+        el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
+          chkCargo, el('span', { texto: 'Generar el cargo contable por el precio indicado' }),
+        ]),
+      ]),
+      pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
+    });
+
+    boton.addEventListener('click', async () => {
+      if (!inNombre.value.trim()) { error('Indica el nombre del tratamiento.'); return; }
+      boton.disabled = true;
+      boton.textContent = 'Guardando…';
+      try {
+        await api.crearTratamiento(cita.id, {
+          catalogo_id: selCat.value ? Number(selCat.value) : null,
+          nombre: inNombre.value.trim(),
+          dientes: inDientes.value.trim(),
+          estado_diente: selEstadoDiente.value || null,
+          notas_clinicas: inNotas.value.trim(),
+          precio: Number(inPrecio.value || 0),
+          requiere_consentimiento: chkConsent.checked,
+          generar_cargo: chkCargo.checked,
+        });
+        m.cerrar();
+        exito('Tratamiento registrado en el expediente del paciente.');
+        await refrescar();
+      } catch (err) {
+        error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el tratamiento.');
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Registrar tratamiento';
+      }
+    });
+  }
+
+  /* -------------------------------- Fotos -------------------------------- */
+  function abrirFotos() {
+    const input = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', multiple: true });
+    const selTipo = selector('tipo', [
+      { valor: 'radiografia', texto: 'Radiografía' },
+      { valor: 'intraoral', texto: 'Foto intraoral' },
+      { valor: 'extraoral', texto: 'Foto extraoral' },
+      { valor: 'documento', texto: 'Documento' },
+      { valor: 'otro', texto: 'Otro' },
+    ], 'intraoral');
+    const inDesc = entrada('descripcion', { placeholder: 'Descripción (opcional)' });
+    const lista = el('div', { clase: 'mini' });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Subir imágenes' });
+
+    input.addEventListener('change', () => {
+      lista.textContent = input.files.length
+        ? `${input.files.length} archivo(s) seleccionado(s): ${[...input.files].map((f) => f.name).join(', ')}`
+        : '';
+    });
+
+    const m = modal({
+      titulo: 'Cargar radiografías y fotos intraorales',
+      cuerpo: el('div', {}, [
+        campo('Archivos de imagen', input, 'Puedes seleccionar varias imágenes a la vez (PNG, JPG, WEBP o GIF).'),
+        lista,
+        campo('Tipo', selTipo),
+        campo('Descripción', inDesc),
+      ]),
+      pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
+    });
+
+    boton.addEventListener('click', async () => {
+      if (!input.files.length) { error('Selecciona al menos una imagen.'); return; }
+      boton.disabled = true;
+      boton.textContent = 'Subiendo…';
+      let subidas = 0;
+      try {
+        for (const file of input.files) {
+          const datos = await leerArchivo(file);
+          await api.subirFoto(cita.id, {
+            nombre: file.name, datos, tipo: selTipo.value, descripcion: inDesc.value.trim(),
+          });
+          subidas++;
+        }
+        m.cerrar();
+        exito(`${subidas} imagen(es) vinculada(s) a la cita y al expediente.`);
+        await refrescar();
+      } catch (err) {
+        error(err instanceof ErrorApi ? err.message : `No se pudieron subir todas las imágenes (${subidas} completadas).`);
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Subir imágenes';
+      }
+    });
+  }
+
+  /* ---------------------------- Recordatorios ---------------------------- */
+  function abrirRecordatorio() {
+    const inTitulo = entrada('titulo', { required: true, placeholder: 'Ej.: Control de la restauración' });
+    const inDesc = area('descripcion', { placeholder: 'Qué debe revisarse o completarse' });
+    const inFecha = entrada('fecha_objetivo', { type: 'date', value: hoyIso() });
+    const selPrioridad = selector('prioridad', [
+      { valor: 'baja', texto: 'Baja' }, { valor: 'media', texto: 'Media' }, { valor: 'alta', texto: 'Alta' },
+    ], 'media');
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Crear recordatorio' });
+
+    const m = modal({
+      titulo: 'Nuevo recordatorio de seguimiento',
+      cuerpo: el('div', {}, [
+        campo('Título *', inTitulo),
+        campo('Descripción', inDesc),
+        el('div', { clase: 'fila' }, [campo('Fecha objetivo', inFecha), campo('Prioridad', selPrioridad)]),
+      ]),
+      pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
+    });
+
+    boton.addEventListener('click', async () => {
+      if (!inTitulo.value.trim()) { error('El recordatorio necesita un título.'); return; }
+      boton.disabled = true;
+      try {
+        await api.crearRecordatorio(cita.id, {
+          titulo: inTitulo.value.trim(), descripcion: inDesc.value.trim(),
+          fecha_objetivo: inFecha.value, prioridad: selPrioridad.value,
+        });
+        m.cerrar();
+        exito('Recordatorio creado y vinculado al expediente.');
+        await refrescar();
+      } catch (err) {
+        error(err instanceof ErrorApi ? err.message : 'No se pudo crear el recordatorio.');
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  }
+
+  /* ------------------------------- Cobros -------------------------------- */
+  function abrirCobro(cargo = null) {
+    const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true,
+      value: cargo ? String(cargo.monto) : '' });
+    const selMetodo = selector('metodo', [
+      { valor: 'efectivo', texto: 'Efectivo' }, { valor: 'tarjeta', texto: 'Tarjeta' },
+      { valor: 'transferencia', texto: 'Transferencia' }, { valor: 'seguro', texto: 'Seguro' },
+      { valor: 'otro', texto: 'Otro' },
+    ], 'efectivo');
+    const inNota = entrada('nota', { placeholder: 'Referencia o nota (opcional)' });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar pago' });
+
+    const m = modal({
+      titulo: cargo ? `Registrar pago del cargo: ${cargo.concepto}` : 'Registrar pago del paciente',
+      cuerpo: el('div', {}, [
+        cargo ? el('div', { clase: 'alerta-caja ok', texto: `Cargo de ${fmtDinero(cargo.monto)} · Saldo pendiente ${fmtDinero(cargo.saldo)}.` }) : null,
+        campo('Monto', inMonto),
+        campo('Método de pago', selMetodo),
+        campo('Nota', inNota),
+      ]),
+      pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
+    });
+
+    boton.addEventListener('click', async () => {
+      const monto = Number(inMonto.value);
+      if (!(monto > 0)) { error('Indica un monto mayor que cero.'); return; }
+      boton.disabled = true;
+      try {
+        await api.crearPago({
+          cargo_id: cargo?.id ?? null,
+          paciente_id: cita.paciente_id,
+          consultorio_id: cita.consultorio_id,
+          monto, metodo: selMetodo.value, nota: inNota.value.trim(),
+        });
+        m.cerrar();
+        exito('Pago registrado en el estado de cuenta del paciente.');
+        await refrescar();
+      } catch (err) {
+        error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el pago.');
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  }
+
+  /* ------------------------------ Secciones ------------------------------ */
+  const cargosConSaldo = await api.cargos({ cita_id: cita.id });
+
+  const seccionTratamientos = el('div', { clase: 'tarjeta' }, [
+    el('h3', {}, [
+      el('span', { texto: '🦷 Tratamientos de esta cita' }),
+      puedeClinico && activa
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Registrar', style: 'margin-left:auto', onclick: abrirTratamiento })
+        : null,
+    ]),
+    cita.tratamientos.length
+      ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
+          el('thead', {}, [el('tr', {}, ['Tratamiento', 'Piezas', 'Notas clínicas', 'Precio', 'Consentimiento'].map((t) => el('th', { texto: t })))]),
+          el('tbody', {}, cita.tratamientos.map((t) => {
+            const cons = cita.consentimientos.find((c) => c.tratamiento_id === t.id);
+            return el('tr', {}, [
+              el('td', {}, [el('b', { texto: t.nombre })]),
+              el('td', { texto: t.dientes || '—' }),
+              el('td', { texto: t.notas_clinicas || '—' }),
+              el('td', { clase: 'num', texto: fmtDinero(t.precio) }),
+              el('td', {}, [
+                cons
+                  ? el('button', {
+                      clase: cons.estado === 'firmado' ? 'btn sec chico' : 'btn chico',
+                      type: 'button',
+                      texto: cons.estado === 'firmado' ? '✅ Ver firmado' : '✍️ Firmar ahora',
+                      onclick: () => verConsentimiento(cons.id, { alFirmar: refrescar }),
+                    })
+                  : puedeClinico
+                    ? el('button', {
+                        clase: 'btn sec chico', type: 'button', texto: 'Generar consentimiento',
+                        onclick: async () => {
+                          try {
+                            const c = await api.generarConsentimiento(t.id);
+                            await refrescar();
+                            verConsentimiento(c.id, { alFirmar: refrescar });
+                          } catch (e) { error(e instanceof ErrorApi ? e.message : 'No se pudo generar.'); }
+                        },
+                      })
+                    : el('span', { clase: 'mini', texto: 'No requiere' }),
+              ]),
+            ]);
+          })),
+        ])])
+      : vacio('Todavía no se ha registrado ningún tratamiento en esta cita.'),
+  ]);
+
+  const seccionFotos = el('div', { clase: 'tarjeta' }, [
+    el('h3', {}, [
+      el('span', { texto: `🖼️ Imágenes de la cita (${cita.fotos.length})` }),
+      activa
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Cargar fotos', style: 'margin-left:auto', onclick: abrirFotos })
+        : null,
+    ]),
+    cita.fotos.length
+      ? el('div', { clase: 'galeria' }, cita.fotos.map((f) => el('figure', {}, [
+          el('img', {
+            src: `/uploads/${f.archivo}`, alt: f.nombre, loading: 'lazy',
+            onclick: () => modal({
+              titulo: f.nombre, ancho: true,
+              cuerpo: el('img', { src: `/uploads/${f.archivo}`, alt: f.nombre, style: 'width:100%;border-radius:10px' }),
+            }),
+          }),
+          el('figcaption', {}, [el('b', { texto: f.nombre }), el('span', { texto: `${f.tipo} · ${fmtFechaCorta(f.creada_en)}` })]),
+        ])))
+      : vacio('Sin imágenes cargadas en esta cita.'),
+  ]);
+
+  const seccionRecordatorios = el('div', { clase: 'tarjeta' }, [
+    el('h3', {}, [
+      el('span', { texto: '🔔 Recordatorios creados en la cita' }),
+      activa
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Nuevo', style: 'margin-left:auto', onclick: abrirRecordatorio })
+        : null,
+    ]),
+    cita.recordatorios.length
+      ? el('ul', { clase: 'lista-simple' }, cita.recordatorios.map((r) => el('li', {}, [
+          el('div', {}, [
+            el('div', { clase: 'tit', texto: r.titulo }),
+            el('div', { clase: 'det', texto: r.descripcion || '' }),
+            el('div', { clase: 'mini', texto: r.fecha_objetivo ? `Objetivo: ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha objetivo' }),
+          ]),
+          el('div', { clase: 'acciones' }, [
+            el('span', { clase: `eti ${r.prioridad}`, texto: r.prioridad }),
+            el('span', { clase: `eti ${r.estado}`, texto: r.estado }),
+          ]),
+        ])))
+      : vacio('Sin recordatorios en esta cita.'),
+  ]);
+
+  const seccionSeguimiento = el('div', { clase: 'tarjeta' }, [
+    el('h3', {}, [
+      el('span', { texto: '📅 Próxima cita derivada de este tratamiento' }),
+      activa
+        ? el('button', {
+            clase: 'btn chico', type: 'button', texto: '➕ Agendar seguimiento', style: 'margin-left:auto',
+            onclick: () => abrirFormularioCita({
+              titulo: `Agendar seguimiento de la cita #${cita.id}`,
+              paciente_id: cita.paciente_id,
+              consultorio_id: cita.consultorio_id,
+              cubiculo_id: cita.cubiculo_id,
+              doctor_id: cita.doctor_id,
+              cita_origen_id: cita.id,
+              fecha: cita.inicio.slice(0, 10),
+              motivo: `Seguimiento de ${cita.tratamientos[0]?.nombre || cita.motivo || 'tratamiento'}`,
+              alGuardar: () => refrescar(),
+            }),
+          })
+        : null,
+    ]),
+    cita.cita_seguimiento.length
+      ? el('ul', { clase: 'lista-simple' }, cita.cita_seguimiento.map((c) => el('li', {}, [
+          el('div', {}, [
+            el('div', { clase: 'tit', texto: fmtFechaHora(c.inicio) }),
+            el('div', { clase: 'det', texto: c.motivo || 'Sin motivo' }),
+            el('div', { clase: 'mini', texto: `${c.doctor_nombre} · ${c.consultorio_nombre} · ${c.cubiculo_nombre}` }),
+          ]),
+          el('div', { clase: 'acciones' }, [
+            etiquetaEstado(c.estado),
+            el('a', { clase: 'btn sec chico', href: `#/cita/${c.id}`, texto: 'Abrir' }),
+          ]),
+        ])))
+      : vacio('No se ha agendado una cita de seguimiento desde esta cita.'),
+  ]);
+
+  const totalCargos = cargosConSaldo.reduce((s, c) => s + c.monto, 0);
+  const totalPagado = cargosConSaldo.reduce((s, c) => s + c.pagado, 0);
+
+  const seccionCobros = el('div', { clase: 'tarjeta' }, [
+    el('h3', {}, [
+      el('span', { texto: '💰 Cobros de esta cita' }),
+      puedeCobrar
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Registrar pago', style: 'margin-left:auto', onclick: () => abrirCobro(null) })
+        : null,
+    ]),
+    cargosConSaldo.length
+      ? el('div', {}, [
+          el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
+            el('thead', {}, [el('tr', {}, ['Concepto', 'Monto', 'Pagado', 'Saldo', ''].map((t) => el('th', { texto: t })))]),
+            el('tbody', {}, cargosConSaldo.map((c) => el('tr', {}, [
+              el('td', { texto: c.concepto }),
+              el('td', { clase: 'num', texto: fmtDinero(c.monto) }),
+              el('td', { clase: 'num', texto: fmtDinero(c.pagado) }),
+              el('td', { clase: 'num', texto: fmtDinero(c.saldo) }),
+              el('td', {}, [
+                c.saldo > 0 && puedeCobrar
+                  ? el('button', { clase: 'btn chico', type: 'button', texto: 'Cobrar', onclick: () => abrirCobro(c) })
+                  : el('span', { clase: 'eti firmado', texto: 'pagado' }),
+              ]),
+            ]))),
+          ])]),
+          el('div', { clase: 'mini', style: 'margin-top:8px', texto: `Total ${fmtDinero(totalCargos)} · Pagado ${fmtDinero(totalPagado)} · Saldo ${fmtDinero(totalCargos - totalPagado)}` }),
+        ])
+      : vacio('Sin cargos generados en esta cita.'),
+  ]);
+
+  /* -------------------------------- Marco -------------------------------- */
+  return el('div', {}, [
+    el('div', { clase: 'cabecera' }, [
+      el('div', {}, [
+        el('h2', { texto: `Cita #${cita.id} — ${cita.paciente_nombre} ${cita.paciente_apellidos}` }),
+        el('div', { clase: 'desc', texto: `${fmtFechaHora(cita.inicio)} – ${cita.fin.slice(11)} · ${cita.doctor_nombre} · ${cita.consultorio_nombre} / ${cita.cubiculo_nombre}` }),
+      ]),
+      el('div', { clase: 'acciones' }, [
+        el('a', { clase: 'btn sec', href: '#/agenda', texto: '← Agenda' }),
+        el('a', { clase: 'btn sec', href: `#/paciente/${cita.paciente_id}`, texto: '📋 Expediente' }),
+        activa && cita.estado !== 'completada'
+          ? el('button', {
+              clase: 'btn sec', type: 'button', texto: '🕑 Reprogramar',
+              onclick: () => abrirFormularioCita({ cita, alGuardar: refrescar }),
+            })
+          : null,
+      ]),
+    ]),
+
+    el('div', { clase: 'tarjeta' }, [
+      el('h3', { texto: 'Estado de la cita' }),
+      el('div', { clase: 'acciones', style: 'align-items:center' }, [
+        etiquetaEstado(cita.estado),
+        el('span', { clase: 'mini', texto: `Motivo: ${cita.motivo || '—'}` }),
+      ]),
+      SIGUIENTES[cita.estado].length
+        ? el('div', { style: 'margin-top:12px' }, [
+            el('div', { clase: 'mini', style: 'margin-bottom:6px', texto: 'Cambiar a:' }),
+            accionesEstado,
+          ])
+        : el('p', { clase: 'mini', style: 'margin-top:10px', texto: 'La cita está completada; no admite más cambios de estado.' }),
+      cita.notas ? el('p', { clase: 'mini', style: 'margin-top:10px', texto: `Notas: ${cita.notas}` }) : null,
+      cita.cita_origen_id
+        ? el('p', { clase: 'mini', style: 'margin-top:6px' }, [
+            document.createTextNode('Cita de seguimiento derivada de la '),
+            el('a', { href: `#/cita/${cita.cita_origen_id}`, texto: `cita #${cita.cita_origen_id}` }),
+          ])
+        : null,
+    ]),
+
+    !activa
+      ? el('div', { clase: 'alerta-caja aviso', texto: `Esta cita está en estado "${ETIQUETAS_ESTADO[cita.estado]}": no admite registro clínico. Reactívala para volver a trabajar en ella.` })
+      : null,
+
+    seccionTratamientos,
+    el('div', { clase: 'rejilla c2' }, [seccionFotos, seccionRecordatorios]),
+    seccionSeguimiento,
+    seccionCobros,
+  ]);
+}
