@@ -344,3 +344,119 @@ table.tabla td.num, table.tabla th.num { text-align: right; white-space: nowrap;
   .modal-fondo { padding: 10px; }
   .cabecera h2 { font-size: 1.2rem; }
 }
+
+/* ====================== Consentimiento informado ======================== */
+
+.hoja {
+  background: #fff; border: 1px solid var(--borde); border-radius: var(--radio);
+  box-shadow: var(--sombra); padding: 34px 38px; margin-bottom: 18px;
+  max-width: 900px; position: relative;
+}
+.documento { font-size: .95rem; line-height: 1.65; color: #1b2a33; }
+.doc-titulo {
+  font-size: 1.05rem; text-align: center; letter-spacing: .4px;
+  margin-bottom: 18px; text-transform: uppercase;
+}
+.doc-encabezado {
+  text-align: center; border-bottom: 2px solid var(--borde);
+  padding-bottom: 12px; margin-bottom: 20px;
+}
+.doc-clinica { font-weight: 800; font-size: 1.02rem; }
+.doc-clinica-datos { color: var(--suave); font-size: .84rem; }
+.doc-parrafo { margin: 14px 0; text-align: justify; }
+.doc-lista { margin: 14px 0 14px 22px; }
+.doc-punto { margin-bottom: 9px; text-align: justify; }
+.doc-lugar { margin-top: 26px; font-size: .9rem; }
+
+.firmas {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 30px; margin-top: 34px;
+}
+.firma-bloque { text-align: center; }
+.firma-img {
+  max-width: 100%; height: 110px; object-fit: contain;
+  border-bottom: 1px solid var(--texto); display: block; margin: 0 auto;
+}
+.firma-linea { height: 110px; border-bottom: 1px solid var(--texto); }
+.firma-pie { padding-top: 7px; }
+.firma-rol { font-weight: 700; font-size: .85rem; }
+.firma-nombre { font-size: .9rem; }
+.firma-detalle { color: var(--suave); font-size: .78rem; }
+
+.zona-firmas { margin-top: 30px; border-top: 2px dashed var(--borde); padding-top: 22px; }
+.firma-campo {
+  border: 1px solid var(--borde); border-radius: 12px; padding: 14px; background: #fbfdfd;
+}
+.firma-etiqueta { font-weight: 700; font-size: .88rem; margin-bottom: 8px; }
+.firma-lienzo {
+  border: 2px dashed var(--borde); border-radius: 10px; background: #fff;
+  width: 100%; height: 190px; touch-action: none; display: block; cursor: crosshair;
+}
+.firma-lienzo.con-trazo { border-style: solid; border-color: var(--azul); }
+.firma-aviso.ok { color: var(--ok); font-weight: 600; }
+
+.sello-borrador {
+  position: absolute; top: 26px; right: 30px;
+  border: 3px solid var(--alerta); color: var(--alerta);
+  padding: 6px 14px; border-radius: 8px; font-weight: 800;
+  transform: rotate(-8deg); letter-spacing: 1px; font-size: .85rem;
+}
+
+/* Modo tablet: pantalla limpia para entregar el dispositivo al paciente */
+body.modo-tablet .lateral,
+body.modo-tablet .consent-vista .cabecera,
+body.modo-tablet .consent-vista .tarjeta.sin-imprimir { display: none; }
+body.modo-tablet .contenido { padding: 10px; }
+body.modo-tablet .hoja { max-width: 100%; padding: 26px; font-size: 1.05rem; }
+body.modo-tablet .documento { font-size: 1.05rem; }
+body.modo-tablet .firma-lienzo { height: 240px; }
+.salir-tablet { display: none; }
+body.modo-tablet .salir-tablet {
+  display: inline-flex; position: fixed; top: 12px; right: 14px; z-index: 300;
+  box-shadow: var(--sombra);
+}
+
+/* ============================= Impresión ================================ */
+
+.vista-impresion .hoja { max-width: 940px; }
+.membrete {
+  border-bottom: 2px solid var(--borde); padding-bottom: 12px; margin-bottom: 20px;
+}
+.membrete-sub { font-weight: 600; margin-top: 4px; }
+.bloque-impresion { margin-bottom: 22px; break-inside: avoid; }
+.titulo-impresion {
+  font-size: .82rem; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--azul); border-bottom: 1px solid var(--borde);
+  padding-bottom: 5px; margin-bottom: 10px;
+}
+.rejilla-impresion {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px;
+}
+.dato-impreso { font-size: .89rem; }
+.dato-etq { color: var(--suave); }
+.resumen-cuenta { font-weight: 700; margin-top: 10px; }
+.galeria-impresion {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+}
+.galeria-impresion img {
+  width: 100%; height: 120px; object-fit: cover;
+  border: 1px solid var(--borde); border-radius: 8px; background: #eef2f4;
+}
+.galeria-impresion figcaption { font-size: .74rem; color: var(--suave); margin-top: 4px; }
+
+@media print {
+  body { background: #fff; }
+  .lateral, .sin-imprimir, .avisos, .pestanas, .modal-fondo { display: none !important; }
+  .marco { display: block; }
+  .contenido { padding: 0; }
+  .hoja {
+    box-shadow: none; border: none; border-radius: 0;
+    padding: 0; margin: 0; max-width: 100%;
+  }
+  .tarjeta { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  table.tabla { font-size: .8rem; }
+  a { color: inherit; text-decoration: none; }
+  .bloque-impresion { break-inside: avoid; }
+  .firmas { break-inside: avoid; }
+  @page { margin: 15mm; }
+}

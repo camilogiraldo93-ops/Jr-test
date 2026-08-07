@@ -2,6 +2,22 @@ import { api, ErrorApi } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio,
   fmtDinero, fmtFechaCorta, hoyIso } from '../ui.js';
 
+/** Convierte filas a CSV con comillas escapadas y BOM para que Excel respete los acentos. */
+function descargarCsv(nombreArchivo, encabezados, filas) {
+  const escapar = (v) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const contenido = [encabezados, ...filas].map((f) => f.map(escapar).join(';')).join('\r\n');
+  const blob = new Blob([`\uFEFF${contenido}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: nombreArchivo });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export async function vistaContabilidad({ refrescar }) {
   const consultorios = await api.consultorios();
   const estado = { periodo: 'mes', fecha: hoyIso(), consultorio_id: '' };
@@ -212,6 +228,57 @@ export async function vistaContabilidad({ refrescar }) {
               ]))),
             ])])
           : vacio('Sin gastos en el período.'),
+      ]),
+    ]));
+
+    const filaCsv = el('div', { clase: 'acciones', style: 'margin-bottom:16px' }, [
+      el('button', {
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar pagos (CSV)',
+        onclick: () => descargarCsv(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
+          ['Fecha', 'Paciente', 'Metodo', 'Nota', 'Monto'],
+          pagosP.map((x) => [x.fecha, `${x.paciente_apellidos}, ${x.paciente_nombre}`, x.metodo, x.nota || '', x.monto])),
+      }),
+      el('button', {
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos (CSV)',
+        onclick: () => descargarCsv(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
+          ['Fecha', 'Consultorio', 'Categoria', 'Concepto', 'Proveedor', 'Monto'],
+          gastosP.map((g) => [g.fecha, g.consultorio_nombre, g.categoria, g.concepto, g.proveedor || '', g.monto])),
+      }),
+    ]);
+    zona.appendChild(filaCsv);
+
+    zona.appendChild(el('div', { clase: 'rejilla c2' }, [
+      el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: '🧑‍⚕️ Ingresos por doctor' }),
+        bal.ingresos_por_doctor.length
+          ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
+              el('thead', {}, [el('tr', {}, ['Doctor', 'Pagos', 'Cobrado', 'Producción'].map((t) => el('th', { texto: t })))]),
+              el('tbody', {}, bal.ingresos_por_doctor.map((d) => {
+                const prod = bal.produccion_por_doctor.find((x) => x.doctor === d.doctor);
+                return el('tr', {}, [
+                  el('td', { texto: d.doctor }),
+                  el('td', { clase: 'num', texto: String(d.n) }),
+                  el('td', { clase: 'num', texto: fmtDinero(d.total) }),
+                  el('td', { clase: 'num', texto: prod ? fmtDinero(prod.total) : '—' }),
+                ]);
+              })),
+            ])])
+          : vacio('Sin ingresos en el período.'),
+        el('p', { clase: 'mini', style: 'margin-top:8px', texto:
+          'Cobrado = pagos recibidos, atribuidos al doctor del tratamiento. Producción = tratamientos facturados en el período.' }),
+      ]),
+      el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: '💳 Ingresos por método de pago' }),
+        bal.ingresos_por_metodo.length
+          ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
+              el('thead', {}, [el('tr', {}, ['Método', 'Pagos', 'Total'].map((t) => el('th', { texto: t })))]),
+              el('tbody', {}, bal.ingresos_por_metodo.map((m2) => el('tr', {}, [
+                el('td', { texto: m2.metodo }),
+                el('td', { clase: 'num', texto: String(m2.n) }),
+                el('td', { clase: 'num', texto: fmtDinero(m2.total) }),
+              ]))),
+            ])])
+          : vacio('Sin pagos en el período.'),
       ]),
     ]));
 

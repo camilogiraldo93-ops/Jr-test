@@ -70,8 +70,11 @@ export function modal({ titulo, cuerpo, pie = [], ancho = false, alCerrar }) {
 
   cont.appendChild(fondo);
   document.addEventListener('keydown', esc);
+  // El foco se coloca de inmediato, no con un temporizador: si se difiere, quien
+  // empieza a escribir en otro campo antes de que salte ve cómo el texto se le va
+  // al primero.
   const primer = caja.querySelector('input, select, textarea');
-  if (primer) setTimeout(() => primer.focus(), 40);
+  if (primer) primer.focus({ preventScroll: true });
   return { cerrar, caja, fondo };
 }
 

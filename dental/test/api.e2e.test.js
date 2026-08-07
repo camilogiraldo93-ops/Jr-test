@@ -37,6 +37,46 @@ test('datos de ejemplo: 2 consultorios, ≥3 cubículos, 3 doctores, 10 paciente
   assert.ok(doctores.length >= 3, `doctores: ${doctores.length}`);
   assert.ok(pacientes.length >= 10, `pacientes: ${pacientes.length}`);
   assert.ok(citas.length >= 15, `citas: ${citas.length}`);
+
+  const ahoraIso = new Date().toISOString().slice(0, 16);
+  const futuras = citas.filter((c) => c.inicio > ahoraIso && !['cancelada', 'no_asistio'].includes(c.estado));
+  assert.ok(futuras.length >= 5, `debe haber citas futuras para probar la agenda: ${futuras.length}`);
+
+  const fotos = exigir(await admin.get('/api/pacientes/2/fotos'), 200, 'fotos de ejemplo');
+  assert.ok(fotos.length >= 1, 'los datos de ejemplo traen imágenes cargadas');
+
+  const pendientes = exigir(await admin.get('/api/consentimientos?estado=pendiente'), 200);
+  assert.ok(pendientes.length >= 1, 'hay un consentimiento pendiente listo para probar el flujo');
+});
+
+test('Regla clínica: el tratamiento exige la cita en curso', async () => {
+  const citas = exigir(await admin.get('/api/citas'), 200);
+  const agendada = citas.find((c) => c.estado === 'agendada');
+  const r = await admin.post(`/api/citas/${agendada.id}/tratamientos`, { nombre: 'Profilaxis' });
+  assert.equal(r.estado, 409, 'no se registra tratamiento en una cita apenas agendada');
+  assert.match(r.datos.error, /En curso/);
+
+  const confirmada = citas.find((c) => c.estado === 'confirmada');
+  const r2 = await admin.post(`/api/citas/${confirmada.id}/tratamientos`, { nombre: 'Profilaxis' });
+  assert.equal(r2.estado, 409, 'tampoco en una confirmada');
+});
+
+test('Bloqueo: una cita con consentimiento pendiente no se puede completar', async () => {
+  const pendientes = exigir(await admin.get('/api/consentimientos?estado=pendiente'), 200);
+  const consent = pendientes.find((c) => c.cita_id);
+  assert.ok(consent, 'los datos de ejemplo dejan un consentimiento pendiente ligado a una cita');
+
+  const r = await admin.patch(`/api/citas/${consent.cita_id}/estado`, { estado: 'completada' });
+  assert.equal(r.estado, 409, 'la cita queda bloqueada');
+  assert.match(r.datos.error, /sin firmar/);
+  assert.ok(r.datos.detalle.consentimientos_pendientes.length >= 1, 'el error indica cuáles faltan');
+
+  // Al firmarlo, la cita se cierra sin problema.
+  exigir(await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO, firma_paciente_nombre: consent.paciente_nombre,
+  }), 200, 'firmar');
+  const cerrada = exigir(await admin.patch(`/api/citas/${consent.cita_id}/estado`, { estado: 'completada' }), 200);
+  assert.equal(cerrada.estado, 'completada');
 });
 
 /* ------------------------------- Flujo 1 -------------------------------- */
@@ -264,39 +304,156 @@ test('Flujo 4 · Atender la cita: tratamiento + 2 fotos + recordatorio', async (
 });
 
 /* ------------------------------- Flujo 5 -------------------------------- */
-test('Flujo 5 · Generar y firmar el consentimiento informado', async () => {
+test('Flujo 5 · Consentimiento: autollenado, doble firma e inmutabilidad', async () => {
   const lista = exigir(await admin.get(`/api/consentimientos?tratamiento_id=${ctx.tratamiento.id}`), 200);
   assert.equal(lista.length, 1, 'se generó automáticamente al registrar el tratamiento');
   const consent = lista[0];
   ctx.consentimiento = consent;
 
   assert.equal(consent.estado, 'pendiente');
-  assert.equal(consent.nombre_paciente, `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`);
-  assert.equal(consent.nombre_doctor, ctx.doctor.nombre);
-  assert.ok(consent.riesgos.length > 20, 'incluye riesgos');
-  assert.ok(consent.alternativas.length > 10, 'incluye alternativas');
-  assert.ok(consent.descripcion.length > 10, 'incluye descripción del tratamiento');
+  // Los tres campos que llena la clínica
+  assert.equal(consent.tratamiento, ctx.catalogoItem.nombre);
+  assert.equal(consent.doctor_id, ctx.doctor.id);
+  // Todo lo demás viene autocompletado como instantánea
+  assert.equal(consent.paciente_nombre, `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`);
+  assert.equal(consent.paciente_cedula, ctx.paciente.cedula);
+  assert.equal(consent.doctor_nombre, ctx.doctor.nombre);
+  assert.equal(consent.doctor_especialidad, ctx.doctor.especialidad);
+  assert.equal(consent.consultorio_nombre, ctx.consultorio.nombre);
+  assert.equal(consent.consultorio_direccion, ctx.consultorio.direccion);
+  assert.equal(consent.consultorio_ciudad, ctx.consultorio.ciudad);
+  assert.match(consent.fecha, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(consent.hora, /^\d{2}:\d{2}$/);
+  assert.equal(consent.es_menor, 0, 'la paciente es mayor de edad');
+  assert.equal(consent.cita_id, ctx.cita.id);
 
-  // Firma sin trazo ni aceptación → rechazada.
-  const sinFirma = await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
-    firmante: ctx.paciente.nombre, firma_tipo: 'trazo',
-  });
-  assert.equal(sinFirma.estado, 400);
+  // Se pueden editar SOLO los tres campos manuales mientras esté pendiente.
+  const editado = exigir(await admin.put(`/api/consentimientos/${consent.id}`, {
+    tratamiento: 'Endodoncia unirradicular pieza 46',
+    observaciones: 'La paciente refiere alergia a la penicilina; se usará clindamicina.',
+    doctor_id: ctx.doctor.id,
+  }), 200, 'editar');
+  assert.equal(editado.tratamiento, 'Endodoncia unirradicular pieza 46');
+  assert.match(editado.observaciones, /clindamicina/);
+  assert.equal(editado.paciente_nombre, consent.paciente_nombre, 'la instantánea del paciente no cambia');
+
+  // Falta alguna de las dos firmas → rechazado.
+  assert.equal((await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_paciente: PNG_DEMO,
+  })).estado, 400, 'sin firma del doctor no se firma');
+  assert.equal((await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_doctor: PNG_DEMO,
+  })).estado, 400, 'sin firma del paciente no se firma');
+  assert.equal((await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_paciente: 'no-es-una-imagen', firma_doctor: PNG_DEMO,
+  })).estado, 400, 'la firma debe ser una imagen');
 
   const firmado = exigir(await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
-    firma_tipo: 'trazo', firma_data: PNG_DEMO,
-    firmante: `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`, acepta: true,
-  }), 201, 'firmar consentimiento');
+    firma_paciente: PNG_DEMO,
+    firma_paciente_nombre: `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`,
+    firma_doctor: PNG_DEMO,
+  }), 200, 'firmar');
 
   assert.equal(firmado.estado, 'firmado');
-  assert.ok(firmado.firmado_en, 'guarda la marca de fecha/hora de la firma');
-  assert.equal(firmado.firma_data, PNG_DEMO);
+  assert.ok(firmado.firmado_en, 'sella la fecha y hora de la firma');
+  assert.ok(firmado.firma_paciente_en && firmado.firma_doctor_en, 'sella ambas firmas');
+  assert.equal(firmado.firma_paciente, PNG_DEMO);
+  assert.equal(firmado.firma_doctor, PNG_DEMO);
 
-  // Un consentimiento firmado no se puede volver a firmar ni editar.
+  // Inmutable: ni se vuelve a firmar ni se edita.
   assert.equal((await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
-    firma_tipo: 'aceptacion', acepta: true, firmante: 'x',
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO,
   })).estado, 409);
-  assert.equal((await admin.put(`/api/consentimientos/${consent.id}`, { titulo: 'Otro' })).estado, 409);
+  const edicion = await admin.put(`/api/consentimientos/${consent.id}`, { tratamiento: 'Otro' });
+  assert.equal(edicion.estado, 409);
+  assert.match(edicion.datos.error, /inmutable/i);
+});
+
+test('Consentimiento · anulación con trazabilidad y reemplazo', async () => {
+  const original = ctx.consentimiento;
+  const r = exigir(await admin.post(`/api/consentimientos/${original.id}/anular`, {
+    motivo: 'Se corrigió la pieza dental acordada con la paciente.',
+    crear_reemplazo: true,
+  }), 200, 'anular');
+
+  assert.equal(r.anulado.estado, 'anulado');
+  assert.match(r.anulado.anulado_motivo, /pieza dental/);
+  assert.ok(r.anulado.anulado_en, 'registra cuándo se anuló');
+  assert.equal(r.anulado.anulado_por, 'Administrador', 'registra quién lo anuló');
+  assert.ok(r.reemplazo, 'genera el documento sustituto');
+  assert.equal(r.anulado.reemplazado_por, r.reemplazo.id);
+  assert.equal(r.reemplazo.reemplaza_a, original.id);
+  assert.equal(r.reemplazo.estado, 'pendiente');
+  assert.equal(r.reemplazo.tratamiento, original.tratamiento === original.tratamiento ? r.reemplazo.tratamiento : null);
+  assert.equal(r.reemplazo.paciente_id, original.paciente_id);
+
+  // El documento anulado no se borra ni se reactiva.
+  assert.equal((await admin.post(`/api/consentimientos/${original.id}/anular`, { motivo: 'otra vez' })).estado, 409);
+  assert.equal((await admin.post(`/api/consentimientos/${original.id}/firmar`, {
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO,
+  })).estado, 409);
+
+  // Se firma el reemplazo para dejar la cita en condiciones de cerrarse.
+  exigir(await admin.post(`/api/consentimientos/${r.reemplazo.id}/firmar`, {
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO,
+    firma_paciente_nombre: `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`,
+  }), 200, 'firmar reemplazo');
+  ctx.consentimiento = exigir(await admin.get(`/api/consentimientos/${r.reemplazo.id}`), 200);
+});
+
+test('Consentimiento · paciente menor de edad exige representante legal', async () => {
+  const anio = new Date().getFullYear() - 9;
+  const menor = exigir(await recepcion.post('/api/pacientes', {
+    nombre: 'Martín', apellidos: 'Zambrano Ríos', cedula: '1799777001',
+    fecha_nacimiento: `${anio}-05-10`, telefono: '099-222-3344',
+  }), 201, 'crear paciente menor');
+  ctx.menor = menor;
+
+  const consent = exigir(await admin.post('/api/consentimientos', {
+    paciente_id: menor.id, doctor_id: ctx.doctor.id,
+    tratamiento: 'Sellantes de fosas y fisuras',
+    observaciones: 'Primera visita; se explica el procedimiento a la madre.',
+  }), 201, 'crear consentimiento de menor');
+
+  assert.equal(consent.es_menor, 1, 'el sistema calcula la minoría de edad desde la fecha de nacimiento');
+  assert.equal(consent.consultorio_id, ctx.consultorio.id, 'toma el consultorio del doctor');
+
+  // Sin datos del representante no se puede firmar.
+  const sinRep = await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO,
+  });
+  assert.equal(sinRep.estado, 400);
+  assert.match(sinRep.datos.error, /representante/i);
+
+  const firmado = exigir(await admin.post(`/api/consentimientos/${consent.id}/firmar`, {
+    firma_paciente: PNG_DEMO, firma_doctor: PNG_DEMO,
+    representante_nombre: 'Carolina Ríos Vela',
+    representante_cedula: '1710555222',
+    representante_parentesco: 'madre',
+  }), 200, 'firmar con representante');
+
+  assert.equal(firmado.estado, 'firmado');
+  assert.equal(firmado.representante_nombre, 'Carolina Ríos Vela');
+  assert.equal(firmado.representante_parentesco, 'madre');
+  assert.equal(firmado.firma_paciente_nombre, 'Carolina Ríos Vela',
+    'la firma queda a nombre del representante, no del menor');
+});
+
+test('Consentimiento · creación manual desde el expediente, sin cita', async () => {
+  const consent = exigir(await recepcion.post('/api/consentimientos', {
+    paciente_id: ctx.paciente.id, doctor_id: ctx.doctor.id,
+    tratamiento: 'Blanqueamiento dental', observaciones: '',
+  }), 201, 'consentimiento manual');
+
+  assert.equal(consent.cita_id, null, 'no depende de ninguna cita');
+  assert.equal(consent.estado, 'pendiente');
+  assert.equal(consent.tratamiento, 'Blanqueamiento dental');
+  assert.equal(consent.paciente_nombre, `${ctx.paciente.nombre} ${ctx.paciente.apellidos}`);
+
+  const enExpediente = exigir(await recepcion.get(
+    `/api/consentimientos?paciente_id=${ctx.paciente.id}`), 200);
+  assert.ok(enExpediente.some((c) => c.id === consent.id), 'aparece en el expediente del paciente');
+  ctx.consentManual = consent;
 });
 
 /* ------------------------------- Flujo 6 -------------------------------- */
@@ -352,7 +509,11 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   assert.equal(ec.saldo, ctx.catalogoItem.precio_base - 100);
 
   // Gasto del consultorio.
-  const gasto = exigir(await recepcion.post('/api/gastos', {
+  assert.equal((await recepcion.post('/api/gastos', {
+    consultorio_id: ctx.consultorio.id, concepto: 'X', monto: 10,
+  })).estado, 403, 'recepción no registra gastos: la contabilidad es del administrador');
+
+  const gasto = exigir(await admin.post('/api/gastos', {
     consultorio_id: ctx.consultorio.id, categoria: 'insumos',
     concepto: 'Kit de endodoncia y limas rotatorias', proveedor: 'Depósito Dental Andino',
     monto: 260.40, fecha: fechaRelativa(0),
@@ -360,7 +521,10 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   assert.equal(gasto.monto, 260.40);
 
   // Balance del consultorio en el mes: ingresos − gastos.
-  const bal = exigir(await recepcion.get(
+  assert.equal((await recepcion.get('/api/contabilidad/balance?periodo=mes')).estado, 403,
+    'recepción no accede al balance');
+
+  const bal = exigir(await admin.get(
     `/api/contabilidad/balance?periodo=mes&consultorio_id=${ctx.consultorio.id}&fecha=${fechaRelativa(0)}`), 200);
   assert.equal(bal.ingresos, 100, 'ingresos del período');
   assert.equal(bal.gastos, 260.40, 'gastos del período');
@@ -372,13 +536,22 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   assert.equal(fila.gastos, 260.40);
 
   // Balance del día.
-  const balDia = exigir(await recepcion.get(
+  const balDia = exigir(await admin.get(
     `/api/contabilidad/balance?periodo=dia&consultorio_id=${ctx.consultorio.id}&fecha=${fechaRelativa(0)}`), 200);
   assert.equal(balDia.desde, balDia.hasta);
   assert.equal(balDia.gastos, 260.40);
 
+  // Ingresos y producción desglosados por doctor.
+  assert.ok(Array.isArray(bal.ingresos_por_doctor), 'el balance desglosa ingresos por doctor');
+  const filaDoctor = bal.ingresos_por_doctor.find((d) => d.doctor === ctx.doctor.nombre);
+  assert.ok(filaDoctor, `el doctor ${ctx.doctor.nombre} debe aparecer en los ingresos por doctor`);
+  assert.equal(filaDoctor.total, 100, 'se le atribuye el abono de su tratamiento');
+  const prod = bal.produccion_por_doctor.find((d) => d.doctor === ctx.doctor.nombre);
+  assert.ok(prod && prod.total >= ctx.catalogoItem.precio_base, 'la producción refleja lo facturado');
+  assert.ok(bal.ingresos_por_metodo.some((m) => m.metodo === 'tarjeta'), 'desglosa por método de pago');
+
   // Gasto con monto inválido.
-  assert.equal((await recepcion.post('/api/gastos', {
+  assert.equal((await admin.post('/api/gastos', {
     consultorio_id: ctx.consultorio.id, concepto: 'x', monto: 0,
   })).estado, 400);
 });
@@ -416,9 +589,14 @@ test('Flujo 8 · Buscar al paciente y verificar el expediente completo', async (
   // Fotos
   assert.equal(exp.fotos.length, 2);
 
-  // Consentimiento firmado archivado
-  assert.equal(exp.consentimientos.length, 1);
-  assert.equal(exp.consentimientos[0].estado, 'firmado');
+  // Consentimientos archivados: el anulado, su reemplazo firmado y el creado a mano
+  assert.equal(exp.consentimientos.length, 3, 'quedan archivados todos, incluido el anulado');
+  const estados = exp.consentimientos.map((c) => c.estado).sort();
+  assert.deepEqual(estados, ['anulado', 'firmado', 'pendiente']);
+  const firmadoExp = exp.consentimientos.find((c) => c.estado === 'firmado');
+  assert.ok(firmadoExp.firma_paciente && firmadoExp.firma_doctor, 'guarda ambas firmas');
+  assert.ok(exp.consentimientos.find((c) => c.estado === 'anulado').anulado_motivo,
+    'el anulado conserva su motivo');
 
   // Recordatorios
   assert.equal(exp.recordatorios.length, 1);
@@ -458,20 +636,6 @@ test('Persistencia: los datos sobreviven al reinicio del servidor', async () => 
     try { await fetch(`${base}/api/resumen`); break; } catch { await new Promise((r) => setTimeout(r, 100)); }
   }
 
-  const c2 = cliente(base);
-  await c2.login('recepcion@clinica.com', 'recepcion123');
-  const despues = exigir(await c2.get(`/api/pacientes/${ctx.paciente.id}/expediente`), 200);
-
-  assert.equal(despues.paciente.cedula, antes.paciente.cedula);
-  assert.equal(despues.tratamientos.length, antes.tratamientos.length);
-  assert.equal(despues.fotos.length, antes.fotos.length);
-  assert.equal(despues.consentimientos[0].estado, 'firmado');
-  assert.equal(despues.estado_cuenta.saldo, antes.estado_cuenta.saldo);
-
-  // La imagen sigue disponible en disco.
-  const img = await fetch(`${base}/uploads/${antes.fotos[0].archivo}`);
-  assert.equal(img.status, 200);
-
   // El resto de las pruebas continúa contra este segundo servidor.
   servidor.proceso = proceso;
   servidor.base = base;
@@ -484,6 +648,25 @@ test('Persistencia: los datos sobreviven al reinicio del servidor', async () => 
     proceso.kill('SIGTERM');
     setTimeout(fin, 3000).unref();
   });
+
+  const c2 = cliente(base);
+  await c2.login('recepcion@clinica.com', 'recepcion123');
+  const despues = exigir(await c2.get(`/api/pacientes/${ctx.paciente.id}/expediente`), 200);
+
+  assert.equal(despues.paciente.cedula, antes.paciente.cedula);
+  assert.equal(despues.tratamientos.length, antes.tratamientos.length);
+  assert.equal(despues.fotos.length, antes.fotos.length);
+  assert.equal(despues.consentimientos.length, antes.consentimientos.length);
+  const firmadoTras = despues.consentimientos.find((c) => c.estado === 'firmado');
+  assert.ok(firmadoTras, 'el consentimiento firmado sobrevive al reinicio');
+  assert.ok(firmadoTras.firma_paciente.startsWith('data:image/'), 'conserva la firma del paciente');
+  assert.ok(firmadoTras.firma_doctor.startsWith('data:image/'), 'conserva la firma del doctor');
+  assert.equal(despues.estado_cuenta.saldo, antes.estado_cuenta.saldo);
+
+  // La imagen sigue disponible en disco.
+  const img = await fetch(`${base}/uploads/${antes.fotos[0].archivo}`);
+  assert.equal(img.status, 200);
+
 });
 
 test('Roles y autenticación', async () => {

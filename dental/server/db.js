@@ -15,7 +15,50 @@ const RUTA_DB = process.env.DENTAL_DB || path.join(DIR_DATOS, 'clinica.db');
 export const db = new DatabaseSync(RUTA_DB);
 db.exec('PRAGMA foreign_keys = ON;');
 db.exec('PRAGMA journal_mode = WAL;');
+
+migrarConsentimientosV2();
+
 db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+
+/**
+ * El consentimiento informado pasó de "un texto con una firma" a un documento
+ * con instantánea de datos, representante legal, dos firmas y anulación trazable.
+ * Las bases creadas con el esquema anterior se convierten conservando sus registros.
+ */
+function migrarConsentimientosV2() {
+  const existe = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='consentimientos'").get();
+  if (!existe) return;
+  const columnas = db.prepare('PRAGMA table_info(consentimientos)').all().map((c) => c.name);
+  if (!columnas.includes('riesgos')) return; // ya está en la versión nueva
+
+  db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('ALTER TABLE consentimientos RENAME TO consentimientos_v1;');
+  db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+  db.exec(`
+    INSERT INTO consentimientos (
+      id, paciente_id, doctor_id, cita_id, tratamiento_id,
+      tratamiento, observaciones,
+      paciente_nombre, doctor_nombre,
+      fecha, hora,
+      firma_paciente, firma_paciente_nombre, firma_paciente_en,
+      estado, firmado_en, creado_en)
+    SELECT
+      id, paciente_id, doctor_id, cita_id, tratamiento_id,
+      titulo,
+      NULLIF(TRIM(ifnull(descripcion,'') || CASE WHEN riesgos IS NOT NULL THEN char(10) || riesgos ELSE '' END), ''),
+      nombre_paciente, nombre_doctor,
+      substr(ifnull(firmado_en, creado_en), 1, 10),
+      substr(ifnull(firmado_en, creado_en), 12, 5),
+      CASE WHEN firma_tipo = 'trazo' THEN firma_data ELSE NULL END,
+      firmante, firmado_en,
+      CASE estado WHEN 'rechazado' THEN 'anulado' ELSE estado END,
+      firmado_en, creado_en
+    FROM consentimientos_v1;`);
+  db.exec('DROP TABLE consentimientos_v1;');
+  db.exec('PRAGMA foreign_keys = ON;');
+  console.log('Migración aplicada: consentimientos actualizados al formato con doble firma.');
+}
 
 /** Ejecuta una consulta y devuelve todas las filas como objetos planos. */
 export function todos(sql, params = []) {

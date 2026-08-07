@@ -94,8 +94,11 @@ export const api = {
   actualizarRecordatorio: (id, d) => peticion('PATCH', `/api/recordatorios/${id}`, d),
   consentimientos: (p) => peticion('GET', `/api/consentimientos${qs(p)}`),
   consentimiento: (id) => peticion('GET', `/api/consentimientos/${id}`),
+  crearConsentimiento: (d) => peticion('POST', '/api/consentimientos', d),
+  actualizarConsentimiento: (id, d) => peticion('PUT', `/api/consentimientos/${id}`, d),
   generarConsentimiento: (tratamientoId, d = {}) => peticion('POST', `/api/tratamientos/${tratamientoId}/consentimiento`, d),
   firmarConsentimiento: (id, d) => peticion('POST', `/api/consentimientos/${id}/firmar`, d),
+  anularConsentimiento: (id, d) => peticion('POST', `/api/consentimientos/${id}/anular`, d),
 
   // Contabilidad
   cargos: (p) => peticion('GET', `/api/cargos${qs(p)}`),

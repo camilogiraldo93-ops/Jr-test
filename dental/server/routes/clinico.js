@@ -5,6 +5,7 @@ import { get, post, put, patch, del, ErrorApp } from '../http.js';
 import { todos, uno, correr, ahora, transaccion, DIR_UPLOADS } from '../db.js';
 import { requerido, texto, entero, numero, booleano, soloFecha, verificarDoctorPropio } from '../util.js';
 import { obtenerCita } from './citas.js';
+import { crearConsentimiento } from './consentimientos.js';
 
 /* ---------------------------- Tratamientos ---------------------------- */
 
@@ -17,12 +18,27 @@ function citaEditable(id) {
   return c;
 }
 
+/**
+ * El registro clínico corresponde a la atención: exige que la cita esté en curso.
+ * Se admite también sobre una cita ya completada para permitir cargar algo olvidado.
+ */
+function exigirEnAtencion(c) {
+  if (!['en_curso', 'completada'].includes(c.estado)) {
+    throw new ErrorApp(409,
+      `La cita está "${c.estado}". Pásala a "En curso" para registrar el tratamiento.`);
+  }
+  return c;
+}
+
 get('/api/citas/:id/tratamientos', ({ params }) =>
   todos('SELECT * FROM tratamientos WHERE cita_id = ? ORDER BY id', [params.id]));
 
 post('/api/citas/:id/tratamientos', { roles: ['admin', 'doctor'] }, ({ params, cuerpo, usuario }) => {
+  // El permiso se comprueba antes que el estado: así el mensaje que recibe cada
+  // usuario explica su propio impedimento y no el de otro.
   const cita = citaEditable(params.id);
   verificarDoctorPropio(usuario, cita.doctor_id);
+  exigirEnAtencion(cita);
   requerido(cuerpo, ['nombre']);
 
   const catalogo = cuerpo.catalogo_id ? uno('SELECT * FROM catalogo_tratamientos WHERE id = ?', [cuerpo.catalogo_id]) : null;
@@ -56,18 +72,17 @@ post('/api/citas/:id/tratamientos', { roles: ['admin', 'doctor'] }, ({ params, c
 
     // Prepara el consentimiento informado si el tratamiento lo exige.
     if (requiere) {
-      const doctor = uno('SELECT * FROM doctores WHERE id = ?', [cita.doctor_id]);
-      const pac = uno('SELECT * FROM pacientes WHERE id = ?', [cita.paciente_id]);
-      correr(
-        `INSERT INTO consentimientos (tratamiento_id, cita_id, paciente_id, doctor_id, titulo, descripcion,
-          riesgos, alternativas, nombre_paciente, nombre_doctor, estado, creado_en)
-         VALUES (?,?,?,?,?,?,?,?,?,?, 'pendiente', ?)`,
-        [ultimoId, cita.id, cita.paciente_id, cita.doctor_id, texto(cuerpo.nombre),
-         texto(cuerpo.descripcion, catalogo?.descripcion) || `Tratamiento de ${texto(cuerpo.nombre)}.`,
-         texto(cuerpo.riesgos, catalogo?.riesgos) || 'Riesgos generales del procedimiento odontológico: dolor o molestia postoperatoria, inflamación, sangrado, infección y reacción a la anestesia.',
-         texto(cuerpo.alternativas, catalogo?.alternativas) || 'No realizar el tratamiento, tratamiento alternativo o derivación a especialista.',
-         `${pac.nombre} ${pac.apellidos}`, doctor.nombre, t]
-      );
+      crearConsentimiento({
+        paciente_id: cita.paciente_id,
+        doctor_id: cita.doctor_id,
+        consultorio_id: cita.consultorio_id,
+        cita_id: cita.id,
+        tratamiento_id: ultimoId,
+        catalogo_id: catalogo?.id ?? null,
+        tratamiento: texto(cuerpo.nombre),
+        observaciones: texto(cuerpo.observaciones),
+        creado_por: usuario.nombre,
+      });
     }
 
     // Actualiza el odontograma con los dientes tratados.
@@ -190,80 +205,4 @@ patch('/api/recordatorios/:id', { roles: ['admin', 'doctor', 'recepcion'] }, ({ 
      soloFecha(cuerpo.fecha_objetivo, r.fecha_objetivo), texto(cuerpo.prioridad, r.prioridad),
      estado, ahora(), params.id]);
   return uno('SELECT * FROM recordatorios WHERE id = ?', [params.id]);
-});
-
-/* -------------------------- Consentimientos ---------------------------- */
-
-get('/api/consentimientos', ({ consulta }) => {
-  const filtros = [];
-  const params = [];
-  for (const clave of ['paciente_id', 'cita_id', 'tratamiento_id', 'estado']) {
-    const v = consulta.get(clave);
-    if (v) { filtros.push(`${clave} = ?`); params.push(v); }
-  }
-  const where = filtros.length ? `WHERE ${filtros.join(' AND ')}` : '';
-  return todos(`SELECT * FROM consentimientos ${where} ORDER BY creado_en DESC`, params);
-});
-
-get('/api/consentimientos/:id', ({ params }) => {
-  const c = uno('SELECT * FROM consentimientos WHERE id = ?', [params.id]);
-  if (!c) throw new ErrorApp(404, 'Consentimiento no encontrado.');
-  return c;
-});
-
-/** Genera un consentimiento informado para un tratamiento concreto. */
-post('/api/tratamientos/:id/consentimiento', { roles: ['admin', 'doctor'] }, ({ params, cuerpo, usuario }) => {
-  const t = uno('SELECT * FROM tratamientos WHERE id = ?', [params.id]);
-  if (!t) throw new ErrorApp(404, 'Tratamiento no encontrado.');
-  verificarDoctorPropio(usuario, t.doctor_id);
-  const existente = uno("SELECT * FROM consentimientos WHERE tratamiento_id = ? AND estado != 'rechazado'", [t.id]);
-  if (existente) return existente;
-  const doctor = uno('SELECT * FROM doctores WHERE id = ?', [t.doctor_id]);
-  const pac = uno('SELECT * FROM pacientes WHERE id = ?', [t.paciente_id]);
-  const cat = t.catalogo_id ? uno('SELECT * FROM catalogo_tratamientos WHERE id = ?', [t.catalogo_id]) : null;
-  const { ultimoId } = correr(
-    `INSERT INTO consentimientos (tratamiento_id, cita_id, paciente_id, doctor_id, titulo, descripcion,
-      riesgos, alternativas, nombre_paciente, nombre_doctor, estado, creado_en)
-     VALUES (?,?,?,?,?,?,?,?,?,?, 'pendiente', ?)`,
-    [t.id, t.cita_id, t.paciente_id, t.doctor_id, texto(cuerpo.titulo, t.nombre),
-     texto(cuerpo.descripcion, t.descripcion) || `Tratamiento de ${t.nombre}.`,
-     texto(cuerpo.riesgos, cat?.riesgos) || 'Riesgos generales del procedimiento odontológico: dolor o molestia postoperatoria, inflamación, sangrado, infección y reacción a la anestesia.',
-     texto(cuerpo.alternativas, cat?.alternativas) || 'No realizar el tratamiento, tratamiento alternativo o derivación a especialista.',
-     `${pac.nombre} ${pac.apellidos}`, doctor.nombre, ahora()]
-  );
-  return uno('SELECT * FROM consentimientos WHERE id = ?', [ultimoId]);
-});
-
-/** Firma del paciente: trazo digital en pantalla o aceptación explícita. */
-post('/api/consentimientos/:id/firmar', { roles: ['admin', 'doctor', 'recepcion'] }, ({ params, cuerpo }) => {
-  const c = uno('SELECT * FROM consentimientos WHERE id = ?', [params.id]);
-  if (!c) throw new ErrorApp(404, 'Consentimiento no encontrado.');
-  if (c.estado === 'firmado') throw new ErrorApp(409, 'Este consentimiento ya fue firmado y no puede modificarse.');
-  requerido(cuerpo, ['firmante']);
-  const tipo = texto(cuerpo.firma_tipo, 'trazo');
-  if (!['trazo', 'aceptacion'].includes(tipo)) {
-    throw new ErrorApp(400, 'Tipo de firma inválido. Opciones: trazo, aceptacion.');
-  }
-  if (tipo === 'trazo' && !texto(cuerpo.firma_data)) {
-    throw new ErrorApp(400, 'Falta el trazo de la firma. Pide al paciente que firme en pantalla.');
-  }
-  if (tipo === 'aceptacion' && !booleano(cuerpo.acepta)) {
-    throw new ErrorApp(400, 'El paciente debe marcar explícitamente la aceptación del consentimiento.');
-  }
-  correr(
-    `UPDATE consentimientos SET estado='firmado', firma_tipo=?, firma_data=?, firmante=?, firmado_en=? WHERE id=?`,
-    [tipo, texto(cuerpo.firma_data, 'ACEPTACION_EXPLICITA'), texto(cuerpo.firmante), ahora(), params.id]
-  );
-  return uno('SELECT * FROM consentimientos WHERE id = ?', [params.id]);
-});
-
-put('/api/consentimientos/:id', { roles: ['admin', 'doctor'] }, ({ params, cuerpo }) => {
-  const c = uno('SELECT * FROM consentimientos WHERE id = ?', [params.id]);
-  if (!c) throw new ErrorApp(404, 'Consentimiento no encontrado.');
-  if (c.estado === 'firmado') throw new ErrorApp(409, 'No se puede editar un consentimiento ya firmado.');
-  correr('UPDATE consentimientos SET titulo=?, descripcion=?, riesgos=?, alternativas=? WHERE id=?', [
-    texto(cuerpo.titulo, c.titulo), texto(cuerpo.descripcion, c.descripcion),
-    texto(cuerpo.riesgos, c.riesgos), texto(cuerpo.alternativas, c.alternativas), params.id,
-  ]);
-  return uno('SELECT * FROM consentimientos WHERE id = ?', [params.id]);
 });

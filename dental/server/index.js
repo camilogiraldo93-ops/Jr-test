@@ -10,6 +10,7 @@ import './routes/auth.js';
 import './routes/clinica.js';
 import './routes/pacientes.js';
 import './routes/citas.js';
+import './routes/consentimientos.js';
 import './routes/clinico.js';
 import './routes/contabilidad.js';
 

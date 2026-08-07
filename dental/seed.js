@@ -4,8 +4,65 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { db, uno, correr, todos, ahora, DIR_DATOS } from './server/db.js';
+import zlib from 'node:zlib';
+import { db, uno, correr, todos, ahora, DIR_DATOS, DIR_UPLOADS } from './server/db.js';
 import { crearUsuario } from './server/auth.js';
+import { crearConsentimiento } from './server/routes/consentimientos.js';
+
+/** Genera un PNG sólido con una banda diagonal, suficiente como imagen de ejemplo. */
+function pngDemo(ancho, alto, base) {
+  const filas = [];
+  for (let y = 0; y < alto; y++) {
+    const linea = Buffer.alloc(ancho * 3 + 1);
+    linea[0] = 0; // filtro "None"
+    for (let x = 0; x < ancho; x++) {
+      const diagonal = Math.abs((x + y) % 90) < 12 ? 28 : 0;
+      linea[1 + x * 3] = Math.min(255, base[0] + diagonal);
+      linea[2 + x * 3] = Math.min(255, base[1] + diagonal);
+      linea[3 + x * 3] = Math.min(255, base[2] + diagonal);
+    }
+    filas.push(linea);
+  }
+  const trozo = (tipo, datos) => {
+    const largo = Buffer.alloc(4);
+    largo.writeUInt32BE(datos.length);
+    const cuerpo = Buffer.concat([Buffer.from(tipo, 'ascii'), datos]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(cuerpo) >>> 0);
+    return Buffer.concat([largo, cuerpo, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(ancho, 0);
+  ihdr.writeUInt32BE(alto, 4);
+  ihdr[8] = 8; ihdr[9] = 2; // 8 bits, color RGB
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    trozo('IHDR', ihdr),
+    trozo('IDAT', zlib.deflateSync(Buffer.concat(filas))),
+    trozo('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+const TABLA_CRC = (() => {
+  const t = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (const b of buf) c = TABLA_CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return c ^ 0xffffffff;
+}
+
+/** Guarda una imagen de ejemplo en uploads y devuelve su nombre de archivo. */
+function guardarImagen(nombre, base, ancho = 420, alto = 300) {
+  fs.writeFileSync(path.join(DIR_UPLOADS, nombre), pngDemo(ancho, alto, base));
+  return nombre;
+}
 
 const RESET = process.argv.includes('--reset');
 
@@ -156,6 +213,16 @@ export function sembrar() {
     [3, '09:30', 30, 1, 3, 2, 2, 'Blanqueamiento dental', 'agendada'],
     [3, '11:00', 30, 0, 0, 0, 0, 'Control post-profilaxis', 'agendada'],
     [4, '08:30', 45, 0, 0, 0, 4, 'Restauración con resina', 'no_asistio'],
+    // --- Citas futuras, para poder probar los flujos completos ---
+    [7, '08:00', 60, 0, 2, 2, 5, 'Cirugía de implante (2.ª fase)', 'confirmada'],
+    [7, '09:30', 30, 0, 0, 0, 6, 'Control de gingivitis del embarazo', 'agendada'],
+    [7, '11:00', 45, 1, 3, 0, 2, 'Blanqueamiento — sesión 1', 'agendada'],
+    [8, '08:30', 90, 0, 1, 1, 3, 'Endodoncia pieza 46', 'confirmada'],
+    [8, '10:30', 30, 0, 0, 0, 9, 'Sellantes en molares definitivos', 'agendada'],
+    [9, '09:00', 60, 0, 2, 2, 8, 'Fase quirúrgica periodontal', 'agendada'],
+    [10, '08:00', 45, 1, 3, 2, 7, 'Corona de porcelana pieza 11', 'confirmada'],
+    [11, '09:00', 30, 0, 0, 0, 0, 'Control anual y profilaxis', 'agendada'],
+    [14, '10:00', 60, 0, 1, 1, 1, 'Retratamiento de conducto', 'agendada'],
   ];
 
   const citas = plan.map(([off, hora, dur, ci, cui, di, pi, motivo, estado]) => {
@@ -217,6 +284,52 @@ export function sembrar() {
     [pacientes[5], citas[2], doctores[2], 'Solicitar tomografía previa al implante',
      'Enviar orden de CBCT del sector posterior inferior derecho.', dia(7), 'alta', t, t]);
 
+  /* ------------- Cita en curso con consentimiento pendiente de firma -------- */
+  // Deja preparado el caso de prueba: atención abierta, tratamiento que exige
+  // consentimiento y documento aún sin firmar (la cita no se puede completar).
+  const fechaHoy = dia(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
+  const citaEnCurso = correr(
+    `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, estado, creada_en, actualizada_en)
+     VALUES (?,?,?,?,?,?,?, 'en_curso', ?,?)`,
+    [consultorios[0], cubiculos[2], doctores[2], pacientes[5],
+     `${fechaHoy}T16:00`, `${fechaHoy}T17:00`, 'Colocación de implante pieza 46', t, t]).ultimoId;
+
+  const catImplante = uno("SELECT * FROM catalogo_tratamientos WHERE nombre = 'Implante dental'");
+  const trImplante = correr(
+    `INSERT INTO tratamientos (cita_id, paciente_id, doctor_id, consultorio_id, cubiculo_id, catalogo_id,
+      nombre, descripcion, dientes, notas_clinicas, precio, requiere_consentimiento, fecha, creado_en)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,1,?,?)`,
+    [citaEnCurso, pacientes[5], doctores[2], consultorios[0], cubiculos[2], catImplante.id,
+     'Implante dental', catImplante.descripcion, '46',
+     'Lecho preparado con fresado secuencial. Pendiente firmar consentimiento antes de cerrar la atención.',
+     catImplante.precio_base, fechaHoy, t]).ultimoId;
+  correr(`INSERT INTO cargos (paciente_id, consultorio_id, cita_id, tratamiento_id, concepto, monto, fecha, creado_en)
+          VALUES (?,?,?,?,?,?,?,?)`,
+    [pacientes[5], consultorios[0], citaEnCurso, trImplante, 'Implante dental', catImplante.precio_base, fechaHoy, t]);
+
+  crearConsentimiento({
+    paciente_id: pacientes[5], doctor_id: doctores[2], consultorio_id: consultorios[0],
+    cita_id: citaEnCurso, tratamiento_id: trImplante, catalogo_id: catImplante.id,
+    tratamiento: 'Implante dental', observaciones: 'Paciente diabético controlado; se refuerzan cuidados posoperatorios.',
+    creado_por: 'Datos de ejemplo',
+  });
+
+  /* --------------------------- Imágenes de ejemplo -------------------------- */
+  const imagenes = [
+    [citas[1], pacientes[1], 'radiografia', 'radiografia-periapical-26.png', [60, 62, 70],
+     'Control radiográfico de la obturación'],
+    [citas[1], pacientes[1], 'intraoral', 'intraoral-cuadrante-2.png', [150, 92, 88], 'Foto intraoral posoperatoria'],
+    [citaEnCurso, pacientes[5], 'radiografia', 'radiografia-panoramica-implante.png', [52, 55, 64],
+     'Panorámica previa a la cirugía'],
+  ];
+  for (const [citaId, pacienteId, tipo, nombre, color, descripcion] of imagenes) {
+    guardarImagen(nombre, color);
+    correr(
+      `INSERT INTO fotos (paciente_id, cita_id, tipo, nombre, archivo, mime, descripcion, creada_en)
+       VALUES (?,?,?,?,?, 'image/png', ?,?)`,
+      [pacienteId, citaId, tipo, nombre, nombre, descripcion, t]);
+  }
+
   /* --------------------------------- Gastos --------------------------------- */
   const gastos = [
     [consultorios[0], 'insumos', 'Compra de resinas y adhesivos', 'Depósito Dental Andino', 420.50, dia(0)],
@@ -237,6 +350,9 @@ export function sembrar() {
   console.log(`  Doctores:     ${todos('SELECT id FROM doctores').length}`);
   console.log(`  Pacientes:    ${todos('SELECT id FROM pacientes').length}`);
   console.log(`  Citas:        ${todos('SELECT id FROM citas').length}`);
+  console.log(`  Futuras:      ${todos("SELECT id FROM citas WHERE inicio > datetime('now')").length}`);
+  console.log(`  Imágenes:     ${todos('SELECT id FROM fotos').length}`);
+  console.log(`  Consentim.:   ${todos('SELECT id FROM consentimientos').length} (pendientes: ${todos("SELECT id FROM consentimientos WHERE estado='pendiente'").length})`);
   console.log(`  Usuarios:     ${todos('SELECT id FROM usuarios').length}`);
   console.log('\nAccesos: admin@clinica.com/admin123 · recepcion@clinica.com/recepcion123 · ana.morales@clinica.com/doctor123');
 }

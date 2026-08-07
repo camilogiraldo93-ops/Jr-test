@@ -296,18 +296,29 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await pagina.waitForSelector('.bloque-cita:has-text("Beatriz")');
 });
 
-test('UI · Estados de cita: agendada → confirmada → en curso', async () => {
+test('UI · Estados de cita y regla de registro clínico', async () => {
   await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('h2:has-text("Cita #")');
   assert.match(await pagina.locator('.eti.agendada').first().innerText(), /Agendada/);
 
+  // B1: con la cita agendada el botón está visible pero deshabilitado y explicado.
+  const btnRegistrar = pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")');
+  assert.equal(await btnRegistrar.count(), 1, 'el botón sigue visible');
+  assert.equal(await btnRegistrar.isDisabled(), true, 'pero deshabilitado fuera de la atención');
+  assert.match(await btnRegistrar.getAttribute('title'), /En curso/);
+  assert.match(
+    await pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") .alerta-caja').innerText(),
+    /Pásala a "En curso"/);
+
   await pagina.click('button:has-text("Confirmada")');
   await esperarExito(/Confirmada/i);
   await pagina.waitForSelector('.eti.confirmada');
+  assert.equal(await btnRegistrar.isDisabled(), true, 'confirmada tampoco habilita el registro');
 
   await pagina.click('button:has-text("En curso")');
   await esperarExito(/En curso/i);
   await pagina.waitForSelector('.eti.en_curso');
+  assert.equal(await btnRegistrar.isDisabled(), false, 'en curso sí lo habilita');
 });
 
 test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio', async () => {
@@ -355,43 +366,100 @@ test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio',
   await pagina.waitForSelector('li:has-text("Control de endodoncia")');
 });
 
-test('UI · Flujo 5: generar y firmar el consentimiento informado', async () => {
-  await pagina.waitForSelector('button:has-text("✍️ Firmar ahora")');
-  await abrirModal('button:has-text("✍️ Firmar ahora")');
-  const m = modal();
-  await pagina.waitForSelector('.consent-texto');
+test('UI · Flujo 5: documento autocompletado y doble firma en pantalla', async () => {
+  await pagina.waitForSelector('a:has-text("✍️ Firmar ahora")');
+  await pagina.click('a:has-text("✍️ Firmar ahora")');
+  await pagina.waitForSelector('.documento');
+  ctx.consentUrl = pagina.url();
 
-  const texto = await m.locator('.consent-texto').innerText();
-  // innerText devuelve el texto ya renderizado y el CSS pone los títulos en mayúsculas.
-  assert.match(texto, /Riesgos y complicaciones/i);
-  assert.match(texto, /Alternativas de tratamiento/i);
-  assert.match(texto, /Beatriz/);
-  assert.match(texto, new RegExp(`Dra. Prueba UI ${sufijo}`));
+  // El documento se autocompleta: solo tres campos son editables.
+  const texto = await pagina.locator('.documento').innerText();
+  assert.match(texto, /CONSENTIMIENTO INFORMADO PARA TRATAMIENTO ODONTOLÓGICO/i);
+  assert.match(texto, new RegExp(`Clínica UI ${sufijo}`), 'nombre del consultorio');
+  assert.match(texto, /Av. de Pruebas 123/, 'dirección del consultorio');
+  assert.match(texto, /Beatriz/, 'nombre del paciente');
+  assert.match(texto, new RegExp(`09${sufijo}55`), 'cédula del paciente');
+  assert.match(texto, new RegExp(`Dra. Prueba UI ${sufijo}`), 'doctor');
+  assert.match(texto, /Endodoncia unirradicular/, 'tratamiento');
+  assert.match(texto, /AUTORIZO/);
+  assert.match(texto, /registro fotográfico y radiográfico/);
 
-  // Firma con trazo real sobre el lienzo.
-  const lienzo = m.locator('canvas.firma-lienzo');
-  const caja = await lienzo.boundingBox();
-  await pagina.mouse.move(caja.x + 40, caja.y + 120);
-  await pagina.mouse.down();
-  await pagina.mouse.move(caja.x + 130, caja.y + 50, { steps: 12 });
-  await pagina.mouse.move(caja.x + 220, caja.y + 140, { steps: 12 });
-  await pagina.mouse.move(caja.x + 320, caja.y + 60, { steps: 12 });
-  await pagina.mouse.up();
+  const editables = await pagina.locator('.tarjeta:has-text("Datos del documento") input, .tarjeta:has-text("Datos del documento") select, .tarjeta:has-text("Datos del documento") textarea').count();
+  assert.equal(editables, 4, 'catálogo + tratamiento + doctor + observaciones');
 
-  await m.locator('#acepta_consent').check();
-  await m.locator('input[name="firmante"]').fill(`Beatriz Nájera UI${sufijo}`);
-  await m.locator('button:has-text("Firmar y archivar")').click();
+  // Se completa el tercer campo manual.
+  await pagina.fill('textarea[name="observaciones"]', 'Paciente refiere alergia a la penicilina.');
+  await pagina.click('button:has-text("💾 Guardar cambios")');
+  await esperarExito(/actualizados/);
+  await pagina.waitForSelector('.documento:has-text("alergia a la penicilina")');
+
+  // Firmar exige AMBAS firmas.
+  const lienzos = pagina.locator('canvas.firma-lienzo');
+  assert.equal(await lienzos.count(), 2, 'hay lienzo de paciente y de doctor');
+
+  await pagina.click('button:has-text("✍️ Firmar y archivar")');
+  await pagina.waitForSelector('.aviso.error');
+  assert.match(await pagina.locator('.aviso.error').last().innerText(), /Falta la firma del paciente/);
+  await limpiarAvisos();
+
+  await trazar(lienzos.nth(0));
+  await pagina.click('button:has-text("✍️ Firmar y archivar")');
+  await pagina.waitForSelector('.aviso.error');
+  assert.match(await pagina.locator('.aviso.error').last().innerText(), /Falta la firma del doctor/);
+  await limpiarAvisos();
+
+  await trazar(lienzos.nth(1));
+  await pagina.click('button:has-text("✍️ Firmar y archivar")');
   await esperarExito(/firmado y archivado/);
 
-  await pagina.waitForSelector('button:has-text("✅ Ver firmado")');
-  await abrirModal('button:has-text("✅ Ver firmado")');
-  await pagina.waitForSelector('.alerta-caja.ok:has-text("Firmado por")');
-  assert.ok(await modal().locator('img[alt="Firma del paciente"]').count(), 'se archiva la imagen de la firma');
-  await modal().locator('button[aria-label="Cerrar"]').click();
-  await pagina.waitForSelector('.modal-fondo', { state: 'detached' });
+  // Documento firmado: inmutable, con ambas firmas visibles.
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Documento firmado")');
+  assert.equal(await pagina.locator('.firmas .firma-img').count(), 2, 'se archivan las dos firmas');
+  assert.equal(await pagina.locator('.tarjeta:has-text("Datos del documento")').count(), 0,
+    'ya no se puede editar');
+  assert.equal(await pagina.locator('canvas.firma-lienzo').count(), 0, 'ya no se puede volver a firmar');
+  const pie = await pagina.locator('.firmas').innerText();
+  assert.match(pie, /Firma del paciente/);
+  assert.match(pie, /Firma del doctor/);
+});
+
+/** Dibuja un trazo real sobre un lienzo de firma. */
+async function trazar(lienzo) {
+  await lienzo.scrollIntoViewIfNeeded();
+  const caja = await lienzo.boundingBox();
+  await pagina.mouse.move(caja.x + 40, caja.y + caja.height * 0.7);
+  await pagina.mouse.down();
+  await pagina.mouse.move(caja.x + caja.width * 0.3, caja.y + caja.height * 0.3, { steps: 12 });
+  await pagina.mouse.move(caja.x + caja.width * 0.55, caja.y + caja.height * 0.75, { steps: 12 });
+  await pagina.mouse.move(caja.x + caja.width * 0.8, caja.y + caja.height * 0.35, { steps: 12 });
+  await pagina.mouse.up();
+}
+
+test('UI · Modo tablet e impresión del consentimiento', async () => {
+  await pagina.goto(ctx.consentUrl, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.documento');
+
+  await pagina.click('button:has-text("🖥️ Modo tablet")');
+  assert.equal(await pagina.locator('.lateral').isVisible(), false, 'el menú lateral se oculta');
+  assert.equal(await pagina.locator('.documento').isVisible(), true, 'el documento sigue visible y grande');
+  // En modo tablet la única salida es el control flotante.
+  const salir = pagina.locator('button:has-text("Salir del modo tablet")');
+  assert.equal(await salir.isVisible(), true, 'siempre debe haber forma de volver');
+  await salir.click();
+  await pagina.waitForSelector('.lateral', { state: 'visible' });
+
+  await pagina.click('a:has-text("🖨️ Imprimir / PDF")');
+  await pagina.waitForSelector('.vista-impresion .documento');
+  const impreso = await pagina.locator('.hoja').innerText();
+  assert.match(impreso, /CONSENTIMIENTO INFORMADO/i);
+  assert.match(impreso, /Firma del paciente/);
+  assert.equal(await pagina.locator('.hoja .firma-img').count(), 2, 'el PDF incluye las firmas');
+  assert.equal(await pagina.locator('.sello-borrador').count(), 0, 'un firmado no lleva sello de borrador');
 });
 
 test('UI · Flujo 6: agendar la cita de seguimiento desde la misma cita', async () => {
+  await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('h2:has-text("Cita #")');
   await abrirModal('button:has-text("➕ Agendar seguimiento")');
   const m = modal();
   await pagina.waitForSelector('.modal-cab:has-text("Agendar seguimiento")');
@@ -530,34 +598,171 @@ async function verificarExpediente() {
   assert.match(cuenta, /\$100\.00/, 'saldo pendiente');
 }
 
-test('UI · Roles: recepción y doctor ven solo lo que les corresponde', async () => {
-  // Recepción
-  await pagina.click('.usuario-caja button');
-  await pagina.waitForSelector('.login-caja');
-  await pagina.fill('input[name="email"]', 'recepcion@clinica.com');
-  await pagina.fill('input[name="password"]', 'recepcion123');
-  await pagina.click('button[type="submit"]');
-  await pagina.waitForSelector('.marco');
-  assert.equal(await pagina.locator('a[href="#/configuracion"]').count(), 0, 'recepción no ve Configuración');
-  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 1, 'recepción sí ve Contabilidad');
+test('UI · B2: todas las pestañas del expediente cambian el contenido', async () => {
+  await pagina.goto(ctx.pacienteUrl, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.pestanas button');
+  const pestanas = await pagina.locator('.pestanas button').allInnerTexts();
+  assert.ok(pestanas.length >= 8, `hay ${pestanas.length} pestañas`);
 
-  await pagina.goto(`${servidor.base}/#/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('h2:has-text("Cita #")');
-  assert.equal(
-    await pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")').count(), 0,
-    'recepción no puede registrar tratamientos');
-  assert.equal(await pagina.locator('.tarjeta:has-text("Cobros de esta cita") button:has-text("➕ Registrar pago")').count(), 1,
-    'recepción sí puede registrar pagos');
+  const vistos = new Set();
+  for (const nombre of pestanas) {
+    await pagina.locator('.pestanas button', { hasText: nombre }).first().click();
+    await pagina.waitForFunction((n) => {
+      const activa = document.querySelector('.pestanas button.activo');
+      return activa && activa.innerText === n;
+    }, nombre, { timeout: 10000 });
+    // Cada pestaña, incluso vacía, muestra su propio encabezado.
+    const titulo = await pagina.locator('.contenido .tarjeta h3').first().innerText();
+    assert.ok(titulo.trim().length > 0, `la pestaña "${nombre}" debe mostrar un encabezado`);
+    assert.ok(!vistos.has(titulo) || nombre.includes('Ficha'),
+      `la pestaña "${nombre}" muestra un contenido distinto (título: "${titulo}")`);
+    vistos.add(titulo);
+  }
+  assert.ok(vistos.size >= 6, `los paneles son distintos entre sí (${vistos.size} títulos únicos)`);
+});
 
-  // Doctor
-  await pagina.click('.usuario-caja button');
-  await pagina.waitForSelector('.login-caja');
-  await pagina.fill('input[name="email"]', 'ana.morales@clinica.com');
-  await pagina.fill('input[name="password"]', 'doctor123');
-  await pagina.click('button[type="submit"]');
-  await pagina.waitForSelector('.marco');
-  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 0, 'el doctor no ve Contabilidad');
-  assert.equal(await pagina.locator('a[href="#/pacientes"]').count(), 1);
+test('UI · Consentimiento manual desde el expediente, sin cita', async () => {
+  await pagina.goto(ctx.pacienteUrl, { waitUntil: 'networkidle' });
+  await pagina.click('button:has-text("📝 Consentimientos")');
+  await pagina.waitForSelector('.tarjeta:has-text("Consentimientos informados")');
+
+  await abrirModal('button:has-text("➕ Nuevo consentimiento")');
+  await modal().locator('input[name="tratamiento"]').fill('Blanqueamiento dental en consultorio');
+  await modal().locator('textarea[name="observaciones"]').fill('Se advierte sensibilidad transitoria.');
+  await modal().locator('button:has-text("Generar consentimiento")').click();
+  await esperarExito(/Complétalo y fírmalo/);
+
+  await pagina.waitForSelector('.documento');
+  const texto = await pagina.locator('.documento').innerText();
+  assert.match(texto, /Blanqueamiento dental en consultorio/);
+  assert.match(texto, /Beatriz/);
+  assert.equal(await pagina.locator('.eti.pendiente').count() > 0, true, 'nace pendiente de firma');
+  ctx.consentManualUrl = pagina.url();
+
+  // Vuelve al expediente y aparece listado con su cita vacía.
+  await pagina.goto(ctx.pacienteUrl, { waitUntil: 'networkidle' });
+  await pagina.click('button:has-text("📝 Consentimientos")');
+  await pagina.waitForSelector('td:has-text("Blanqueamiento dental en consultorio")');
+  const fila = await pagina.locator('tr', { hasText: 'Blanqueamiento dental en consultorio' }).innerText();
+  assert.match(fila, /Sin cita/);
+});
+
+test('UI · Paciente menor de edad: el documento pide representante legal', async () => {
+  const anio = new Date().getFullYear() - 8;
+  await pagina.goto(`${servidor.base}/#/pacientes`, { waitUntil: 'networkidle' });
+  await abrirModal('button:has-text("➕ Nuevo paciente")');
+  await modal().locator('input[name="nombre"]').fill('Tomás');
+  await modal().locator('input[name="apellidos"]').fill(`Vera UI${sufijo}`);
+  await modal().locator('input[name="cedula"]').fill(`08${sufijo}11`);
+  await modal().locator('input[name="fecha_nacimiento"]').fill(`${anio}-04-02`);
+  await modal().locator('button:has-text("Crear paciente")').click();
+  await esperarExito(/creado/);
+  await pagina.waitForSelector('h2:has-text("Tomás")');
+
+  await pagina.click('button:has-text("📝 Consentimientos")');
+  await abrirModal('button:has-text("➕ Nuevo consentimiento")');
+  await modal().locator('input[name="tratamiento"]').fill('Sellantes de fosas y fisuras');
+  await modal().locator('button:has-text("Generar consentimiento")').click();
+  await esperarExito(/Complétalo y fírmalo/);
+  await pagina.waitForSelector('.documento');
+
+  assert.match(await pagina.locator('.alerta-caja.aviso').first().innerText(), /menor de edad/);
+  await pagina.waitForSelector('.tarjeta:has-text("Representante legal")');
+  const texto = await pagina.locator('.documento').innerText();
+  assert.match(texto, /mi representado\/a requiere el siguiente tratamiento/);
+
+  // Sin la cédula del representante no deja firmar.
+  const lienzos = pagina.locator('canvas.firma-lienzo');
+  await trazar(lienzos.nth(0));
+  await trazar(lienzos.nth(1));
+  await pagina.fill('input[name="firma_paciente_nombre"]', 'Lucía Vera Andrade');
+  await pagina.click('button:has-text("✍️ Firmar y archivar")');
+  await pagina.waitForSelector('.aviso.error');
+  assert.match(await pagina.locator('.aviso.error').last().innerText(), /cédula del representante/i);
+  await limpiarAvisos();
+
+  await pagina.fill('input[name="representante_cedula"]', '1712000999');
+  await pagina.selectOption('select[name="representante_parentesco"]', 'madre');
+  await pagina.click('button:has-text("✍️ Firmar y archivar")');
+  await esperarExito(/firmado y archivado/);
+
+  const firmas = await pagina.locator('.firmas').innerText();
+  assert.match(firmas, /Firma del representante legal/);
+  assert.match(firmas, /Lucía Vera Andrade/);
+  assert.match(firmas, /1712000999/);
+  assert.match(firmas, /madre de Tomás/);
+});
+
+test('UI · Anulación de un consentimiento firmado, con reemplazo', async () => {
+  await pagina.click('button:has-text("⛔ Anular y generar reemplazo")');
+  await pagina.waitForSelector('.modal-fondo');
+  await modal().locator('textarea[name="motivo"]').fill('Se cambió el tratamiento acordado con la madre.');
+  await modal().locator('button:has-text("Anular")').click();
+  await esperarExito(/anulado/);
+
+  await pagina.waitForSelector('.documento');
+  assert.match(await pagina.locator('.alerta-caja.aviso').first().innerText(), /reemplaza a uno anulado/);
+  const enlaceAnterior = pagina.locator('a:has-text("Ver el anterior")');
+  assert.equal(await enlaceAnterior.count(), 1);
+  await enlaceAnterior.click();
+  await pagina.waitForSelector('.alerta-caja:has-text("Consentimiento anulado")');
+  const aviso = await pagina.locator('.alerta-caja').first().innerText();
+  assert.match(aviso, /Se cambió el tratamiento/);
+  assert.match(aviso, /anulado por Administrador/);
+});
+
+test('UI · Impresión del expediente y de la cita', async () => {
+  await pagina.goto(`${servidor.base}/#/imprimir/expediente/${ctx.pacienteId}`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.vista-impresion .hoja');
+  const expediente = await pagina.locator('.hoja').innerText();
+  assert.match(expediente, /Expediente clínico/);
+  assert.match(expediente, /Beatriz/);
+  assert.match(expediente, /Historia médica/i);
+  assert.match(expediente, /Endodoncia unirradicular/);
+  assert.match(expediente, /Estado de cuenta/i);
+  assert.equal(await pagina.locator('.lateral').isVisible(), true, 'la barra lateral sigue en pantalla');
+  assert.ok(await pagina.locator('button:has-text("Imprimir / Guardar PDF")').count());
+
+  await pagina.goto(`${servidor.base}/#/imprimir/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.vista-impresion .hoja');
+  const cita = await pagina.locator('.hoja').innerText();
+  assert.match(cita, new RegExp(`Resumen de la cita #${ctx.citaId}`));
+  assert.match(cita, /Tratamientos realizados/i);
+  assert.match(cita, /Cobros/i);
+  assert.match(cita, /Firma del doctor/);
+});
+
+test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', async () => {
+  await pagina.goto(`${servidor.base}/#/contabilidad`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.kpi');
+
+  await pagina.waitForSelector('.tarjeta:has-text("Ingresos por doctor")');
+  const porDoctor = await pagina.locator('.tarjeta:has-text("Ingresos por doctor")').innerText();
+  assert.match(porDoctor, new RegExp(`Dra. Prueba UI ${sufijo}`), 'atribuye el cobro a su doctora');
+  assert.match(porDoctor, /\$120\.00/);
+
+  const porMetodo = await pagina.locator('.tarjeta:has-text("Ingresos por método de pago")').innerText();
+  assert.match(porMetodo, /tarjeta/);
+
+  // La descarga del CSV se intercepta para comprobar su contenido real.
+  const [descarga] = await Promise.all([
+    pagina.waitForEvent('download'),
+    pagina.click('button:has-text("Exportar pagos (CSV)")'),
+  ]);
+  const ruta = await descarga.path();
+  const csv = fs.readFileSync(ruta, 'utf8');
+  assert.match(descarga.suggestedFilename(), /^pagos_.*\.csv$/);
+  assert.match(csv, /Fecha;Paciente;Metodo;Nota;Monto/);
+  assert.match(csv, /Nájera/);
+  assert.match(csv, /tarjeta/);
+
+  const [descargaGastos] = await Promise.all([
+    pagina.waitForEvent('download'),
+    pagina.click('button:has-text("Exportar gastos (CSV)")'),
+  ]);
+  const csvGastos = fs.readFileSync(await descargaGastos.path(), 'utf8');
+  assert.match(csvGastos, /Fecha;Consultorio;Categoria;Concepto;Proveedor;Monto/);
+  assert.match(csvGastos, /Limas rotatorias/);
 });
 
 test('UI · Agenda: las tres agrupaciones y las vistas día/semana renderizan', async () => {
@@ -577,6 +782,56 @@ test('UI · Agenda: las tres agrupaciones y las vistas día/semana renderizan', 
   await pagina.selectOption('select[name="vista"]', 'dia');
   await pagina.selectOption('select[name="agrupar"]', 'cubiculo');
   await pagina.waitForSelector('.bloque-cita');
+});
+
+test('UI · Roles: recepción y doctor ven solo lo que les corresponde', async () => {
+  // Recepción
+  await pagina.click('.usuario-caja button');
+  await pagina.waitForSelector('.login-caja');
+  await pagina.fill('input[name="email"]', 'recepcion@clinica.com');
+  await pagina.fill('input[name="password"]', 'recepcion123');
+  await pagina.click('button[type="submit"]');
+  await pagina.waitForSelector('.marco');
+  assert.equal(await pagina.locator('a[href="#/configuracion"]').count(), 0, 'recepción no ve Configuración');
+  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 0, 'recepción no ve Contabilidad');
+  assert.equal(await pagina.locator('a[href="#/pacientes"]').count(), 1, 'recepción sí ve Pacientes');
+
+  await pagina.goto(`${servidor.base}/#/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('h2:has-text("Cita #")');
+  assert.equal(
+    await pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")').count(), 0,
+    'recepción no puede registrar tratamientos');
+  assert.equal(await pagina.locator('.tarjeta:has-text("Cobros de esta cita") button:has-text("➕ Registrar pago")').count(), 1,
+    'recepción sí puede registrar pagos');
+
+  // Doctor
+  await pagina.click('.usuario-caja button');
+  await pagina.waitForSelector('.login-caja');
+  await pagina.fill('input[name="email"]', 'ana.morales@clinica.com');
+  await pagina.fill('input[name="password"]', 'doctor123');
+  await pagina.click('button[type="submit"]');
+  await pagina.waitForSelector('.marco');
+  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 0, 'el doctor no ve Contabilidad');
+  assert.equal(await pagina.locator('a[href="#/configuracion"]').count(), 0, 'ni Configuración');
+  assert.equal(await pagina.locator('a[href="#/pacientes"]').count(), 1);
+
+  // La agenda del doctor solo muestra sus propias citas.
+  await pagina.goto(`${servidor.base}/#/agenda`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.agenda-tabla');
+  await pagina.selectOption('select[name="agrupar"]', 'doctor');
+  await pagina.waitForFunction(() => document.querySelectorAll('.agenda-tabla thead th').length === 2);
+  const columnas = await pagina.locator('.agenda-tabla thead th').allInnerTexts();
+  assert.equal(columnas.length, 2, 'solo la columna de horas y la suya');
+  assert.match(columnas[1], /Ana Morales/);
+
+  // Y su lista de pacientes se limita a los que atiende.
+  await pagina.goto(`${servidor.base}/#/pacientes`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.tarjeta');
+  const suyos = await pagina.locator('table.tabla tbody tr').count();
+  assert.ok(suyos >= 1, 've a sus pacientes');
+  const textoPacientes = await pagina.locator('.contenido').innerText();
+  assert.ok(!textoPacientes.includes('Nájera'),
+    'no ve a la paciente de otra doctora');
 });
 
 test('UI · Vista de tablet (820×1180) sin desbordamiento horizontal', async () => {

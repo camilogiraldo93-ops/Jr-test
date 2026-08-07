@@ -100,7 +100,7 @@ post('/api/pagos', { roles: ['admin', 'recepcion'] }, ({ cuerpo }) => {
 
 /* -------------------------------- Gastos ------------------------------- */
 
-get('/api/gastos', ({ consulta }) => {
+get('/api/gastos', { roles: ['admin'] }, ({ consulta }) => {
   const filtros = [];
   const params = [];
   const cid = consulta.get('consultorio_id');
@@ -115,7 +115,7 @@ get('/api/gastos', ({ consulta }) => {
      ${where} ORDER BY g.fecha DESC, g.id DESC`, params);
 });
 
-post('/api/gastos', { roles: ['admin', 'recepcion'] }, ({ cuerpo }) => {
+post('/api/gastos', { roles: ['admin'] }, ({ cuerpo }) => {
   requerido(cuerpo, ['consultorio_id', 'concepto', 'monto']);
   if (!uno('SELECT id FROM consultorios WHERE id = ?', [cuerpo.consultorio_id])) {
     throw new ErrorApp(404, 'Consultorio no encontrado.');
@@ -165,7 +165,7 @@ get('/api/pacientes/:id/estado-cuenta', ({ params }) => {
 
 /* ------------------------------- Balance ------------------------------- */
 
-get('/api/contabilidad/balance', ({ consulta }) => {
+get('/api/contabilidad/balance', { roles: ['admin'] }, ({ consulta }) => {
   const cid = consulta.get('consultorio_id') || null;
   const periodo = texto(consulta.get('periodo'), 'mes'); // dia | mes | rango
   const fecha = soloFecha(consulta.get('fecha')) || hoy();
@@ -193,8 +193,28 @@ get('/api/contabilidad/balance', ({ consulta }) => {
     `SELECT categoria, SUM(monto) total FROM gastos WHERE fecha >= ? AND fecha <= ? ${filtroC}
      GROUP BY categoria ORDER BY total DESC`, [desde, hasta, ...pc]);
   const porMetodo = todos(
-    `SELECT metodo, SUM(monto) total FROM pagos WHERE fecha >= ? AND fecha <= ? ${filtroC}
+    `SELECT metodo, SUM(monto) total, COUNT(*) n FROM pagos WHERE fecha >= ? AND fecha <= ? ${filtroC}
      GROUP BY metodo ORDER BY total DESC`, [desde, hasta, ...pc]);
+
+  // Cada pago se atribuye al doctor del tratamiento cobrado; si el cargo no tiene
+  // tratamiento se usa el doctor de la cita. Los abonos libres quedan "Sin asignar".
+  const porDoctor = todos(
+    `SELECT ifnull(d.nombre, 'Sin asignar') AS doctor,
+            SUM(pg.monto) AS total, COUNT(*) AS n
+     FROM pagos pg
+     LEFT JOIN cargos ca ON ca.id = pg.cargo_id
+     LEFT JOIN tratamientos tr ON tr.id = ca.tratamiento_id
+     LEFT JOIN citas ci ON ci.id = ca.cita_id
+     LEFT JOIN doctores d ON d.id = ifnull(tr.doctor_id, ci.doctor_id)
+     WHERE pg.fecha >= ? AND pg.fecha <= ? ${cid ? 'AND pg.consultorio_id = ?' : ''}
+     GROUP BY doctor ORDER BY total DESC`, [desde, hasta, ...pc]);
+
+  // Producción facturada por doctor en el período (independiente de lo cobrado).
+  const produccionPorDoctor = todos(
+    `SELECT d.nombre AS doctor, SUM(t.precio) AS total, COUNT(*) AS n
+     FROM tratamientos t JOIN doctores d ON d.id = t.doctor_id
+     WHERE t.fecha >= ? AND t.fecha <= ? ${cid ? 'AND t.consultorio_id = ?' : ''}
+     GROUP BY d.nombre ORDER BY total DESC`, [desde, hasta, ...pc]);
 
   const porConsultorio = todos(
     `SELECT co.id, co.nombre,
@@ -223,6 +243,8 @@ get('/api/contabilidad/balance', ({ consulta }) => {
     conteos: { pagos: ingresos.n, gastos: gastos.n, cargos: facturado.n },
     gastos_por_categoria: porCategoria,
     ingresos_por_metodo: porMetodo,
+    ingresos_por_doctor: porDoctor.map((d) => ({ ...d, total: redondear(d.total) })),
+    produccion_por_doctor: produccionPorDoctor.map((d) => ({ ...d, total: redondear(d.total) })),
     por_consultorio: porConsultorio,
   };
 });

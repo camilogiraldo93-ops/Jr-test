@@ -65,12 +65,13 @@ export async function vistaPanel({ usuario }) {
   const listaConsent = consentimientos.length
     ? el('ul', { clase: 'lista-simple' }, consentimientos.slice(0, 8).map((c) => el('li', {}, [
         el('div', {}, [
-          el('div', { clase: 'tit', texto: c.titulo }),
-          el('div', { clase: 'det', texto: `${c.nombre_paciente} · ${c.nombre_doctor}` }),
+          el('div', { clase: 'tit' }, [
+            el('a', { href: `#/consentimiento/${c.id}`, texto: c.tratamiento }),
+          ]),
+          el('div', { clase: 'det', texto: `${c.paciente_nombre} · ${c.doctor_nombre}` }),
+          el('div', { clase: 'mini', texto: c.cita_id ? `Cita #${c.cita_id}` : 'Sin cita vinculada' }),
         ]),
-        c.cita_id
-          ? el('a', { clase: 'btn sec chico', href: `#/cita/${c.cita_id}`, texto: 'Firmar' })
-          : el('span', { clase: 'eti pendiente', texto: 'pendiente' }),
+        el('a', { clase: 'btn chico', href: `#/consentimiento/${c.id}`, texto: '✍️ Firmar' }),
       ])))
     : vacio('No hay consentimientos pendientes de firma.');
 

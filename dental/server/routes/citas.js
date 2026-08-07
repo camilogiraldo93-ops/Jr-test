@@ -1,6 +1,7 @@
 import { get, post, put, patch, del, ErrorApp, conEstado } from '../http.js';
 import { todos, uno, correr, ahora } from '../db.js';
 import { requerido, texto, entero, fechaHora, soloFecha } from '../util.js';
+import { pendientesDeCita } from './consentimientos.js';
 
 export const ESTADOS = ['agendada', 'confirmada', 'en_curso', 'completada', 'cancelada', 'no_asistio'];
 // Los estados que liberan la agenda no bloquean el horario.
@@ -94,9 +95,13 @@ function validarEstructura({ consultorio_id, cubiculo_id, doctor_id, paciente_id
 
 /* ------------------------------- Listado ------------------------------ */
 
-get('/api/citas', ({ consulta }) => {
+get('/api/citas', ({ consulta, usuario }) => {
   const filtros = [];
   const params = [];
+  if (usuario.rol === 'doctor' && usuario.doctor_id) {
+    filtros.push('ci.doctor_id = ?');
+    params.push(usuario.doctor_id);
+  }
   const map = {
     consultorio_id: 'ci.consultorio_id', cubiculo_id: 'ci.cubiculo_id',
     doctor_id: 'ci.doctor_id', paciente_id: 'ci.paciente_id', estado: 'ci.estado',
@@ -114,9 +119,12 @@ get('/api/citas', ({ consulta }) => {
   return todos(`${SQL_CITA} ${where} ORDER BY ci.inicio`, params);
 });
 
-get('/api/citas/:id', ({ params }) => {
+get('/api/citas/:id', ({ params, usuario }) => {
   const c = obtenerCita(params.id);
   if (!c) throw new ErrorApp(404, 'Cita no encontrada.');
+  if (usuario.rol === 'doctor' && usuario.doctor_id && c.doctor_id !== usuario.doctor_id) {
+    throw new ErrorApp(403, 'Esta cita pertenece a otro doctor.');
+  }
   c.tratamientos = todos('SELECT * FROM tratamientos WHERE cita_id = ? ORDER BY id', [c.id]);
   c.fotos = todos('SELECT * FROM fotos WHERE cita_id = ? ORDER BY id', [c.id]);
   c.recordatorios = todos('SELECT * FROM recordatorios WHERE cita_id = ? ORDER BY id', [c.id]);
@@ -226,6 +234,17 @@ patch('/api/citas/:id/estado', { roles: ['admin', 'recepcion', 'doctor'] }, ({ p
     throw new ErrorApp(409,
       `No se permite pasar de "${c.estado}" a "${nuevo}". Transiciones válidas: ${TRANSICIONES[c.estado].join(', ') || 'ninguna'}.`);
   }
+  // Una cita no se cierra si deja consentimientos requeridos sin firmar.
+  if (nuevo === 'completada') {
+    const pendientes = pendientesDeCita(c.id);
+    if (pendientes.length) {
+      throw new ErrorApp(409,
+        `No se puede completar la cita: hay ${pendientes.length} consentimiento(s) informado(s) sin firmar ` +
+        `(${pendientes.map((p) => p.tratamiento).join(', ')}). Fírmalos antes de cerrar la atención.`,
+        { consentimientos_pendientes: pendientes.map((p) => ({ id: p.id, tratamiento: p.tratamiento })) });
+    }
+  }
+
   // Al reactivar una cita cancelada hay que revalidar el horario.
   if (['cancelada', 'no_asistio'].includes(c.estado)) {
     const conflictos = buscarConflictos({
@@ -247,7 +266,7 @@ del('/api/citas/:id', { roles: ['admin'] }, ({ params }) => {
 
 /* ---------------------------- Agenda / vistas -------------------------- */
 
-get('/api/agenda', ({ consulta }) => {
+get('/api/agenda', ({ consulta, usuario }) => {
   const vista = texto(consulta.get('vista'), 'dia');       // dia | semana
   const agrupar = texto(consulta.get('agrupar'), 'cubiculo'); // consultorio | cubiculo | doctor
   const fecha = soloFecha(consulta.get('fecha')) || new Date().toISOString().slice(0, 10);
@@ -272,6 +291,9 @@ get('/api/agenda', ({ consulta }) => {
     const v = consulta.get(clave);
     if (v) { filtros.push(`ci.${clave} = ?`); params.push(v); }
   }
+  // Un doctor solo ve su propia agenda, sin importar los filtros que envíe.
+  const soloSuyo = usuario.rol === 'doctor' && usuario.doctor_id;
+  if (soloSuyo) { filtros.push('ci.doctor_id = ?'); params.push(usuario.doctor_id); }
   const citas = todos(`${SQL_CITA} WHERE ${filtros.join(' AND ')} ORDER BY ci.inicio`, params);
 
   let columnas = [];
@@ -283,7 +305,9 @@ get('/api/agenda', ({ consulta }) => {
        ${cid ? 'WHERE cu.consultorio_id = ?' : ''} ORDER BY co.nombre, cu.nombre`, cid ? [cid] : []
     ).map((c) => ({ ...c, clave: 'cubiculo_id' }));
   } else if (agrupar === 'doctor') {
-    columnas = todos('SELECT id, nombre, especialidad AS subtitulo FROM doctores WHERE activo = 1 ORDER BY nombre')
+    columnas = todos(
+      `SELECT id, nombre, especialidad AS subtitulo FROM doctores
+       WHERE activo = 1 ${soloSuyo ? 'AND id = ?' : ''} ORDER BY nombre`, soloSuyo ? [usuario.doctor_id] : [])
       .map((c) => ({ ...c, clave: 'doctor_id' }));
   } else {
     columnas = todos('SELECT id, nombre, ciudad AS subtitulo FROM consultorios WHERE activo = 1 ORDER BY nombre')

@@ -2,7 +2,7 @@ import { api, ErrorApi } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, confirmar,
   fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
-import { verConsentimiento } from './consentimiento.js';
+import { abrirNuevoConsentimiento } from './consentimiento.js';
 
 const SIGUIENTES = {
   agendada: ['confirmada', 'en_curso', 'cancelada', 'no_asistio'],
@@ -30,6 +30,9 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
   const puedeClinico = ['admin', 'doctor'].includes(usuario.rol);
   const puedeCobrar = ['admin', 'recepcion'].includes(usuario.rol);
   const activa = !['cancelada', 'no_asistio'].includes(cita.estado);
+  // El registro clínico pertenece a la atención: exige que la cita esté en curso.
+  const enAtencion = ['en_curso', 'completada'].includes(cita.estado);
+  const consentPendientes = cita.consentimientos.filter((c) => c.estado === 'pendiente');
 
   /* ---------------------------- Cambio de estado -------------------------- */
   const accionesEstado = el('div', { clase: 'acciones' }, SIGUIENTES[cita.estado].map((e) =>
@@ -47,6 +50,12 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           exito(`La cita ahora está "${ETIQUETAS_ESTADO[e]}".`);
           await refrescar();
         } catch (err) {
+          const pendientes = err instanceof ErrorApi ? err.detalle?.consentimientos_pendientes : null;
+          if (pendientes?.length) {
+            error(err.message, 'Consentimiento sin firmar');
+            navegar(`#/consentimiento/${pendientes[0].id}`);
+            return;
+          }
           error(err instanceof ErrorApi ? err.message : 'No se pudo cambiar el estado.');
         }
       },
@@ -272,13 +281,31 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
   /* ------------------------------ Secciones ------------------------------ */
   const cargosConSaldo = await api.cargos({ cita_id: cita.id });
 
+  function botonRegistrar() {
+    if (!puedeClinico || !activa) return null;
+    if (enAtencion) {
+      return el('button', {
+        clase: 'btn chico', type: 'button', texto: '➕ Registrar',
+        style: 'margin-left:auto', onclick: abrirTratamiento,
+      });
+    }
+    // Visible pero deshabilitado: el usuario entiende por qué y qué hacer.
+    return el('button', {
+      clase: 'btn chico', type: 'button', texto: '➕ Registrar',
+      style: 'margin-left:auto', disabled: true,
+      title: 'Pasa la cita a "En curso" para registrar tratamientos',
+    });
+  }
+
   const seccionTratamientos = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
       el('span', { texto: '🦷 Tratamientos de esta cita' }),
-      puedeClinico && activa
-        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Registrar', style: 'margin-left:auto', onclick: abrirTratamiento })
-        : null,
+      botonRegistrar(),
     ]),
+    puedeClinico && activa && !enAtencion
+      ? el('div', { clase: 'alerta-caja aviso', texto:
+          `La cita está "${ETIQUETAS_ESTADO[cita.estado]}". Pásala a "En curso" para registrar el tratamiento realizado.` })
+      : null,
     cita.tratamientos.length
       ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
           el('thead', {}, [el('tr', {}, ['Tratamiento', 'Piezas', 'Notas clínicas', 'Precio', 'Consentimiento'].map((t) => el('th', { texto: t })))]),
@@ -291,11 +318,11 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
               el('td', { clase: 'num', texto: fmtDinero(t.precio) }),
               el('td', {}, [
                 cons
-                  ? el('button', {
+                  ? el('a', {
                       clase: cons.estado === 'firmado' ? 'btn sec chico' : 'btn chico',
-                      type: 'button',
-                      texto: cons.estado === 'firmado' ? '✅ Ver firmado' : '✍️ Firmar ahora',
-                      onclick: () => verConsentimiento(cons.id, { alFirmar: refrescar }),
+                      href: `#/consentimiento/${cons.id}`,
+                      texto: cons.estado === 'firmado' ? '✅ Ver firmado'
+                        : cons.estado === 'anulado' ? '⛔ Anulado' : '✍️ Firmar ahora',
                     })
                   : puedeClinico
                     ? el('button', {
@@ -303,8 +330,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
                         onclick: async () => {
                           try {
                             const c = await api.generarConsentimiento(t.id);
-                            await refrescar();
-                            verConsentimiento(c.id, { alFirmar: refrescar });
+                            navegar(`#/consentimiento/${c.id}`);
                           } catch (e) { error(e instanceof ErrorApi ? e.message : 'No se pudo generar.'); }
                         },
                       })
@@ -435,6 +461,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
       el('div', { clase: 'acciones' }, [
         el('a', { clase: 'btn sec', href: '#/agenda', texto: '← Agenda' }),
         el('a', { clase: 'btn sec', href: `#/paciente/${cita.paciente_id}`, texto: '📋 Expediente' }),
+        el('a', { clase: 'btn sec', href: `#/imprimir/cita/${cita.id}`, texto: '🖨️ Imprimir' }),
         activa && cita.estado !== 'completada'
           ? el('button', {
               clase: 'btn sec', type: 'button', texto: '🕑 Reprogramar',
@@ -467,6 +494,15 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
 
     !activa
       ? el('div', { clase: 'alerta-caja aviso', texto: `Esta cita está en estado "${ETIQUETAS_ESTADO[cita.estado]}": no admite registro clínico. Reactívala para volver a trabajar en ella.` })
+      : null,
+
+    consentPendientes.length
+      ? el('div', { clase: 'alerta-caja' }, [
+          el('b', { texto: '⚠️ Consentimiento informado sin firmar. ' }),
+          el('span', { texto: `La cita no se puede completar hasta firmar ${consentPendientes.length} documento(s).` }),
+          el('div', { clase: 'acciones', style: 'margin-top:8px' }, consentPendientes.map((c) =>
+            el('a', { clase: 'btn chico', href: `#/consentimiento/${c.id}`, texto: `✍️ Firmar: ${c.tratamiento}` }))),
+        ])
       : null,
 
     seccionTratamientos,

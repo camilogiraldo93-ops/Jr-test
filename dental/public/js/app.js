@@ -8,6 +8,8 @@ import { vistaCita } from './vistas/cita.js';
 import { vistaContabilidad } from './vistas/contabilidad.js';
 import { vistaRecordatorios } from './vistas/recordatorios.js';
 import { vistaConfiguracion } from './vistas/configuracion.js';
+import { vistaConsentimiento } from './vistas/consentimiento.js';
+import { vistaImprimir } from './vistas/imprimir.js';
 
 const app = document.getElementById('app');
 
@@ -16,7 +18,7 @@ const MENU = [
   { ruta: 'agenda', texto: 'Agenda', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'pacientes', texto: 'Pacientes', icono: '🧑‍⚕️', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'recordatorios', texto: 'Recordatorios', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'contabilidad', texto: 'Contabilidad', icono: '💰', roles: ['admin', 'recepcion'] },
+  { ruta: 'contabilidad', texto: 'Contabilidad', icono: '💰', roles: ['admin'] },
   { ruta: 'configuracion', texto: 'Configuración', icono: '⚙️', roles: ['admin'] },
 ];
 
@@ -29,6 +31,8 @@ const VISTAS = {
   recordatorios: vistaRecordatorios,
   contabilidad: vistaContabilidad,
   configuracion: vistaConfiguracion,
+  consentimiento: vistaConsentimiento,
+  imprimir: vistaImprimir,
 };
 
 /* --------------------------------- Login -------------------------------- */
@@ -124,7 +128,7 @@ function armarMarco() {
 function rutaActual() {
   const h = location.hash.replace(/^#\/?/, '');
   const partes = h.split('/').filter(Boolean);
-  return { nombre: partes[0] || 'panel', param: partes[1] || null };
+  return { nombre: partes[0] || 'panel', param: partes[1] || null, param2: partes[2] || null };
 }
 
 let contenidoRef = null;
@@ -139,13 +143,17 @@ export async function refrescar() {
 }
 
 async function renderVista() {
-  const { nombre, param } = rutaActual();
+  const { nombre, param, param2 } = rutaActual();
   const vista = VISTAS[nombre] || VISTAS.panel;
+  // Al salir de una pantalla de firma se recupera la interfaz completa.
+  if (nombre !== 'consentimiento') document.body.classList.remove('modo-tablet');
+  document.body.classList.toggle('imprimiendo', nombre === 'imprimir');
 
   if (navRef) {
     navRef.querySelectorAll('a').forEach((a) => {
       a.classList.toggle('activo', a.dataset.ruta === nombre ||
         (nombre === 'paciente' && a.dataset.ruta === 'pacientes') ||
+        (nombre === 'consentimiento' && a.dataset.ruta === 'pacientes') ||
         (nombre === 'cita' && a.dataset.ruta === 'agenda'));
     });
   }
@@ -153,7 +161,7 @@ async function renderVista() {
   limpiar(contenidoRef);
   contenidoRef.appendChild(el('div', { clase: 'vacio', texto: 'Cargando…' }));
   try {
-    const nodo = await vista({ param, usuario: sesion.usuario, refrescar, navegar });
+    const nodo = await vista({ param, param2, usuario: sesion.usuario, refrescar, navegar });
     limpiar(contenidoRef);
     contenidoRef.appendChild(nodo);
     window.scrollTo(0, 0);

@@ -187,24 +187,57 @@ CREATE INDEX IF NOT EXISTS idx_recordatorios_paciente ON recordatorios(paciente_
 
 CREATE TABLE IF NOT EXISTS consentimientos (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  tratamiento_id INTEGER REFERENCES tratamientos(id) ON DELETE CASCADE,
-  cita_id        INTEGER REFERENCES citas(id) ON DELETE SET NULL,
   paciente_id    INTEGER NOT NULL REFERENCES pacientes(id) ON DELETE CASCADE,
   doctor_id      INTEGER NOT NULL REFERENCES doctores(id) ON DELETE CASCADE,
-  titulo         TEXT NOT NULL,
-  descripcion    TEXT NOT NULL,
-  riesgos        TEXT NOT NULL,
-  alternativas   TEXT NOT NULL,
-  nombre_paciente TEXT NOT NULL,
-  nombre_doctor  TEXT NOT NULL,
-  estado         TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','firmado','rechazado')),
-  firma_tipo     TEXT,
-  firma_data     TEXT,
-  firmante       TEXT,
-  firmado_en     TEXT,
-  creado_en      TEXT NOT NULL
+  consultorio_id INTEGER REFERENCES consultorios(id) ON DELETE SET NULL,
+  cita_id        INTEGER REFERENCES citas(id) ON DELETE SET NULL,
+  tratamiento_id INTEGER REFERENCES tratamientos(id) ON DELETE SET NULL,
+  catalogo_id    INTEGER REFERENCES catalogo_tratamientos(id) ON DELETE SET NULL,
+
+  -- Los tres únicos campos que llena una persona
+  tratamiento    TEXT NOT NULL,
+  observaciones  TEXT,
+
+  -- Instantánea de los datos al generar el documento (no debe cambiar si luego se edita la ficha)
+  paciente_nombre           TEXT NOT NULL,
+  paciente_cedula           TEXT,
+  paciente_fecha_nacimiento TEXT,
+  es_menor                  INTEGER NOT NULL DEFAULT 0,
+  doctor_nombre             TEXT NOT NULL,
+  doctor_especialidad       TEXT,
+  consultorio_nombre        TEXT,
+  consultorio_direccion     TEXT,
+  consultorio_telefono      TEXT,
+  consultorio_ciudad        TEXT,
+  fecha                     TEXT NOT NULL,
+  hora                      TEXT NOT NULL,
+
+  -- Representante legal (obligatorio si el paciente es menor de edad)
+  representante_nombre     TEXT,
+  representante_cedula     TEXT,
+  representante_parentesco TEXT,
+
+  -- Firmas manuscritas en pantalla (PNG en data URL)
+  firma_paciente        TEXT,
+  firma_paciente_nombre TEXT,
+  firma_paciente_en     TEXT,
+  firma_doctor          TEXT,
+  firma_doctor_en       TEXT,
+
+  estado          TEXT NOT NULL DEFAULT 'pendiente'
+                  CHECK (estado IN ('pendiente','firmado','anulado')),
+  firmado_en      TEXT,
+  anulado_en      TEXT,
+  anulado_motivo  TEXT,
+  anulado_por     TEXT,
+  reemplaza_a     INTEGER REFERENCES consentimientos(id) ON DELETE SET NULL,
+  reemplazado_por INTEGER REFERENCES consentimientos(id) ON DELETE SET NULL,
+  creado_por      TEXT,
+  creado_en       TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_consentimientos_paciente ON consentimientos(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_consentimientos_cita ON consentimientos(cita_id);
+CREATE INDEX IF NOT EXISTS idx_consentimientos_estado ON consentimientos(estado);
 
 CREATE TABLE IF NOT EXISTS cargos (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -6,24 +6,49 @@ const CAMPOS = ['nombre', 'apellidos', 'cedula', 'telefono', 'email', 'fecha_nac
   'direccion', 'ocupacion', 'contacto_emergencia', 'telefono_emergencia', 'alergias', 'medicamentos',
   'antecedentes_medicos', 'antecedentes_odontologicos', 'motivo_consulta', 'notas'];
 
+/** Un doctor solo ve a los pacientes que ha atendido o tiene agendados. */
+function ambitoDoctor(usuario) {
+  if (usuario.rol !== 'doctor' || !usuario.doctor_id) return { sql: '', params: [] };
+  return {
+    sql: ' AND id IN (SELECT paciente_id FROM citas WHERE doctor_id = ?' +
+         ' UNION SELECT paciente_id FROM tratamientos WHERE doctor_id = ?)',
+    params: [usuario.doctor_id, usuario.doctor_id],
+  };
+}
+
+export function puedeVerPaciente(usuario, pacienteId) {
+  if (usuario.rol !== 'doctor' || !usuario.doctor_id) return true;
+  return !!uno(
+    `SELECT 1 x FROM citas WHERE doctor_id = ? AND paciente_id = ?
+     UNION SELECT 1 FROM tratamientos WHERE doctor_id = ? AND paciente_id = ? LIMIT 1`,
+    [usuario.doctor_id, pacienteId, usuario.doctor_id, pacienteId]);
+}
+
 /** Buscador por nombre, apellidos, cédula o teléfono. */
-get('/api/pacientes', ({ consulta }) => {
+get('/api/pacientes', ({ consulta, usuario }) => {
+  const ambito = ambitoDoctor(usuario);
   const q = texto(consulta.get('q'));
-  if (!q) return todos('SELECT * FROM pacientes ORDER BY apellidos, nombre LIMIT 200');
+  if (!q) {
+    return todos(
+      `SELECT * FROM pacientes WHERE 1=1${ambito.sql} ORDER BY apellidos, nombre LIMIT 200`, ambito.params);
+  }
   const like = `%${q.toLowerCase()}%`;
   return todos(
     `SELECT * FROM pacientes
-     WHERE lower(nombre) LIKE ? OR lower(apellidos) LIKE ?
+     WHERE (lower(nombre) LIKE ? OR lower(apellidos) LIKE ?
         OR lower(nombre || ' ' || apellidos) LIKE ?
-        OR lower(ifnull(cedula,'')) LIKE ? OR ifnull(telefono,'') LIKE ?
+        OR lower(ifnull(cedula,'')) LIKE ? OR ifnull(telefono,'') LIKE ?)${ambito.sql}
      ORDER BY apellidos, nombre LIMIT 200`,
-    [like, like, like, like, like]
+    [like, like, like, like, like, ...ambito.params]
   );
 });
 
-get('/api/pacientes/:id', ({ params }) => {
+get('/api/pacientes/:id', ({ params, usuario }) => {
   const p = uno('SELECT * FROM pacientes WHERE id = ?', [params.id]);
   if (!p) throw new ErrorApp(404, 'Paciente no encontrado.');
+  if (!puedeVerPaciente(usuario, p.id)) {
+    throw new ErrorApp(403, 'Este paciente no está en tu lista de atención.');
+  }
   return p;
 });
 
@@ -86,9 +111,12 @@ post('/api/pacientes/:id/odontograma', { roles: ['admin', 'doctor'] }, ({ params
 
 /* ------------------------- Expediente completo ------------------------ */
 
-get('/api/pacientes/:id/expediente', ({ params }) => {
+get('/api/pacientes/:id/expediente', ({ params, usuario }) => {
   const p = uno('SELECT * FROM pacientes WHERE id = ?', [params.id]);
   if (!p) throw new ErrorApp(404, 'Paciente no encontrado.');
+  if (!puedeVerPaciente(usuario, p.id)) {
+    throw new ErrorApp(403, 'Este paciente no está en tu lista de atención.');
+  }
   const id = p.id;
 
   const citas = todos(
@@ -132,9 +160,10 @@ get('/api/pacientes/:id/expediente', ({ params }) => {
       lugar: `${t.consultorio_nombre} · ${t.cubiculo_nombre}`, ref_id: t.id,
     })),
     ...consentimientos.map((c) => ({
-      tipo: 'consentimiento', fecha: c.firmado_en || c.creado_en, titulo: `Consentimiento: ${c.titulo}`,
-      detalle: c.estado === 'firmado' ? 'Firmado por el paciente' : 'Pendiente de firma',
-      doctor: c.nombre_doctor, lugar: '', ref_id: c.id,
+      tipo: 'consentimiento', fecha: c.firmado_en || c.creado_en, titulo: `Consentimiento: ${c.tratamiento}`,
+      detalle: c.estado === 'firmado' ? `Firmado por ${c.firma_paciente_nombre || c.paciente_nombre}`
+        : c.estado === 'anulado' ? `Anulado: ${c.anulado_motivo || 'sin motivo'}` : 'Pendiente de firma',
+      doctor: c.doctor_nombre, lugar: '', ref_id: c.id,
     })),
     ...fotos.map((f) => ({
       tipo: 'foto', fecha: f.creada_en, titulo: `Imagen: ${f.nombre}`,

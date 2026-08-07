@@ -3,7 +3,8 @@ import { el, limpiar, modal, campo, selector, area, exito, error, vacio, fmtDine
   fmtFechaHora, fmtMarca, etiquetaEstado, entrada } from '../ui.js';
 import { abrirFormularioPaciente } from './pacientes.js';
 import { abrirFormularioCita } from './formCita.js';
-import { verConsentimiento } from './consentimiento.js';
+import { abrirNuevoConsentimiento } from './consentimiento.js';
+import { ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
 const DIENTES_SUP = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28'];
 const DIENTES_INF = ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38'];
@@ -101,7 +102,12 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
 
   /* ------------------------------ Historial ------------------------------ */
   agregarPestana('historial', '🕒 Historial', () => {
-    if (!exp.cronologia.length) return el('div', { clase: 'tarjeta' }, [vacio('Sin actividad registrada todavía.')]);
+    if (!exp.cronologia.length) {
+      return el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: 'Historial cronológico completo' }),
+        vacio('Sin actividad registrada todavía.'),
+      ]);
+    }
     const iconos = { cita: '📅', tratamiento: '🦷', consentimiento: '📝', foto: '🖼️' };
     return el('div', { clase: 'tarjeta' }, [
       el('h3', { texto: 'Historial cronológico completo' }),
@@ -119,7 +125,12 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
 
   /* ---------------------------- Tratamientos ----------------------------- */
   agregarPestana('tratamientos', '🦷 Tratamientos', () => {
-    if (!exp.tratamientos.length) return el('div', { clase: 'tarjeta' }, [vacio('Sin tratamientos registrados.')]);
+    if (!exp.tratamientos.length) {
+      return el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: 'Tratamientos realizados' }),
+        vacio('Sin tratamientos registrados.'),
+      ]);
+    }
     return el('div', { clase: 'tarjeta' }, [
       el('h3', { texto: 'Tratamientos realizados' }),
       el('div', { clase: 'tabla-envoltura' }, [
@@ -147,6 +158,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
   agregarPestana('fotos', `🖼️ Imágenes (${exp.fotos.length})`, () => {
     if (!exp.fotos.length) {
       return el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: 'Radiografías e imágenes intraorales' }),
         vacio('No hay imágenes. Se cargan desde la pantalla de la cita al atender al paciente.'),
       ]);
     }
@@ -173,31 +185,67 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
   });
 
   /* --------------------------- Consentimientos --------------------------- */
+  const pendientesConsent = exp.consentimientos.filter((c) => c.estado === 'pendiente').length;
   agregarPestana('consentimientos', `📝 Consentimientos (${exp.consentimientos.length})`, () => {
-    if (!exp.consentimientos.length) return el('div', { clase: 'tarjeta' }, [vacio('Sin consentimientos generados.')]);
+    const botonNuevo = ['admin', 'doctor', 'recepcion'].includes(usuario.rol)
+      ? el('button', {
+          clase: 'btn chico', type: 'button', texto: '➕ Nuevo consentimiento', style: 'margin-left:auto',
+          onclick: () => abrirNuevoConsentimiento({ paciente_id: p.id, navegar }),
+        })
+      : null;
+
     return el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: 'Consentimientos informados' }),
-      el('div', { clase: 'tabla-envoltura' }, [
-        el('table', { clase: 'tabla' }, [
-          el('thead', {}, [el('tr', {}, ['Tratamiento', 'Doctor', 'Estado', 'Firmado', ''].map((t) => el('th', { texto: t })))]),
-          el('tbody', {}, exp.consentimientos.map((c) => el('tr', {}, [
-            el('td', { texto: c.titulo }),
-            el('td', { texto: c.nombre_doctor }),
-            el('td', {}, [el('span', { clase: `eti ${c.estado}`, texto: c.estado })]),
-            el('td', { texto: c.firmado_en ? fmtMarca(c.firmado_en) : '—' }),
-            el('td', {}, [el('button', {
-              clase: 'btn sec chico', type: 'button', texto: 'Ver documento',
-              onclick: () => verConsentimiento(c.id, { alFirmar: refrescar, puedeFirmar: true }),
-            })]),
-          ]))),
-        ]),
-      ]),
+      el('h3', {}, [el('span', { texto: 'Consentimientos informados' }), botonNuevo]),
+      pendientesConsent
+        ? el('div', { clase: 'alerta-caja aviso', texto:
+            `Hay ${pendientesConsent} consentimiento(s) pendiente(s) de firma.` })
+        : null,
+      exp.consentimientos.length
+        ? el('div', { clase: 'tabla-envoltura' }, [
+            el('table', { clase: 'tabla' }, [
+              el('thead', {}, [el('tr', {}, ['Fecha', 'Tratamiento', 'Doctor', 'Cita', 'Estado', ''].map(
+                (t) => el('th', { texto: t })))]),
+              el('tbody', {}, exp.consentimientos.map((c) => el('tr', {}, [
+                el('td', { texto: fmtFechaCorta(c.fecha || c.creado_en) }),
+                el('td', {}, [
+                  el('b', { texto: c.tratamiento }),
+                  c.observaciones ? el('div', { clase: 'mini', texto: c.observaciones }) : null,
+                ]),
+                el('td', { texto: c.doctor_nombre }),
+                el('td', {}, [c.cita_id
+                  ? el('a', { href: `#/cita/${c.cita_id}`, texto: `#${c.cita_id}` })
+                  : document.createTextNode('Sin cita')]),
+                el('td', {}, [
+                  el('span', {
+                    clase: `eti ${c.estado === 'firmado' ? 'firmado' : c.estado === 'anulado' ? 'cancelado' : 'pendiente'}`,
+                    texto: ETIQUETA_ESTADO_CONSENT[c.estado] || c.estado,
+                  }),
+                  c.firmado_en ? el('div', { clase: 'mini', texto: fmtMarca(c.firmado_en) }) : null,
+                  c.estado === 'anulado' && c.anulado_motivo
+                    ? el('div', { clase: 'mini', texto: c.anulado_motivo }) : null,
+                ]),
+                el('td', {}, [
+                  el('a', {
+                    clase: c.estado === 'pendiente' ? 'btn chico' : 'btn sec chico',
+                    href: `#/consentimiento/${c.id}`,
+                    texto: c.estado === 'pendiente' ? '✍️ Firmar' : 'Ver documento',
+                  }),
+                ]),
+              ]))),
+            ]),
+          ])
+        : vacio('Sin consentimientos generados. Se crean solos al registrar un tratamiento que los requiere, o manualmente con el botón de arriba.'),
     ]);
   });
 
   /* ---------------------------- Recordatorios ---------------------------- */
   agregarPestana('recordatorios', `🔔 Recordatorios (${exp.recordatorios.filter((r) => r.estado === 'pendiente').length})`, () => {
-    if (!exp.recordatorios.length) return el('div', { clase: 'tarjeta' }, [vacio('Sin recordatorios.')]);
+    if (!exp.recordatorios.length) {
+      return el('div', { clase: 'tarjeta' }, [
+        el('h3', { texto: 'Recordatorios de tratamiento y seguimiento' }),
+        vacio('Sin recordatorios.'),
+      ]);
+    }
     return el('div', { clase: 'tarjeta' }, [
       el('h3', { texto: 'Recordatorios de tratamiento y seguimiento' }),
       el('ul', { clase: 'lista-simple' }, exp.recordatorios.map((r) => el('li', {}, [
@@ -342,6 +390,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
       ]),
       el('div', { clase: 'acciones' }, [
         el('a', { clase: 'btn sec', href: '#/pacientes', texto: '← Pacientes' }),
+        el('a', { clase: 'btn sec', href: `#/imprimir/expediente/${p.id}`, texto: '🖨️ Imprimir' }),
         el('button', {
           clase: 'btn sec', type: 'button', texto: '✏️ Editar ficha',
           onclick: () => abrirFormularioPaciente(p, refrescar),

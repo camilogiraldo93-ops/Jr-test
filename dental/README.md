@@ -36,7 +36,8 @@ dental/
 │   ├── http.js             Router mínimo, servidor de estáticos, manejo de errores
 │   ├── util.js             Validación y normalización de datos de entrada
 │   ├── index.js            Arranque del servidor
-│   └── routes/             auth · clinica · pacientes · citas · clinico · contabilidad
+│   └── routes/             auth · clinica · pacientes · citas · consentimientos ·
+│                           clinico · contabilidad
 ├── public/                 SPA en JavaScript (ES modules), sin dependencias
 │   ├── index.html
 │   ├── css/app.css
@@ -44,8 +45,9 @@ dental/
 │       ├── api.js          Cliente del API
 │       ├── ui.js           Componentes (modales, avisos, formatos)
 │       ├── app.js          Router por hash + autenticación
-│       └── vistas/         panel · agenda · pacientes · expediente · cita ·
-│                           consentimiento · contabilidad · recordatorios · configuracion
+│       ├── consentimiento-doc.js  Plantilla del documento (pantalla e impresión)
+│       └── vistas/         panel · agenda · pacientes · expediente · cita · consentimiento ·
+│                           imprimir · contabilidad · recordatorios · configuracion
 ├── data/                   Base de datos SQLite + imágenes subidas (persistente)
 ├── seed.js                 Datos de ejemplo
 └── test/                   Pruebas E2E de API y de interfaz (navegador real)
@@ -63,6 +65,9 @@ reiniciar el servidor.
 `usuarios` · `sesiones` · `consultorios` · `cubiculos` · `doctores` · `doctor_consultorio` ·
 `doctor_cubiculo` · `pacientes` · `odontograma` · `catalogo_tratamientos` · `citas` ·
 `tratamientos` · `fotos` · `recordatorios` · `consentimientos` · `cargos` · `pagos` · `gastos`
+
+Las bases creadas con el esquema anterior de `consentimientos` se migran solas al arrancar
+(`migrarConsentimientosV2` en `server/db.js`), conservando los registros existentes.
 
 ## Funcionalidades
 
@@ -86,23 +91,55 @@ Desde la pantalla de la cita, el doctor registra el tratamiento (queda vinculado
 fecha, doctor y cubículo), **carga radiografías y fotos intraorales**, **crea recordatorios** de
 seguimiento y **agenda la próxima cita** derivada del tratamiento, todo sin salir de esa pantalla.
 
+El registro de tratamientos exige que la cita esté **En curso**: en cualquier otro estado el botón
+aparece deshabilitado y la tarjeta explica qué hacer.
+
 ### 4. Consentimiento informado
-Se genera automáticamente para los tratamientos que lo requieren, con descripción, riesgos,
-alternativas y los nombres de paciente y doctor. Se firma **en pantalla** (trazo digital, compatible
-con tablet) o mediante aceptación explícita, y queda archivado con fecha y hora en el expediente,
-vinculado a la cita y al tratamiento. Un consentimiento firmado ya no se puede editar.
+Documento con plantilla única y formato estándar. El sistema autocompleta **todo** salvo tres
+campos: **tratamiento**, **doctor** y **observaciones**. Los datos del paciente (nombre, cédula,
+edad), del consultorio (nombre, dirección, teléfono, ciudad) y la fecha/hora se toman como
+instantánea al generar el documento, de modo que editar la ficha después no altera lo firmado.
+
+- **Doble firma manuscrita en pantalla** (paciente y doctor), con *pointer events* para dedo,
+  lápiz digital y ratón. Cada lienzo tiene Limpiar y Confirmar firma.
+- **Modo tablet**: oculta toda la interfaz para entregar el dispositivo al paciente, con el
+  documento a pantalla completa y zona de firma grande. Un control flotante permite volver.
+- **Menor de edad**: se calcula desde la fecha de nacimiento; el documento cambia su redacción y
+  exige nombre, cédula y parentesco del representante legal, que es quien firma.
+- **Estados**: `pendiente` → `firmado` (inmutable, sellado con fecha y hora) → `anulado`. Anular
+  conserva el documento con motivo, responsable y fecha, y puede generar un reemplazo enlazado en
+  ambos sentidos.
+- **Se puede crear manualmente** desde el expediente, sin pasar por una cita.
+- Una cita **no se puede marcar como Completada** si deja consentimientos requeridos sin firmar.
 
 ### 5. Contabilidad
 Cargos por tratamiento (generados automáticamente), pagos y abonos con control de saldo, gastos por
-categoría, estado de cuenta por paciente y balance por consultorio y período (día/mes).
+categoría, estado de cuenta por paciente y balance por consultorio y período (día/mes). Incluye
+desglose de **ingresos por doctor** (cobrado y producción facturada) y **por método de pago**, con
+**exportación CSV** de los pagos y los gastos del período.
 
-### 6. Roles
+### 6. Impresión y PDF
+Vistas de impresión limpias para el **consentimiento** (con las firmas incluidas), el **expediente
+completo** del paciente y el **resumen de la cita**. El PDF se obtiene con «Guardar como PDF» del
+diálogo de impresión del navegador; no hay generación de PDF en el servidor.
+
+### 7. Roles
 | | Administrador | Doctor | Recepción |
 |---|---|---|---|
 | Consultorios, cubículos, doctores, usuarios | ✅ | — | — |
-| Agenda y pacientes | ✅ | ✅ | ✅ |
+| Agenda | ✅ (toda) | ✅ (solo la suya) | ✅ (toda) |
+| Pacientes | ✅ (todos) | ✅ (solo los que atiende) | ✅ (todos) |
 | Registro clínico (tratamientos, consentimientos) | ✅ | ✅ (solo sus citas) | — |
-| Cobros, pagos y gastos | ✅ | — | ✅ |
+| Cobro al paciente desde la cita | ✅ | — | ✅ |
+| Módulo de contabilidad (balance, gastos, CSV) | ✅ | — | — |
+
+El filtrado del rol *doctor* es del lado del servidor: aunque envíe otros parámetros, la agenda,
+las citas y la lista de pacientes se limitan a lo suyo.
+
+**Nota de diseño:** recepción no accede al módulo de contabilidad (balance, gastos, exportaciones),
+pero sí puede registrar el cobro del paciente desde la pantalla de la cita, que es trabajo de
+mostrador. Si prefieres cerrarle también esa puerta, el cambio es quitar `recepcion` de la ruta
+`POST /api/pagos` en `server/routes/contabilidad.js`.
 
 ## Pruebas
 
@@ -111,6 +148,11 @@ npm test          # API + interfaz
 npm run test:api  # 8 flujos de usuario contra el API, base de datos aislada
 npm run test:ui   # los mismos 8 flujos en Chromium, vigilando la consola
 ```
+
+Cubren, entre otros: el documento de consentimiento autocompletado, la doble firma trazada con el
+ratón sobre el lienzo real, la inmutabilidad del firmado, la anulación con reemplazo, el flujo de
+menor de edad con representante legal, el bloqueo de «Completada», las vistas de impresión, la
+descarga real del CSV y el aislamiento por rol.
 
 Las pruebas de interfaz requieren Playwright (se resuelve desde la instalación global si no está
 instalado en el proyecto) y verifican además que no haya **ningún error de consola, excepción de
