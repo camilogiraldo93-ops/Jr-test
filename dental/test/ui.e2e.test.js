@@ -281,7 +281,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await pagina.waitForSelector('.alerta-caja:has-text("Conflicto de agenda")');
   const textoConflicto = await m.locator('.alerta-caja').innerText();
   assert.match(textoConflicto, /Conflicto de agenda/);
-  assert.match(textoConflicto, /ya tiene la cita #/);
+  assert.match(textoConflicto, /ya tienen? la cita #/);
 
   await m.locator('button:has-text("Agendar cita")').click();
   await pagina.waitForSelector('.aviso.error');
@@ -446,7 +446,13 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
 
   // Balance del consultorio nuevo: ingresos 120, gastos 80, balance 40.
   await pagina.selectOption('select[name="consultorio_id"]', { label: `Clínica UI ${sufijo}` });
-  await pagina.waitForSelector('.kpi');
+  // El filtro recarga de forma asíncrona: esperamos a que el resumen quede acotado a esa sede.
+  await pagina.waitForFunction((nombre) => {
+    const tarjeta = [...document.querySelectorAll('.tarjeta')]
+      .find((t) => t.querySelector('h3')?.textContent.includes('Resumen por consultorio'));
+    const filas = tarjeta ? [...tarjeta.querySelectorAll('tbody tr')] : [];
+    return filas.length === 1 && filas[0].textContent.includes(nombre);
+  }, `Clínica UI ${sufijo}`, { timeout: 30000 });
   const kpis = await pagina.locator('.rejilla.c4').first().innerText();
   assert.match(kpis, /\$120\.00/, 'ingresos del período');
   assert.match(kpis, /\$80\.00/, 'gastos del período');

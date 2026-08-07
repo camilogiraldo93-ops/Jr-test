@@ -116,10 +116,15 @@ export async function abrirFormularioCita(opciones = {}) {
     avisoConflicto.className = 'alerta-caja';
     avisoConflicto.innerHTML = '';
     avisoConflicto.appendChild(el('b', { texto: '⛔ Conflicto de agenda — no se puede guardar' }));
-    avisoConflicto.appendChild(el('ul', {}, conflictos.map((c) => el('li', {
-      texto: `${c.motivo === 'doctor' ? 'El doctor' : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor'} ` +
-        `ya tiene la cita #${c.cita_id} de ${c.paciente} (${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}), estado ${c.estado}.`,
-    }))));
+    avisoConflicto.appendChild(el('ul', {}, conflictos.map((c) => {
+      const quien = c.motivo === 'doctor' ? 'El doctor'
+        : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor';
+      const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
+      return el('li', {
+        texto: `${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
+          `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}), estado ${c.estado}.`,
+      });
+    })));
     if (mensaje) avisoConflicto.appendChild(el('div', { clase: 'mini', style: 'margin-top:6px', texto: mensaje }));
     avisoConflicto.style.display = 'block';
   }

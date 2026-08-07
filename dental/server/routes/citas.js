@@ -64,7 +64,8 @@ function explicarConflictos(conflictos) {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
       : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
       : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    return `Choque de horario: ${quien} ya tiene la cita #${c.cita_id} de ${c.paciente} ` +
+    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
+    return `Choque de horario: ${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
            `de ${c.inicio.slice(11)} a ${c.fin.slice(11)} el ${c.inicio.slice(0, 10)} (estado: ${c.estado}).`;
   }).join(' ');
 }
