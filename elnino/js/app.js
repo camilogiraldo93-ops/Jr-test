@@ -15,7 +15,7 @@ import { tarjetaAlerta, panelENSO, panelLimitaciones, fechaLarga } from './ui.js
 const $ = (sel) => document.querySelector(sel);
 
 const estado = {
-  provincias: null, clim: null, geo: null, oni: null, backtest: null,
+  provincias: null, clim: null, geo: null, oni: null, backtest: null, bias: null,
   det: null, ens: null, sst: null,
   dias: [], diaSel: null, alertas: [], porProvincia: {},
   provinciaSel: null, filtro: 'todas',
@@ -44,6 +44,7 @@ function construirAlertas() {
     ens: estado.ens,
     dias: estado.dias,
     spreadStats,
+    bias: estado.bias,
   });
   estado.alertas = alertas;
   estado.porProvincia = porProvinciaDia;
@@ -154,6 +155,7 @@ async function main() {
     estado.geo = geo;
     estado.oni = oni;
     estado.backtest = await cargarJSON('data/backtest.json').catch(() => null);
+    estado.bias = await cargarJSON('data/bias.json').catch(() => null);
 
     $('#estado-carga').textContent = 'Consultando Open-Meteo…';
     const [det, ens, sst] = await Promise.all([

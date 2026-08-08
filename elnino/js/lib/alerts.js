@@ -8,6 +8,7 @@
 import { classifyDay, CATEGORIES, DEFAULT_CONFIG } from './classifier.js';
 import { doyIndexFromISO } from './doy.js';
 import { oniForDate } from './oni.js';
+import { factoresDe, corregirPr, corregirTmax } from './bias.js';
 
 /** Variable del multi-modelo y unidad asociada a cada categoría. */
 export const CAT_VAR = {
@@ -60,9 +61,10 @@ export function umbralDisparo(cat, clim, cfg = DEFAULT_CONFIG) {
  * @param {number} [p.ahora]
  * @returns {{alertas: Array, porProvinciaDia: object}}
  */
-export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats, ahora = Date.now(), cfg = DEFAULT_CONFIG }) {
+export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats, bias = null, ahora = Date.now(), cfg = DEFAULT_CONFIG }) {
   const alertas = [];
   const porProvinciaDia = {};
+  const hoy = new Date(ahora).toISOString().slice(0, 10);
 
   for (const p of provincias) {
     const d = det[p.id];
@@ -70,19 +72,28 @@ export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats
     const idx = new Map(d.time.map((t, i) => [t, i]));
     const e = ens?.[p.id];
     const eIdx = e ? new Map(e.time.map((t, i) => [t, i])) : null;
+    const { rho, delta } = factoresDe(bias, p.id);
+
+    // La corrección de sesgo se aplica a los días pronosticados. Los días ya
+    // transcurridos que alimentan los acumulados vienen del análisis y se dejan
+    // como están: corregirlos introduciría un sesgo donde no lo hay.
+    const prAjustada = d.time.map((t, i) => (t >= hoy ? corregirPr(d.pr[i], rho) : d.pr[i]));
 
     for (const dia of dias) {
       const i = idx.get(dia);
       if (i == null || d.pr[i] == null || d.tmax[i] == null) continue;
 
-      const pr3 = suma(d.pr, i - 2, i);
-      const pr30 = suma(d.pr, i - 29, i);
+      const pr3 = suma(prAjustada, i - 2, i);
+      const pr30 = suma(prAjustada, i - 29, i);
       const climDia = climEn(clim, p.id, dia);
       const entrada = oniForDate(oni, dia);
       const oniVal = entrada ? entrada.anom : null;
 
+      const prDia = prAjustada[i];
+      const tmaxDia = corregirTmax(d.tmax[i], delta);
+
       const r = classifyDay(
-        { pr: d.pr[i], pr3, pr30, tmax: d.tmax[i], clim: climDia, region: p.region, oni: oniVal },
+        { pr: prDia, pr3, pr30, tmax: tmaxDia, clim: climDia, region: p.region, oni: oniVal },
         cfg,
       );
       (porProvinciaDia[dia] ||= {})[p.id] = { max: r.max, active: r.active };
@@ -108,7 +119,11 @@ export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats
           anticipacionHoras: anticipacion,
           unidad, spread, modelosQueSuperan: superan,
           oniAplicado: oniVal,
-          evidencia: { pr: d.pr[i], pr3, pr30, tmax: d.tmax[i], umbral, pr30Mean: climDia.pr30Mean },
+          sesgo: { rho, delta },
+          evidencia: {
+            pr: prDia, pr3, pr30, tmax: tmaxDia, umbral, pr30Mean: climDia.pr30Mean,
+            prSinCorregir: d.pr[i], tmaxSinCorregir: d.tmax[i],
+          },
         });
       }
     }

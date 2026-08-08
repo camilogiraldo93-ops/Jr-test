@@ -162,10 +162,15 @@ export function tarjetaAlerta(a, backtest) {
   // --- Fuentes ---
   const src = document.createElement('footer');
   src.className = 'fuentes';
+  const ajuste = a.sesgo && (a.sesgo.rho !== 1 || a.sesgo.delta !== 0)
+    ? ` Valor corregido por sesgo del modelo frente a ERA5 en esta provincia ` +
+      `(lluvia ×${a.sesgo.rho}, temperatura ${a.sesgo.delta >= 0 ? '+' : ''}${a.sesgo.delta} °C; ` +
+      `sin corregir: ${n1(a.evidencia.prSinCorregir)} mm / ${n1(a.evidencia.tmaxSinCorregir)} °C).`
+    : '';
   src.innerHTML =
     'Fuente del disparo: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ' +
-    `Forecast API (modelo <code>best_match</code>, corrida ${a.corrida || 'más reciente disponible'}). ` +
-    'Umbrales: reanálisis ERA5 1991-2020 (ECMWF). ' +
+    'Forecast API (modelo <code>best_match</code>, corrida más reciente disponible).' + ajuste +
+    ' Umbrales: reanálisis ERA5, normal móvil de 30 años (ECMWF). ' +
     'Contexto ENSO: <a href="https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt" target="_blank" rel="noopener">NOAA CPC ONI</a>.';
   card.appendChild(src);
 

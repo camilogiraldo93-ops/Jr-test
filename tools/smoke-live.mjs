@@ -22,6 +22,7 @@ const leer = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), 'utf8'));
 const provincias = leer('elnino/data/provinces.json').provincias;
 const clim = leer('elnino/data/climatology.json');
 const oni = leer('elnino/data/oni.json');
+const bias = fs.existsSync(path.join(ROOT, 'elnino/data/bias.json')) ? leer('elnino/data/bias.json') : null;
 
 const hoy = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Guayaquil', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -59,7 +60,9 @@ check('TSM costera disponible', Object.keys(sst).length > 0, `(${Object.keys(sst
 
 console.log('\n== Clasificación con el mismo motor que la app ==');
 const dias = det[provincias[0].id].time.filter((t) => t >= hoy);
-const { alertas, porProvinciaDia } = buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats });
+const { alertas, porProvinciaDia } = buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats, bias });
+console.log(`  climatología: ${clim._meta.periodo_referencia}`);
+console.log(`  corrección de sesgo: ${bias ? `${bias._meta.entrenamiento_inicio} → ${bias._meta.entrenamiento_fin}` : 'no aplicada'}`);
 
 const diaVerificado = dias.find((d) => horasDeAnticipacion(d) >= 24);
 check('existe al menos un día con 24 h o más de anticipación', diaVerificado != null, `(${diaVerificado})`);
