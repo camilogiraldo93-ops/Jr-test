@@ -28,7 +28,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyDay, CATEGORIES, DEFAULT_CONFIG } from '../elnino/js/lib/classifier.js';
-import { doyIndexFromISO } from '../elnino/js/lib/doy.js';
+import { doyIndexFromISO, interpClim } from '../elnino/js/lib/doy.js';
 import { oniForDate } from '../elnino/js/lib/oni.js';
 import { factoresDe, corregirPr, corregirTmax } from '../elnino/js/lib/bias.js';
 
@@ -171,7 +171,7 @@ function climFor(provId, iso) {
   const c = climatology.provincias[provId];
   const d = doyIndexFromISO(iso);
   const out = {};
-  for (const k of Object.keys(c)) out[k] = c[k][d];
+  for (const k of Object.keys(c)) out[k] = interpClim(c[k], d);
   return out;
 }
 

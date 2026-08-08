@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { doyIndexFromISO, DOY_SLOTS } from '../elnino/js/lib/doy.js';
+import { doyIndexFromISO, DOY_SLOTS, CLIM_STEP, CLIM_SLOTS } from '../elnino/js/lib/doy.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = path.join(ROOT, 'tools', '.cache');
@@ -132,28 +132,31 @@ function buildForSeries(time, pr, tmax) {
     'tmaxP95', 'tmaxP98', 'tmaxP995', 'tmaxMean',
     'pr30P05', 'pr30P10', 'pr30P20', 'pr30Mean',
   ];
-  const out = Object.fromEntries(keys.map((k) => [k, new Array(DOY_SLOTS)]));
+  const out = Object.fromEntries(keys.map((k) => [k, new Array(CLIM_SLOTS)]));
 
-  for (let d = 0; d < DOY_SLOTS; d++) {
+  // Se muestrea cada CLIM_STEP días: con ventana de ±10 días, los días contiguos
+  // comparten casi todas sus muestras y guardar los 366 no añade información.
+  for (let s = 0; s < CLIM_SLOTS; s++) {
+    const d = Math.min(s * CLIM_STEP, DOY_SLOTS - 1);
     const sp = gather(bucketsPr, d);
     const s3 = gather(bucketsPr3, d);
     const s30 = gather(bucketsPr30, d);
     const st = gather(bucketsTmax, d);
-    out.prP95[d] = r1(quantile(sp, 0.95));
-    out.prP99[d] = r1(quantile(sp, 0.99));
-    out.prP995[d] = r1(quantile(sp, 0.995));
-    out.prMean[d] = r1(mean(sp));
-    out.pr3P95[d] = r1(quantile(s3, 0.95));
-    out.pr3P99[d] = r1(quantile(s3, 0.99));
-    out.pr3P995[d] = r1(quantile(s3, 0.995));
-    out.tmaxP95[d] = r1(quantile(st, 0.95));
-    out.tmaxP98[d] = r1(quantile(st, 0.98));
-    out.tmaxP995[d] = r1(quantile(st, 0.995));
-    out.tmaxMean[d] = r1(mean(st));
-    out.pr30P05[d] = r1(quantile(s30, 0.05));
-    out.pr30P10[d] = r1(quantile(s30, 0.10));
-    out.pr30P20[d] = r1(quantile(s30, 0.20));
-    out.pr30Mean[d] = r1(mean(s30));
+    out.prP95[s] = r1(quantile(sp, 0.95));
+    out.prP99[s] = r1(quantile(sp, 0.99));
+    out.prP995[s] = r1(quantile(sp, 0.995));
+    out.prMean[s] = r1(mean(sp));
+    out.pr3P95[s] = r1(quantile(s3, 0.95));
+    out.pr3P99[s] = r1(quantile(s3, 0.99));
+    out.pr3P995[s] = r1(quantile(s3, 0.995));
+    out.tmaxP95[s] = r1(quantile(st, 0.95));
+    out.tmaxP98[s] = r1(quantile(st, 0.98));
+    out.tmaxP995[s] = r1(quantile(st, 0.995));
+    out.tmaxMean[s] = r1(mean(st));
+    out.pr30P05[s] = r1(quantile(s30, 0.05));
+    out.pr30P10[s] = r1(quantile(s30, 0.10));
+    out.pr30P20[s] = r1(quantile(s30, 0.20));
+    out.pr30Mean[s] = r1(mean(s30));
   }
   return out;
 }
@@ -183,6 +186,7 @@ async function main() {
       periodo_referencia: `${START} a ${END}`,
       motivo_periodo: 'Normal móvil de 30 años más reciente. Se descartó 1991-2020 porque, con el calentamiento observado, su percentil 95 de temperatura máxima ya no representa un extremo en 2026 y la categoría "ola de calor" se disparaba en el 53 % de los días.',
       ventana_dia_del_anio: `±${WINDOW} días`,
+      resolucion: `una muestra cada ${CLIM_STEP} días del año (${CLIM_SLOTS} ranuras); la app interpola linealmente`,
       muestras_por_ranura: (2 * WINDOW + 1) * 30,
       generado: new Date().toISOString().slice(0, 10),
       nota: 'Percentiles calculados por provincia sobre el punto de su capital. No representan la variabilidad interna de la provincia.',

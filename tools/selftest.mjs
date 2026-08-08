@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyDay, DEFAULT_CONFIG, ensoPhase, CATEGORIES } from '../elnino/js/lib/classifier.js';
-import { doyIndexFromISO, DOY_SLOTS } from '../elnino/js/lib/doy.js';
+import { doyIndexFromISO, DOY_SLOTS, CLIM_SLOTS, interpClim } from '../elnino/js/lib/doy.js';
 import { oniForDate } from '../elnino/js/lib/oni.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,10 +40,10 @@ let noMonotono = 0;
 for (const p of provincias) {
   const c = clim.provincias[p.id];
   for (const k of claves) {
-    if (!Array.isArray(c[k]) || c[k].length !== DOY_SLOTS) { huecos++; continue; }
+    if (!Array.isArray(c[k]) || c[k].length !== CLIM_SLOTS) { huecos++; continue; }
     if (c[k].some((v) => v == null || !Number.isFinite(v))) huecos++;
   }
-  for (let d = 0; d < DOY_SLOTS; d++) {
+  for (let d = 0; d < CLIM_SLOTS; d++) {
     if (!(c.prP95[d] <= c.prP99[d] + 1e-9 && c.prP99[d] <= c.prP995[d] + 1e-9)) noMonotono++;
     if (!(c.tmaxP95[d] <= c.tmaxP98[d] + 1e-9 && c.tmaxP98[d] <= c.tmaxP995[d] + 1e-9)) noMonotono++;
     if (!(c.pr30P05[d] <= c.pr30P10[d] + 1e-9 && c.pr30P10[d] <= c.pr30P20[d] + 1e-9)) noMonotono++;
@@ -68,7 +68,7 @@ const guayas = provincias.find((p) => p.id === 'guayas');
 const cFeb = (() => {
   const c = clim.provincias.guayas;
   const d = doyIndexFromISO('2026-02-15');
-  return Object.fromEntries(Object.keys(c).map((k) => [k, c[k][d]]));
+  return Object.fromEntries(Object.keys(c).map((k) => [k, interpClim(c[k], d)]));
 })();
 
 const base = { clim: cFeb, region: guayas.region, oni: 0, pr: 0, pr3: 0, pr30: cFeb.pr30Mean, tmax: cFeb.tmaxMean };
@@ -113,7 +113,7 @@ const amazonia = provincias.find((p) => p.id === 'napo');
 const cNapo = (() => {
   const c = clim.provincias.napo;
   const d = doyIndexFromISO('2026-02-15');
-  return Object.fromEntries(Object.keys(c).map((k) => [k, c[k][d]]));
+  return Object.fromEntries(Object.keys(c).map((k) => [k, interpClim(c[k], d)]));
 })();
 const baseA = { clim: cNapo, region: amazonia.region, oni: 0, pr: 0, pr3: 0, pr30: cNapo.pr30P20 * 0.98, tmax: cNapo.tmaxMean };
 const seqAmzNino = classifyDay({ ...baseA, oni: 1.4 }, DEFAULT_CONFIG).levels.sequia;

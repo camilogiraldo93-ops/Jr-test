@@ -6,7 +6,7 @@
  * que pueda divergir en silencio.
  */
 import { classifyDay, CATEGORIES, DEFAULT_CONFIG } from './classifier.js';
-import { doyIndexFromISO } from './doy.js';
+import { doyIndexFromISO, interpClim } from './doy.js';
 import { oniForDate } from './oni.js';
 import { factoresDe, corregirPr, corregirTmax } from './bias.js';
 
@@ -27,7 +27,7 @@ export function climEn(clim, provId, iso) {
   const c = clim.provincias[provId];
   const d = doyIndexFromISO(iso);
   const out = {};
-  for (const k of Object.keys(c)) out[k] = c[k][d];
+  for (const k of Object.keys(c)) out[k] = interpClim(c[k], d);
   return out;
 }
 
