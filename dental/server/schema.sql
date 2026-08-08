@@ -127,6 +127,9 @@ CREATE TABLE IF NOT EXISTS citas (
   estado         TEXT NOT NULL DEFAULT 'agendada'
                  CHECK (estado IN ('agendada','confirmada','en_curso','completada','cancelada','no_asistio')),
   cita_origen_id INTEGER REFERENCES citas(id) ON DELETE SET NULL,
+  -- Tratamiento previsto al agendar: orienta la duración y el motivo, y avisa
+  -- de antemano si la atención va a exigir consentimiento informado.
+  catalogo_id    INTEGER REFERENCES catalogo_tratamientos(id) ON DELETE SET NULL,
   creada_en      TEXT NOT NULL,
   actualizada_en TEXT NOT NULL
 );

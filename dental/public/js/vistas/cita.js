@@ -63,10 +63,12 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
 
   /* ----------------------------- Tratamientos ---------------------------- */
   function abrirTratamiento() {
+    // Si la cita se agendó con un tratamiento previsto, se abre ya elegido.
+    const previsto = catalogo.some((c) => c.id === cita.catalogo_id) ? String(cita.catalogo_id) : '';
     const selCat = selector('catalogo_id', [
       { valor: '', texto: '— Tratamiento libre —' },
       ...catalogo.map((c) => ({ valor: c.id, texto: `${c.nombre} (${fmtDinero(c.precio_base)})` })),
-    ], '');
+    ], previsto);
     const inNombre = entrada('nombre', { required: true, placeholder: 'Nombre del tratamiento realizado' });
     const inDientes = entrada('dientes', { placeholder: 'Ej.: 16, 26 (separados por coma)' });
     const selEstadoDiente = selector('estado_diente', [
@@ -79,14 +81,16 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     const chkConsent = el('input', { type: 'checkbox' });
     const chkCargo = el('input', { type: 'checkbox', checked: true });
 
-    selCat.addEventListener('change', () => {
+    function aplicarCatalogo() {
       const c = catalogo.find((x) => String(x.id) === selCat.value);
       if (c) {
         inNombre.value = c.nombre;
         inPrecio.value = String(c.precio_base);
         chkConsent.checked = !!c.requiere_consentimiento;
       }
-    });
+    }
+    selCat.addEventListener('change', aplicarCatalogo);
+    aplicarCatalogo();
 
     const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar tratamiento' });
     const m = modal({
@@ -339,7 +343,9 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
             ]);
           })),
         ])])
-      : vacio('Todavía no se ha registrado ningún tratamiento en esta cita.'),
+      : vacio(cita.catalogo_nombre
+          ? `Todavía no se ha registrado ningún tratamiento. El previsto al agendar es "${cita.catalogo_nombre}".`
+          : 'Todavía no se ha registrado ningún tratamiento en esta cita.'),
   ]);
 
   const seccionFotos = el('div', { clase: 'tarjeta' }, [
@@ -477,6 +483,16 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
         etiquetaEstado(cita.estado),
         el('span', { clase: 'mini', texto: `Motivo: ${cita.motivo || '—'}` }),
       ]),
+      cita.catalogo_nombre
+        ? el('p', { clase: 'mini', style: 'margin-top:10px' }, [
+            document.createTextNode('Tratamiento previsto: '),
+            el('b', { texto: cita.catalogo_nombre }),
+            document.createTextNode(` · ${cita.catalogo_duracion_min} min · ${fmtDinero(cita.catalogo_precio)}`),
+            cita.catalogo_requiere_consentimiento
+              ? el('span', { clase: 'eti pendiente', style: 'margin-left:8px', texto: 'requiere consentimiento' })
+              : null,
+          ])
+        : null,
       SIGUIENTES[cita.estado].length
         ? el('div', { style: 'margin-top:12px' }, [
             el('div', { clase: 'mini', style: 'margin-bottom:6px', texto: 'Cambiar a:' }),

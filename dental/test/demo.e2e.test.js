@@ -159,6 +159,40 @@ test('Demo · la agenda muestra citas y bloquea conflictos', async () => {
   await m.locator('button:has-text("Cancelar")').click();
 });
 
+test('Demo · agendar eligiendo el tratamiento previsto', async () => {
+  const hoy = new Date();
+  const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+  await pagina.click('a[href="#/agenda"]');
+  await pagina.waitForSelector('.agenda-controles');
+  await pagina.selectOption('select[name="vista"]', 'dia');
+  await abrirModal('button:has-text("➕ Nueva cita")');
+  const m = modal();
+  await m.locator('input[name="fecha"]').fill(iso);
+  await m.locator('input[name="hora_inicio"]').fill('19:00');   // fuera del horario sembrado
+
+  const opcion = await m.locator('select[name="catalogo_id"] option')
+    .evaluateAll((ops) => ops.find((o) => o.textContent.startsWith('Implante dental'))?.value);
+  assert.ok(opcion, 'el catálogo ofrece el implante');
+  await m.locator('select[name="catalogo_id"]').selectOption(opcion);
+
+  // 120 min de catálogo → la hora de fin y el motivo se completan solos.
+  await pagina.waitForFunction(() =>
+    document.querySelector('.modal-fondo input[name="hora_fin"]').value === '21:00');
+  assert.equal(await m.locator('input[name="motivo"]').inputValue(), 'Implante dental');
+  assert.match(await m.locator('.alerta-caja.aviso').innerText(), /consentimiento informado/i);
+
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")', { timeout: 20000 });
+  await m.locator('button:has-text("Agendar cita")').click();
+  await esperarExito(/Cita agendada/);
+
+  await pagina.fill('input[name="fecha"]', iso);
+  await pagina.click('.bloque-cita:has-text("Implante dental")');
+  await pagina.waitForSelector('h2:has-text("Cita #")');
+  assert.match(await pagina.locator('.tarjeta:has-text("Estado de la cita")').innerText(),
+    /Tratamiento previsto:\s*Implante dental/);
+});
+
 test('Demo · regla clínica, tratamiento, consentimiento y doble firma', async () => {
   // El seed deja una cita en curso con implante y consentimiento pendiente.
   await pagina.goto(`${base}#/panel`, { waitUntil: 'networkidle' });

@@ -196,45 +196,49 @@ export function sembrar() {
   });
 
   /* ---------------------------------- Citas --------------------------------- */
-  // [díaOffset, hora, duración(min), consultorioIdx, cubiculoIdx, doctorIdx, pacienteIdx, motivo, estado]
+  // Tratamiento previsto: el catálogo elegido al agendar. null = aún sin definir.
+  const idCatalogo = (nombre) =>
+    nombre ? uno('SELECT id FROM catalogo_tratamientos WHERE nombre = ?', [nombre]).id : null;
+
+  // [díaOffset, hora, duración(min), consultorioIdx, cubiculoIdx, doctorIdx, pacienteIdx, motivo, estado, tratamientoPrevisto]
   const plan = [
-    [0, '08:00', 30, 0, 0, 0, 0, 'Profilaxis y control', 'completada'],
-    [0, '09:00', 45, 0, 1, 1, 1, 'Dolor en molar superior derecho', 'completada'],
-    [0, '10:00', 60, 0, 2, 2, 5, 'Evaluación para implante', 'confirmada'],
-    [0, '11:00', 30, 1, 3, 0, 2, 'Consulta de blanqueamiento', 'agendada'],
-    [1, '08:30', 45, 0, 0, 0, 6, 'Limpieza dental (embarazo)', 'confirmada'],
-    [1, '09:30', 90, 0, 1, 1, 1, 'Endodoncia pieza 26', 'agendada'],
-    [1, '11:00', 30, 0, 2, 2, 8, 'Control periodontal', 'agendada'],
-    [1, '14:00', 30, 1, 3, 0, 9, 'Revisión y sellantes', 'agendada'],
-    [2, '08:00', 45, 0, 0, 0, 3, 'Control por bruxismo', 'agendada'],
-    [2, '09:00', 60, 0, 2, 2, 5, 'Cirugía de implante', 'agendada'],
-    [2, '10:30', 30, 0, 1, 1, 4, 'Control semestral', 'cancelada'],
-    [3, '08:00', 60, 0, 1, 1, 7, 'Reconstrucción pieza 11', 'agendada'],
-    [3, '09:30', 30, 1, 3, 2, 2, 'Blanqueamiento dental', 'agendada'],
-    [3, '11:00', 30, 0, 0, 0, 0, 'Control post-profilaxis', 'agendada'],
-    [4, '08:30', 45, 0, 0, 0, 4, 'Restauración con resina', 'no_asistio'],
+    [0, '08:00', 30, 0, 0, 0, 0, 'Profilaxis y control', 'completada', 'Profilaxis dental'],
+    [0, '09:00', 45, 0, 1, 1, 1, 'Dolor en molar superior derecho', 'completada', 'Resina compuesta'],
+    [0, '10:00', 60, 0, 2, 2, 5, 'Evaluación para implante', 'confirmada', null],
+    [0, '11:00', 30, 1, 3, 0, 2, 'Consulta de blanqueamiento', 'agendada', null],
+    [1, '08:30', 45, 0, 0, 0, 6, 'Limpieza dental (embarazo)', 'confirmada', 'Profilaxis dental'],
+    [1, '09:30', 90, 0, 1, 1, 1, 'Endodoncia pieza 26', 'agendada', 'Endodoncia unirradicular'],
+    [1, '11:00', 30, 0, 2, 2, 8, 'Control periodontal', 'agendada', null],
+    [1, '14:00', 30, 1, 3, 0, 9, 'Revisión y sellantes', 'agendada', null],
+    [2, '08:00', 45, 0, 0, 0, 3, 'Control por bruxismo', 'agendada', null],
+    [2, '09:00', 60, 0, 2, 2, 5, 'Cirugía de implante', 'agendada', 'Implante dental'],
+    [2, '10:30', 30, 0, 1, 1, 4, 'Control semestral', 'cancelada', null],
+    [3, '08:00', 60, 0, 1, 1, 7, 'Reconstrucción pieza 11', 'agendada', 'Resina compuesta'],
+    [3, '09:30', 30, 1, 3, 2, 2, 'Blanqueamiento dental', 'agendada', 'Blanqueamiento dental'],
+    [3, '11:00', 30, 0, 0, 0, 0, 'Control post-profilaxis', 'agendada', null],
+    [4, '08:30', 45, 0, 0, 0, 4, 'Restauración con resina', 'no_asistio', 'Resina compuesta'],
     // --- Citas futuras, para poder probar los flujos completos ---
-    [7, '08:00', 60, 0, 2, 2, 5, 'Cirugía de implante (2.ª fase)', 'confirmada'],
-    [7, '09:30', 30, 0, 0, 0, 6, 'Control de gingivitis del embarazo', 'agendada'],
-    [7, '11:00', 45, 1, 3, 0, 2, 'Blanqueamiento — sesión 1', 'agendada'],
-    [8, '08:30', 90, 0, 1, 1, 3, 'Endodoncia pieza 46', 'confirmada'],
-    [8, '10:30', 30, 0, 0, 0, 9, 'Sellantes en molares definitivos', 'agendada'],
-    [9, '09:00', 60, 0, 2, 2, 8, 'Fase quirúrgica periodontal', 'agendada'],
-    [10, '08:00', 45, 1, 3, 2, 7, 'Corona de porcelana pieza 11', 'confirmada'],
-    [11, '09:00', 30, 0, 0, 0, 0, 'Control anual y profilaxis', 'agendada'],
-    [14, '10:00', 60, 0, 1, 1, 1, 'Retratamiento de conducto', 'agendada'],
+    [7, '08:00', 60, 0, 2, 2, 5, 'Cirugía de implante (2.ª fase)', 'confirmada', 'Implante dental'],
+    [7, '09:30', 30, 0, 0, 0, 6, 'Control de gingivitis del embarazo', 'agendada', null],
+    [7, '11:00', 45, 1, 3, 0, 2, 'Blanqueamiento — sesión 1', 'agendada', 'Blanqueamiento dental'],
+    [8, '08:30', 90, 0, 1, 1, 3, 'Endodoncia pieza 46', 'confirmada', 'Endodoncia unirradicular'],
+    [8, '10:30', 30, 0, 0, 0, 9, 'Sellantes en molares definitivos', 'agendada', null],
+    [9, '09:00', 60, 0, 2, 2, 8, 'Fase quirúrgica periodontal', 'agendada', null],
+    [10, '08:00', 45, 1, 3, 2, 7, 'Corona de porcelana pieza 11', 'confirmada', 'Corona de porcelana'],
+    [11, '09:00', 30, 0, 0, 0, 0, 'Control anual y profilaxis', 'agendada', 'Profilaxis dental'],
+    [14, '10:00', 60, 0, 1, 1, 1, 'Retratamiento de conducto', 'agendada', 'Endodoncia unirradicular'],
   ];
 
-  const citas = plan.map(([off, hora, dur, ci, cui, di, pi, motivo, estado]) => {
+  const citas = plan.map(([off, hora, dur, ci, cui, di, pi, motivo, estado, previsto]) => {
     const fecha = dia(off);
     const [h, m] = hora.split(':').map(Number);
     const fin = new Date(2000, 0, 1, h, m + dur);
     const finStr = `${String(fin.getHours()).padStart(2, '0')}:${String(fin.getMinutes()).padStart(2, '0')}`;
     const { ultimoId } = correr(
-      `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, estado, creada_en, actualizada_en)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, estado, catalogo_id, creada_en, actualizada_en)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [consultorios[ci], cubiculos[cui], doctores[di], pacientes[pi],
-       `${fecha}T${hora}`, `${fecha}T${finStr}`, motivo, estado, t, t]);
+       `${fecha}T${hora}`, `${fecha}T${finStr}`, motivo, estado, idCatalogo(previsto), t, t]);
     return ultimoId;
   });
 
@@ -288,13 +292,12 @@ export function sembrar() {
   // Deja preparado el caso de prueba: atención abierta, tratamiento que exige
   // consentimiento y documento aún sin firmar (la cita no se puede completar).
   const fechaHoy = dia(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
-  const citaEnCurso = correr(
-    `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, estado, creada_en, actualizada_en)
-     VALUES (?,?,?,?,?,?,?, 'en_curso', ?,?)`,
-    [consultorios[0], cubiculos[2], doctores[2], pacientes[5],
-     `${fechaHoy}T16:00`, `${fechaHoy}T17:00`, 'Colocación de implante pieza 46', t, t]).ultimoId;
-
   const catImplante = uno("SELECT * FROM catalogo_tratamientos WHERE nombre = 'Implante dental'");
+  const citaEnCurso = correr(
+    `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, estado, catalogo_id, creada_en, actualizada_en)
+     VALUES (?,?,?,?,?,?,?, 'en_curso', ?,?,?)`,
+    [consultorios[0], cubiculos[2], doctores[2], pacientes[5],
+     `${fechaHoy}T16:00`, `${fechaHoy}T17:00`, 'Colocación de implante pieza 46', catImplante.id, t, t]).ultimoId;
   const trImplante = correr(
     `INSERT INTO tratamientos (cita_id, paciente_id, doctor_id, consultorio_id, cubiculo_id, catalogo_id,
       nombre, descripcion, dientes, notas_clinicas, precio, requiere_consentimiento, fecha, creado_en)

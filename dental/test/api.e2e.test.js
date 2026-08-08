@@ -206,6 +206,63 @@ test('Flujo 3 · Agendar cita y bloquear conflictos de cubículo y de doctor', a
   assert.equal(invertida.estado, 400);
 });
 
+test('Agendar con tratamiento previsto del catálogo', async () => {
+  const fecha = fechaRelativa(4);
+  const catalogo = exigir(await recepcion.get('/api/catalogo'), 200, 'catálogo');
+  const implante = catalogo.find((c) => c.requiere_consentimiento);
+  assert.ok(implante, 'el catálogo trae un tratamiento que exige consentimiento');
+
+  // Un paciente de los datos de ejemplo: así estas citas no alteran el
+  // expediente que revisa el Flujo 8.
+  const otroPaciente = exigir(await recepcion.get('/api/pacientes'), 200)
+    .find((p) => p.id !== ctx.paciente.id);
+
+  // (a) Sin motivo: lo aporta el tratamiento previsto, y la cita lo devuelve resuelto.
+  const cita = exigir(await recepcion.post('/api/citas', {
+    consultorio_id: ctx.consultorio.id, cubiculo_id: ctx.cubiculos[1].id, doctor_id: ctx.doctor.id,
+    paciente_id: otroPaciente.id, inicio: `${fecha}T09:00`, fin: `${fecha}T10:00`,
+    catalogo_id: implante.id,
+  }), 201, 'agendar con tratamiento previsto');
+  assert.equal(cita.catalogo_id, implante.id);
+  assert.equal(cita.catalogo_nombre, implante.nombre);
+  assert.equal(cita.motivo, implante.nombre, 'el motivo se toma del tratamiento previsto');
+  assert.equal(cita.catalogo_requiere_consentimiento, 1);
+
+  // (b) El motivo escrito a mano manda sobre el nombre del catálogo.
+  const conMotivo = exigir(await recepcion.post('/api/citas', {
+    consultorio_id: ctx.consultorio.id, cubiculo_id: ctx.cubiculos[1].id, doctor_id: ctx.doctor.id,
+    paciente_id: otroPaciente.id, inicio: `${fecha}T10:00`, fin: `${fecha}T10:30`,
+    catalogo_id: implante.id, motivo: 'Segunda fase quirúrgica',
+  }), 201);
+  assert.equal(conMotivo.motivo, 'Segunda fase quirúrgica');
+
+  // (c) Un tratamiento inexistente no se acepta en silencio.
+  const invalido = await recepcion.post('/api/citas', {
+    consultorio_id: ctx.consultorio.id, cubiculo_id: ctx.cubiculos[1].id, doctor_id: ctx.doctor.id,
+    paciente_id: otroPaciente.id, inicio: `${fecha}T11:00`, fin: `${fecha}T11:30`, catalogo_id: 99999,
+  });
+  assert.equal(invalido.estado, 404);
+  assert.match(invalido.datos.error, /catálogo/);
+
+  // (d) Al reprogramar se puede cambiar o quitar el tratamiento previsto.
+  const sinPrevisto = exigir(await recepcion.put(`/api/citas/${conMotivo.id}`, { catalogo_id: null }), 200);
+  assert.equal(sinPrevisto.catalogo_id, null);
+  assert.equal(sinPrevisto.catalogo_nombre, null);
+  assert.equal(sinPrevisto.motivo, 'Segunda fase quirúrgica', 'quitar el previsto no borra el motivo');
+
+  // (e) Omitirlo al reprogramar lo conserva.
+  const reprogramada = exigir(await recepcion.put(`/api/citas/${cita.id}`, {
+    inicio: `${fecha}T15:00`, fin: `${fecha}T16:00`,
+  }), 200);
+  assert.equal(reprogramada.catalogo_id, implante.id);
+
+  // (f) La agenda y el listado también traen el tratamiento previsto.
+  const listado = exigir(await recepcion.get(`/api/citas?desde=${fecha}&hasta=${fecha}`), 200);
+  assert.equal(listado.find((c) => c.id === cita.id).catalogo_nombre, implante.nombre);
+  const agenda = exigir(await recepcion.get(`/api/agenda?vista=dia&fecha=${fecha}`), 200);
+  assert.equal(agenda.citas.find((c) => c.id === cita.id).catalogo_nombre, implante.nombre);
+});
+
 test('Estados de cita: ciclo completo y transiciones inválidas', async () => {
   const id = ctx.cita.id;
   assert.equal(exigir(await recepcion.patch(`/api/citas/${id}/estado`, { estado: 'confirmada' }), 200).estado, 'confirmada');

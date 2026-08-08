@@ -21,12 +21,16 @@ const SQL_CITA = `
          p.nombre AS paciente_nombre, p.apellidos AS paciente_apellidos, p.telefono AS paciente_telefono,
          p.cedula AS paciente_cedula,
          d.nombre AS doctor_nombre, d.color AS doctor_color,
-         cu.nombre AS cubiculo_nombre, co.nombre AS consultorio_nombre
+         cu.nombre AS cubiculo_nombre, co.nombre AS consultorio_nombre,
+         cat.nombre AS catalogo_nombre, cat.precio_base AS catalogo_precio,
+         cat.duracion_min AS catalogo_duracion_min,
+         cat.requiere_consentimiento AS catalogo_requiere_consentimiento
   FROM citas ci
   JOIN pacientes p ON p.id = ci.paciente_id
   JOIN doctores d ON d.id = ci.doctor_id
   JOIN cubiculos cu ON cu.id = ci.cubiculo_id
-  JOIN consultorios co ON co.id = ci.consultorio_id`;
+  JOIN consultorios co ON co.id = ci.consultorio_id
+  LEFT JOIN catalogo_tratamientos cat ON cat.id = ci.catalogo_id`;
 
 export function obtenerCita(id) {
   return uno(`${SQL_CITA} WHERE ci.id = ?`, [id]);
@@ -91,6 +95,20 @@ function validarEstructura({ consultorio_id, cubiculo_id, doctor_id, paciente_id
   if (!asignado) {
     throw new ErrorApp(400, 'El doctor no está asignado a ese consultorio. Asígnalo primero en Configuración.');
   }
+}
+
+/**
+ * Resuelve el tratamiento previsto del catálogo. Cadena vacía y null significan
+ * "sin tratamiento previsto"; un id inexistente o desactivado es un error.
+ */
+function tratamientoPrevisto(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  const cat = uno('SELECT * FROM catalogo_tratamientos WHERE id = ?', [entero(valor, 0)]);
+  if (!cat) throw new ErrorApp(404, 'El tratamiento del catálogo indicado no existe.');
+  if (!cat.activo) {
+    throw new ErrorApp(400, `El tratamiento "${cat.nombre}" está desactivado en el catálogo.`);
+  }
+  return cat;
 }
 
 /* ------------------------------- Listado ------------------------------ */
@@ -180,12 +198,16 @@ post('/api/citas', { roles: ['admin', 'recepcion', 'doctor'] }, ({ cuerpo }) => 
     throw new ErrorApp(404, 'La cita de origen indicada no existe.');
   }
 
+  // El tratamiento previsto da el motivo cuando quien agenda no escribe ninguno.
+  const cat = tratamientoPrevisto(cuerpo.catalogo_id);
+  const motivo = texto(cuerpo.motivo) || cat?.nombre || null;
+
   const t = ahora();
   const { ultimoId } = correr(
-    `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, notas, estado, cita_origen_id, creada_en, actualizada_en)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO citas (consultorio_id, cubiculo_id, doctor_id, paciente_id, inicio, fin, motivo, notas, estado, cita_origen_id, catalogo_id, creada_en, actualizada_en)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [datos.consultorio_id, datos.cubiculo_id, datos.doctor_id, datos.paciente_id, inicio, fin,
-     texto(cuerpo.motivo), texto(cuerpo.notas), estado, cuerpo.cita_origen_id ?? null, t, t]
+     motivo, texto(cuerpo.notas), estado, cuerpo.cita_origen_id ?? null, cat?.id ?? null, t, t]
   );
   return obtenerCita(ultimoId);
 });
@@ -212,11 +234,15 @@ put('/api/citas/:id', { roles: ['admin', 'recepcion', 'doctor'] }, ({ params, cu
   const conflictos = buscarConflictos({ ...datos, inicio, fin, excluir_id: Number(params.id) });
   if (conflictos.length) throw new ErrorApp(409, explicarConflictos(conflictos), { conflictos });
 
+  const catalogo_id = cuerpo.catalogo_id === undefined
+    ? c.catalogo_id
+    : tratamientoPrevisto(cuerpo.catalogo_id)?.id ?? null;
+
   correr(
     `UPDATE citas SET consultorio_id=?, cubiculo_id=?, doctor_id=?, paciente_id=?, inicio=?, fin=?,
-     motivo=?, notas=?, actualizada_en=? WHERE id=?`,
+     motivo=?, notas=?, catalogo_id=?, actualizada_en=? WHERE id=?`,
     [datos.consultorio_id, datos.cubiculo_id, datos.doctor_id, datos.paciente_id, inicio, fin,
-     texto(cuerpo.motivo, c.motivo), texto(cuerpo.notas, c.notas), ahora(), params.id]
+     texto(cuerpo.motivo, c.motivo), texto(cuerpo.notas, c.notas), catalogo_id, ahora(), params.id]
   );
   return obtenerCita(params.id);
 });

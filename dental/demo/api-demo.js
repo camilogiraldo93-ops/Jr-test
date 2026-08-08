@@ -207,13 +207,26 @@ function conNombres(c) {
   const d = buscar('doctores', c.doctor_id) || {};
   const cu = buscar('cubiculos', c.cubiculo_id) || {};
   const co = buscar('consultorios', c.consultorio_id) || {};
+  const cat = c.catalogo_id ? buscar('catalogo_tratamientos', c.catalogo_id) : null;
   return {
     ...c,
     paciente_nombre: p.nombre, paciente_apellidos: p.apellidos,
     paciente_telefono: p.telefono, paciente_cedula: p.cedula,
     doctor_nombre: d.nombre, doctor_color: d.color,
     cubiculo_nombre: cu.nombre, consultorio_nombre: co.nombre,
+    catalogo_nombre: cat?.nombre ?? null, catalogo_precio: cat?.precio_base ?? null,
+    catalogo_duracion_min: cat?.duracion_min ?? null,
+    catalogo_requiere_consentimiento: cat?.requiere_consentimiento ?? null,
   };
+}
+
+/** Tratamiento previsto de una cita: '' y null significan "sin definir". */
+function tratamientoPrevisto(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  const cat = buscar('catalogo_tratamientos', valor);
+  if (!cat) throw new ErrorApi(404, 'El tratamiento del catálogo indicado no existe.');
+  if (!cat.activo) throw new ErrorApi(400, `El tratamiento "${cat.nombre}" está desactivado en el catálogo.`);
+  return cat;
 }
 
 /* ---------------------------- Reglas de la agenda ------------------------- */
@@ -735,11 +748,12 @@ export const api = {
     if (fin <= inicio) throw new ErrorApi(400, 'La hora de fin debe ser posterior a la hora de inicio.');
     const conflictos = buscarConflictos({ ...datos, inicio, fin });
     if (conflictos.length) throw new ErrorApi(409, explicarConflictos(conflictos), { conflictos });
+    const cat = tratamientoPrevisto(d.catalogo_id);
     const t = ahora();
     const nueva = insertar('citas', {
-      ...datos, inicio, fin, motivo: texto(d.motivo), notas: texto(d.notas),
+      ...datos, inicio, fin, motivo: texto(d.motivo) || cat?.nombre || null, notas: texto(d.notas),
       estado: texto(d.estado, 'agendada'), cita_origen_id: d.cita_origen_id ?? null,
-      creada_en: t, actualizada_en: t,
+      catalogo_id: cat?.id ?? null, creada_en: t, actualizada_en: t,
     });
     return clonar(conNombres(nueva));
   },
@@ -762,6 +776,7 @@ export const api = {
     if (conflictos.length) throw new ErrorApi(409, explicarConflictos(conflictos), { conflictos });
     Object.assign(c, datos, {
       inicio, fin, motivo: texto(d.motivo, c.motivo), notas: texto(d.notas, c.notas),
+      catalogo_id: d.catalogo_id === undefined ? c.catalogo_id : tratamientoPrevisto(d.catalogo_id)?.id ?? null,
       actualizada_en: ahora(),
     });
     guardar();

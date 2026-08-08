@@ -296,6 +296,54 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await pagina.waitForSelector('.bloque-cita:has-text("Beatriz")');
 });
 
+test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () => {
+  await pagina.click('a[href="#/agenda"]');
+  await pagina.waitForSelector('button:has-text("➕ Nueva cita")');
+  await abrirModal('button:has-text("➕ Nueva cita")');
+  const m = modal();
+
+  await elegirOpcion('select[name="consultorio_id"]', `Clínica UI ${sufijo}`);
+  await elegirOpcion('select[name="cubiculo_id"]', 'Cubículo UI-1');
+  await elegirOpcion('select[name="doctor_id"]', `Dra. Prueba UI ${sufijo} — Odontología general`);
+  await m.locator('input[name="fecha"]').fill(ctx.fechaCita);
+  await m.locator('input[name="hora_inicio"]').fill('14:00');
+
+  const opcionImplante = await m.locator('select[name="catalogo_id"] option')
+    .evaluateAll((ops) => ops.find((o) => o.textContent.startsWith('Implante dental'))?.value);
+  assert.ok(opcionImplante, 'el catálogo debe ofrecer el implante al agendar');
+  await m.locator('select[name="catalogo_id"]').selectOption(opcionImplante);
+
+  // La duración del catálogo (120 min) fija la hora de fin y el motivo se sugiere.
+  await pagina.waitForFunction(() =>
+    document.querySelector('.modal-fondo input[name="hora_fin"]').value === '16:00');
+  assert.equal(await m.locator('input[name="motivo"]').inputValue(), 'Implante dental');
+  assert.match(await m.locator('.alerta-caja.aviso').innerText(), /consentimiento informado/i);
+
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
+  await m.locator('button:has-text("Agendar cita")').click();
+  await esperarExito(/Cita agendada/);
+
+  // Agendar desde la agenda deja en la agenda: la cita se abre desde su bloque.
+  await pagina.fill('input[name="fecha"]', ctx.fechaCita);
+  await pagina.click('.bloque-cita:has-text("Implante dental")');
+
+  // La cita abierta muestra el tratamiento previsto y su advertencia.
+  await pagina.waitForSelector('h2:has-text("Cita #")');
+  const previsto = pagina.locator('.tarjeta:has-text("Estado de la cita")');
+  assert.match(await previsto.innerText(), /Tratamiento previsto:\s*Implante dental/);
+  assert.match(await previsto.innerText(), /requiere consentimiento/i);
+
+  // Y al registrarlo durante la atención, el modal se abre ya con él elegido.
+  await pagina.click('button:has-text("En curso")');
+  await esperarExito(/En curso/i);
+  await pagina.waitForSelector('.eti.en_curso');
+  await abrirModal('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")');
+  assert.equal(await modal().locator('input[name="nombre"]').inputValue(), 'Implante dental');
+  assert.equal(await modal().locator('select[name="catalogo_id"]').inputValue(), opcionImplante);
+  await modal().locator('button:has-text("Cancelar")').click();
+  await sinModales();
+});
+
 test('UI · Estados de cita y regla de registro clínico', async () => {
   await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('h2:has-text("Cita #")');
@@ -350,10 +398,14 @@ test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio',
   await pagina.waitForSelector('.galeria figure');
   assert.equal(await pagina.locator('.galeria figure').count(), 2);
 
-  // Las imágenes se cargan realmente (sin 404)
-  const cargadas = await pagina.locator('.galeria img').evaluateAll(
-    (imgs) => imgs.every((i) => i.complete && i.naturalWidth > 0));
-  assert.ok(cargadas, 'las imágenes deben renderizarse desde /uploads');
+  // Las imágenes se cargan realmente (sin 404). Se espera a que terminen de
+  // descargarse: recién insertadas en el DOM todavía no tienen dimensiones.
+  await pagina.waitForFunction(() => {
+    const imgs = [...document.querySelectorAll('.galeria img')];
+    return imgs.length === 2 && imgs.every((i) => i.complete && i.naturalWidth > 0);
+  }, null, { timeout: 30000 }).catch(() => {
+    throw new Error('las imágenes no se renderizaron desde /uploads');
+  });
 
   // Recordatorio
   await abrirModal('.tarjeta:has-text("Recordatorios creados en la cita") button:has-text("➕ Nuevo")');

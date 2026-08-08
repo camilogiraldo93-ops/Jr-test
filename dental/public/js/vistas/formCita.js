@@ -1,5 +1,5 @@
 import { api, ErrorApi } from '../api.js';
-import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora } from '../ui.js';
+import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero } from '../ui.js';
 
 /**
  * Modal reutilizable para crear o reprogramar una cita.
@@ -16,13 +16,14 @@ export async function abrirFormularioCita(opciones = {}) {
     hora = '09:00',
     duracion = 30,
     motivo = '',
+    catalogo_id = null,
     cita_origen_id = null,
     titulo = null,
     alGuardar = null,
   } = opciones;
 
-  const [consultorios, doctores, pacientes] = await Promise.all([
-    api.consultorios(), api.doctores(), api.pacientes(),
+  const [consultorios, doctores, pacientes, catalogo] = await Promise.all([
+    api.consultorios(), api.doctores(), api.pacientes(), api.catalogo(),
   ]);
 
   if (!consultorios.length) {
@@ -44,6 +45,7 @@ export async function abrirFormularioCita(opciones = {}) {
     hora_fin: cita ? cita.fin.slice(11, 16) : sumarMinutos(hora, duracion),
     motivo: cita?.motivo ?? motivo,
     notas: cita?.notas ?? '',
+    catalogo_id: cita?.catalogo_id ?? catalogo_id ?? '',
   };
 
   const selConsultorio = selector('consultorio_id',
@@ -53,6 +55,15 @@ export async function abrirFormularioCita(opciones = {}) {
   const selPaciente = selector('paciente_id',
     pacientes.map((p) => ({ valor: p.id, texto: `${p.apellidos}, ${p.nombre}${p.cedula ? ` (${p.cedula})` : ''}` })),
     inicial.paciente_id);
+
+  const selTratamiento = selector('catalogo_id', [
+    { valor: '', texto: '— Sin definir todavía —' },
+    ...catalogo.map((c) => ({
+      valor: c.id,
+      texto: `${c.nombre} · ${c.duracion_min} min · ${fmtDinero(c.precio_base)}`,
+    })),
+  ], inicial.catalogo_id);
+  const notaTratamiento = el('div', { clase: 'mini' });
 
   const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
   const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
@@ -92,6 +103,36 @@ export async function abrirFormularioCita(opciones = {}) {
     }
   }
 
+  /**
+   * El tratamiento previsto ajusta la duración y sugiere el motivo. El motivo
+   * solo se sobrescribe si está vacío o si lo puso una elección anterior: lo
+   * que escribe una persona no se pisa.
+   */
+  let motivoSugerido = '';
+  function aplicarTratamiento(ajustarHorario) {
+    const cat = catalogo.find((c) => String(c.id) === selTratamiento.value) || null;
+    notaTratamiento.className = 'mini';
+    if (!cat) {
+      notaTratamiento.textContent = 'Puedes agendar sin definirlo; se registra igual durante la atención.';
+      return;
+    }
+    if (ajustarHorario && inInicio.value) inFin.value = sumarMinutos(inInicio.value, cat.duracion_min);
+    if (!inMotivo.value.trim() || inMotivo.value === motivoSugerido) inMotivo.value = cat.nombre;
+    motivoSugerido = cat.nombre;
+    if (cat.requiere_consentimiento) {
+      notaTratamiento.className = 'alerta-caja aviso';
+      notaTratamiento.textContent = `⚠️ "${cat.nombre}" exige consentimiento informado: al registrarlo en la ` +
+        'atención se generará el documento, y la cita no podrá completarse hasta que esté firmado.';
+    } else {
+      notaTratamiento.textContent = `Duración sugerida ${cat.duracion_min} min · precio base ${fmtDinero(cat.precio_base)}.`;
+    }
+  }
+
+  selTratamiento.addEventListener('change', () => {
+    aplicarTratamiento(true);
+    verificar();
+  });
+
   selConsultorio.addEventListener('change', () => {
     inicial.cubiculo_id = null;
     inicial.doctor_id = null;
@@ -99,6 +140,7 @@ export async function abrirFormularioCita(opciones = {}) {
     verificar();
   });
   refrescarCubiculos();
+  aplicarTratamiento(false);
 
   inInicio.addEventListener('change', () => {
     if (inFin.value <= inInicio.value) inFin.value = sumarMinutos(inInicio.value, duracion);
@@ -176,6 +218,9 @@ export async function abrirFormularioCita(opciones = {}) {
       campo('Hora de inicio', inInicio),
       campo('Hora de fin', inFin),
     ]),
+    campo('Tratamiento previsto', selTratamiento,
+      'Ajusta la duración, sugiere el motivo y avisa si hará falta consentimiento informado.'),
+    notaTratamiento,
     campo('Motivo de la cita', inMotivo),
     campo('Notas', inNotas),
   ]);
@@ -210,6 +255,7 @@ export async function abrirFormularioCita(opciones = {}) {
       fin: `${inFecha.value}T${inFin.value}`,
       motivo: inMotivo.value,
       notas: inNotas.value,
+      catalogo_id: selTratamiento.value ? Number(selTratamiento.value) : null,
     };
     if (cita_origen_id) datos.cita_origen_id = cita_origen_id;
     try {

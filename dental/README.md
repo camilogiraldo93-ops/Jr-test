@@ -80,6 +80,10 @@ Las bases creadas con el esquema anterior de `consentimientos` se migran solas a
   mientras se llena el formulario y se repite en el servidor al guardar.
 - Estados: `agendada`, `confirmada`, `en_curso`, `completada`, `cancelada`, `no_asistio`, con
   transiciones validadas. Cancelar o marcar «no asistió» libera el horario en la agenda.
+- **Tratamiento previsto**: al agendar se puede elegir un tratamiento del catálogo. Ajusta la hora de
+  fin con su duración, sugiere el motivo y avisa de antemano si la atención exigirá consentimiento
+  informado. Es opcional —se puede agendar sin definirlo— y al abrir la cita el registro clínico
+  aparece ya con ese tratamiento elegido.
 
 ### 2. Expediente del paciente
 Ficha personal, contacto, historia médica y odontológica, alergias, medicamentos y odontograma
@@ -93,6 +97,10 @@ seguimiento y **agenda la próxima cita** derivada del tratamiento, todo sin sal
 
 El registro de tratamientos exige que la cita esté **En curso**: en cualquier otro estado el botón
 aparece deshabilitado y la tarjeta explica qué hacer.
+
+El catálogo de tratamientos (nombre, precio base, duración y si exige consentimiento) se administra
+en **Configuración**. Al registrar un tratamiento se puede tomar del catálogo —que completa nombre,
+precio y consentimiento— o escribirlo libre para un caso puntual.
 
 ### 4. Consentimiento informado
 Documento con plantilla única y formato estándar. El sistema autocompleta **todo** salvo tres

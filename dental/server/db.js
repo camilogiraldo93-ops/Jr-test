@@ -20,6 +20,19 @@ migrarConsentimientosV2();
 
 db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
 
+migrarTratamientoPrevisto();
+
+/**
+ * La cita pasó a llevar el tratamiento previsto del catálogo. `CREATE TABLE IF
+ * NOT EXISTS` no toca las tablas ya creadas, así que la columna se añade aquí.
+ */
+function migrarTratamientoPrevisto() {
+  const columnas = db.prepare('PRAGMA table_info(citas)').all().map((c) => c.name);
+  if (columnas.includes('catalogo_id')) return;
+  db.exec('ALTER TABLE citas ADD COLUMN catalogo_id INTEGER REFERENCES catalogo_tratamientos(id) ON DELETE SET NULL;');
+  console.log('Migración aplicada: las citas admiten un tratamiento previsto del catálogo.');
+}
+
 /**
  * El consentimiento informado pasó de "un texto con una firma" a un documento
  * con instantánea de datos, representante legal, dos firmas y anulación trazable.
