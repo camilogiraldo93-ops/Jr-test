@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alertas El Niño — Ecuador</title>
+<meta name="description" content="Alertas climáticas por provincia asociadas a El Niño en Ecuador, con datos abiertos de Open-Meteo y NOAA. Cada alerta muestra su fuente, su umbral climatológico y su margen de incertidumbre.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">
+    <h1>Alertas climáticas El Niño · Ecuador</h1>
+    <p class="lema">Datos abiertos, umbrales locales y la incertidumbre a la vista.</p>
+  </div>
+  <p id="actualizado" class="actualizado"></p>
+</header>
+
+<section id="cargando" class="cargando">
+  <div class="spinner" aria-hidden="true"></div>
+  <p id="estado-carga">Cargando climatología y geometría…</p>
+  <p class="nota-carga">La app consulta las APIs en vivo en cada carga; no hay datos precargados de alertas.</p>
+</section>
+
+<section id="error" class="error" hidden></section>
+
+<main id="contenido" hidden>
+
+  <section class="panel-enso" aria-labelledby="t-enso">
+    <h2 id="t-enso">Estado del fenómeno ENSO</h2>
+    <div id="enso"></div>
+  </section>
+
+  <section class="panel-dias" aria-labelledby="t-dias">
+    <h2 id="t-dias">Día pronosticado</h2>
+    <p class="ayuda">Este sistema sólo tiene desempeño verificado para alertas emitidas con
+      <strong>24 h o más</strong> de anticipación. Los días marcados por debajo de ese umbral se
+      muestran como contexto, no como alerta verificada.</p>
+    <div id="selector-dias" class="selector-dias"></div>
+  </section>
+
+  <section class="panel-mapa" aria-labelledby="t-mapa">
+    <h2 id="t-mapa">Mapa de severidad por provincia</h2>
+    <div class="mapa-wrap">
+      <div id="mapa" class="mapa"></div>
+      <div class="mapa-lateral">
+        <div id="leyenda" class="leyenda"></div>
+        <p class="ayuda">Haz clic en una provincia para filtrar sus alertas. El color indica la
+          severidad más alta entre las cuatro categorías evaluadas.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel-alertas" aria-labelledby="t-alertas">
+    <h2 id="t-alertas">Alertas activas</h2>
+    <div id="filtros" class="filtros"></div>
+    <p id="resumen-alertas" class="resumen"></p>
+    <div id="lista-alertas" class="lista-alertas"></div>
+  </section>
+
+  <section class="panel-limitaciones" aria-labelledby="t-lim">
+    <h2 id="t-lim">Limitaciones y desempeño verificado</h2>
+    <div id="limitaciones-body"></div>
+  </section>
+
+  <section class="panel-metodo" aria-labelledby="t-metodo">
+    <h2 id="t-metodo">Cómo funciona</h2>
+    <ol class="metodo">
+      <li><strong>Se descarga el pronóstico</strong> de Open-Meteo para la capital de cada una de las
+        24 provincias: lluvia acumulada, temperatura máxima y mínima, hasta 7 días.</li>
+      <li><strong>Se compara contra la climatología local</strong> de esa provincia y esa época del
+        año, calculada sobre 30 años de reanálisis ERA5 (1991-2020). El umbral de "lluvia extrema"
+        en Esmeraldas no es el mismo que en Loja: cada uno es su propio percentil 95.</li>
+      <li><strong>Se modula por la fase ENSO</strong> con el ONI de NOAA: durante El Niño el umbral
+        de lluvia baja en la costa y sube en la Amazonía. El aporte real de este ajuste se mide en
+        el backtest, no se asume.</li>
+      <li><strong>Se estima la incertidumbre</strong> pidiendo el mismo pronóstico a cinco centros
+        meteorológicos distintos (ECMWF, NOAA, DWD, Météo-France, JMA) y mostrando su dispersión y
+        cuántos coinciden en superar el umbral.</li>
+      <li><strong>Se verifica contra la realidad</strong>: el backtest compara el pronóstico que se
+        emitió con 24 h de anticipación contra lo que ERA5 registró ese día, sobre los últimos
+        30 días y las 24 provincias.</li>
+    </ol>
+    <p class="disclaimer">
+      Producto informativo de datos abiertos. <strong>No es una fuente oficial de alerta temprana.</strong>
+      Para decisiones de emergencia consulte al
+      <a href="https://www.inamhi.gob.ec/" target="_blank" rel="noopener">INAMHI</a> y al
+      <a href="https://www.gestionderiesgos.gob.ec/" target="_blank" rel="noopener">Servicio Nacional de Gestión de Riesgos</a>.
+    </p>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <p><strong>Fuentes de datos</strong></p>
+  <ul>
+    <li><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> — pronóstico determinista, multi-modelo, Marine API y reanálisis ERA5 (CC BY 4.0).</li>
+    <li><a href="https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt" target="_blank" rel="noopener">NOAA Climate Prediction Center</a> — Oceanic Niño Index (ONI), anomalía de TSM en Niño 3.4.</li>
+    <li><a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a> — límites provinciales ADM1 (CC BY 4.0).</li>
+    <li>Reanálisis ERA5 — ECMWF / Copernicus Climate Change Service.</li>
+  </ul>
+  <p class="pie-nota">Todo el procesamiento ocurre en tu navegador. Esta app no tiene servidor propio
+    ni almacena datos personales.</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

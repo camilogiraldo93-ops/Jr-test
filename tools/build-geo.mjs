@@ -48,23 +48,54 @@ function idFor(shapeName) {
   return hit ? hit.id : null;
 }
 
-/** Ramer–Douglas–Peucker sobre un anillo [lon,lat][]. */
-function rdp(points, eps) {
-  if (points.length < 3) return points;
-  let maxD = 0;
-  let idx = 0;
-  const [ax, ay] = points[0];
-  const [bx, by] = points[points.length - 1];
+/** Distancia perpendicular de P al segmento AB (o a A si AB es degenerado). */
+function perpDist([px, py], [ax, ay], [bx, by]) {
   const dx = bx - ax;
   const dy = by - ay;
-  const den = Math.hypot(dx, dy) || 1e-12;
+  const den = Math.hypot(dx, dy);
+  if (den < 1e-12) return Math.hypot(px - ax, py - ay);
+  return Math.abs(dy * (px - ax) - dx * (py - ay)) / den;
+}
+
+/** Ramer–Douglas–Peucker sobre una polilínea abierta. */
+function rdpOpen(points, eps) {
+  if (points.length < 3) return points;
+  let maxD = -1;
+  let idx = 0;
+  const a = points[0];
+  const b = points[points.length - 1];
   for (let i = 1; i < points.length - 1; i++) {
-    const [px, py] = points[i];
-    const d = Math.abs(dy * px - dx * py + bx * ay - by * ax) / den;
+    const d = perpDist(points[i], a, b);
     if (d > maxD) { maxD = d; idx = i; }
   }
-  if (maxD <= eps) return [points[0], points[points.length - 1]];
-  return [...rdp(points.slice(0, idx + 1), eps).slice(0, -1), ...rdp(points.slice(idx), eps)];
+  if (maxD <= eps) return [a, b];
+  return [...rdpOpen(points.slice(0, idx + 1), eps).slice(0, -1), ...rdpOpen(points.slice(idx), eps)];
+}
+
+/**
+ * RDP sobre un anillo cerrado. Aplicarlo directamente lo destruiría: como el
+ * primer y el último punto coinciden, la recta de referencia es degenerada y
+ * todas las distancias salen cero, colapsando el polígono a un segmento. Por eso
+ * el anillo se parte en dos polilíneas por el vértice más alejado del inicial.
+ */
+function rdp(ring, eps) {
+  const pts = ring.length > 1 &&
+    ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring.slice();
+  if (pts.length < 4) return ring;
+
+  let far = 1;
+  let farD = -1;
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0] - pts[0][0], pts[i][1] - pts[0][1]);
+    if (d > farD) { farD = d; far = i; }
+  }
+  const a = rdpOpen(pts.slice(0, far + 1), eps);
+  const b = rdpOpen(pts.slice(far), eps);
+  const out = [...a.slice(0, -1), ...b];
+  out.push(out[0]); // volver a cerrar
+  return out;
 }
 
 function ringsOf(geom) {
