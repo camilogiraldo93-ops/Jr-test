@@ -1,22 +1,7 @@
 import { api, ErrorApi } from '../api.js';
+import { descargarExcel } from '../exportar.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio,
-  fmtDinero, fmtFechaCorta, hoyIso } from '../ui.js';
-
-/** Convierte filas a CSV con comillas escapadas y BOM para que Excel respete los acentos. */
-function descargarCsv(nombreArchivo, encabezados, filas) {
-  const escapar = (v) => {
-    const s = v === null || v === undefined ? '' : String(v);
-    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const contenido = [encabezados, ...filas].map((f) => f.map(escapar).join(';')).join('\r\n');
-  const blob = new Blob([`\uFEFF${contenido}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = el('a', { href: url, download: nombreArchivo });
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+  fmtDinero, fmtFechaCorta, hoyIso, nombreLista } from '../ui.js';
 
 export async function vistaContabilidad({ refrescar }) {
   const consultorios = await api.consultorios();
@@ -37,27 +22,55 @@ export async function vistaContabilidad({ refrescar }) {
   function abrirGasto() {
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), selConsultorio.value || consultorios[0]?.id);
-    const selCat = selector('categoria', ['insumos', 'nomina', 'alquiler', 'servicios', 'equipos', 'mantenimiento', 'marketing', 'otro']
-      .map((c) => ({ valor: c, texto: c })), 'insumos');
+    const selCat = selector('categoria', [
+      { valor: 'insumos', texto: 'Insumos y materiales' },
+      { valor: 'nomina', texto: 'Sueldos' },
+      { valor: 'alquiler', texto: 'Arriendo del local' },
+      { valor: 'servicios', texto: 'Luz, agua, internet' },
+      { valor: 'equipos', texto: 'Equipos' },
+      { valor: 'mantenimiento', texto: 'Mantenimiento y reparaciones' },
+      { valor: 'marketing', texto: 'Publicidad' },
+      { valor: 'otro', texto: 'Otro' },
+    ], 'insumos');
     const inConcepto = entrada('concepto', { required: true, placeholder: 'Ej.: Compra de anestesia' });
-    const inProveedor = entrada('proveedor', { placeholder: 'Proveedor (opcional)' });
-    const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true });
-    const inFechaG = entrada('fecha', { type: 'date', value: inFecha.value || hoyIso() });
-    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar gasto' });
+    const inProveedor = entrada('proveedor', { placeholder: 'A quién se le compró (opcional)' });
+    const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true, placeholder: '50.00' });
+    const inFechaG = entrada('fecha', { type: 'date', value: hoyIso() });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Apuntar gasto' });
+
+    // Lo de todos los días son tres campos. Consultorio, categoría y proveedor
+    // ya vienen con un valor razonable y se despliegan solo si hay que cambiarlos.
+    const masOpciones = el('div', { style: 'display:none' }, [
+      el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('Tipo de gasto', selCat)]),
+      campo('Proveedor', inProveedor),
+    ]);
+    const verMas = el('button', {
+      clase: 'btn sec chico', type: 'button', texto: 'Más opciones ▾',
+      onclick: () => {
+        const abierto = masOpciones.style.display !== 'none';
+        masOpciones.style.display = abierto ? 'none' : '';
+        verMas.textContent = abierto ? 'Más opciones ▾' : 'Menos opciones ▴';
+      },
+    });
 
     const m = modal({
-      titulo: 'Nuevo gasto del consultorio',
+      titulo: 'Apuntar un gasto',
       cuerpo: el('div', {}, [
-        el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('Categoría', selCat)]),
-        campo('Concepto *', inConcepto),
-        el('div', { clase: 'fila' }, [campo('Proveedor', inProveedor), campo('Monto *', inMonto), campo('Fecha', inFechaG)]),
+        campo('¿En qué se gastó? *', inConcepto),
+        el('div', { clase: 'fila' }, [campo('¿Cuánto? *', inMonto), campo('¿Qué día?', inFechaG)]),
+        verMas,
+        masOpciones,
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
 
     boton.addEventListener('click', async () => {
-      if (!inConcepto.value.trim() || !(Number(inMonto.value) > 0)) {
-        error('Indica un concepto y un monto mayor que cero.');
+      if (!inConcepto.value.trim()) {
+        error('Escribe en qué se gastó, aunque sea en pocas palabras.');
+        return;
+      }
+      if (!(Number(inMonto.value) > 0)) {
+        error('Escribe cuánto se gastó. Tiene que ser un número mayor que cero.');
         return;
       }
       boton.disabled = true;
@@ -68,10 +81,10 @@ export async function vistaContabilidad({ refrescar }) {
           monto: Number(inMonto.value), fecha: inFechaG.value,
         });
         m.cerrar();
-        exito('Gasto registrado.');
+        exito(`Listo, quedó apuntado el gasto de ${fmtDinero(Number(inMonto.value))}.`);
         await cargar();
       } catch (err) {
-        error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el gasto.');
+        error(err instanceof ErrorApi ? err.message : 'No se pudo apuntar el gasto.');
       } finally { boton.disabled = false; }
     });
   }
@@ -81,7 +94,7 @@ export async function vistaContabilidad({ refrescar }) {
     const pacientes = await api.pacientes();
     if (!pacientes.length) { error('No hay pacientes registrados.'); return; }
     const selPac = selector('paciente_id',
-      pacientes.map((p) => ({ valor: p.id, texto: `${p.apellidos}, ${p.nombre}` })), pacientes[0].id);
+      pacientes.map((p) => ({ valor: p.id, texto: nombreLista(p.nombre, p.apellidos) })), pacientes[0].id);
     const selCargo = selector('cargo_id', [{ valor: '', texto: 'Abono general (sin cargo específico)' }], '');
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), consultorios[0]?.id);
@@ -164,7 +177,7 @@ export async function vistaContabilidad({ refrescar }) {
     for (const c of cargos) {
       if (c.saldo <= 0) continue;
       const k = c.paciente_id;
-      const prev = deudores.get(k) || { nombre: `${c.paciente_apellidos}, ${c.paciente_nombre}`, saldo: 0, id: k };
+      const prev = deudores.get(k) || { nombre: nombreLista(c.paciente_nombre, c.paciente_apellidos), saldo: 0, id: k };
       prev.saldo += c.saldo;
       deudores.set(k, prev);
     }
@@ -208,7 +221,7 @@ export async function vistaContabilidad({ refrescar }) {
               el('thead', {}, [el('tr', {}, ['Fecha', 'Paciente', 'Método', 'Monto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, pagosP.map((p) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(p.fecha) }),
-                el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: `${p.paciente_apellidos}, ${p.paciente_nombre}` })]),
+                el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: nombreLista(p.paciente_nombre, p.paciente_apellidos) })]),
                 el('td', { texto: p.metodo }),
                 el('td', { clase: 'num', texto: fmtDinero(p.monto) }),
               ]))),
@@ -233,14 +246,14 @@ export async function vistaContabilidad({ refrescar }) {
 
     const filaCsv = el('div', { clase: 'acciones', style: 'margin-bottom:16px' }, [
       el('button', {
-        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar pagos (CSV)',
-        onclick: () => descargarCsv(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar cobros a Excel',
+        onclick: () => descargarExcel(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
           ['Fecha', 'Paciente', 'Metodo', 'Nota', 'Monto'],
           pagosP.map((x) => [x.fecha, `${x.paciente_apellidos}, ${x.paciente_nombre}`, x.metodo, x.nota || '', x.monto])),
       }),
       el('button', {
-        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos (CSV)',
-        onclick: () => descargarCsv(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos a Excel',
+        onclick: () => descargarExcel(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
           ['Fecha', 'Consultorio', 'Categoria', 'Concepto', 'Proveedor', 'Monto'],
           gastosP.map((g) => [g.fecha, g.consultorio_nombre, g.categoria, g.concepto, g.proveedor || '', g.monto])),
       }),
@@ -309,7 +322,7 @@ export async function vistaContabilidad({ refrescar }) {
       ]),
       el('div', { clase: 'acciones' }, [
         el('button', { clase: 'btn sec', type: 'button', texto: '💵 Registrar pago', onclick: () => { abrirPago().catch((e) => error(e?.message || 'Error')); } }),
-        el('button', { clase: 'btn', type: 'button', texto: '🧾 Registrar gasto', onclick: abrirGasto }),
+        el('button', { clase: 'btn', type: 'button', texto: '🧾 Apuntar gasto', onclick: abrirGasto }),
       ]),
     ]),
     el('div', { clase: 'agenda-controles' }, [

@@ -1,5 +1,5 @@
 import { api, ErrorApi } from '../api.js';
-import { el, limpiar, selector, campo, exito, error, vacio, fmtFechaCorta } from '../ui.js';
+import { el, limpiar, selector, campo, exito, error, vacio, fmtFechaCorta, nombreLista } from '../ui.js';
 
 export async function vistaRecordatorios({ refrescar }) {
   const selEstado = selector('estado', [
@@ -19,7 +19,7 @@ export async function vistaRecordatorios({ refrescar }) {
       el('thead', {}, [el('tr', {}, ['Paciente', 'Recordatorio', 'Fecha objetivo', 'Prioridad', 'Estado', ''].map(
         (t) => el('th', { texto: t })))]),
       el('tbody', {}, lista.map((r) => el('tr', {}, [
-        el('td', {}, [el('a', { href: `#/paciente/${r.paciente_id}`, texto: `${r.paciente_apellidos}, ${r.paciente_nombre}` })]),
+        el('td', {}, [el('a', { href: `#/paciente/${r.paciente_id}`, texto: nombreLista(r.paciente_nombre, r.paciente_apellidos) })]),
         el('td', {}, [
           el('b', { texto: r.titulo }),
           r.descripcion ? el('div', { clase: 'mini', texto: r.descripcion }) : null,

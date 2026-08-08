@@ -64,14 +64,19 @@ export function buscarConflictos({ cubiculo_id, doctor_id, inicio, fin, excluir_
   }));
 }
 
+/**
+ * El mensaje lo lee quien está al teléfono con el paciente: dice quién ocupa la
+ * hora, hasta cuándo, y qué hacer. El número de cita va al final, por si hay que
+ * buscarla, no al principio.
+ */
 function explicarConflictos(conflictos) {
   return conflictos.map((c) => {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
       : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
       : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
-    return `Choque de horario: ${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
-           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)} el ${c.inicio.slice(0, 10)} (estado: ${c.estado}).`;
+    return `Esa hora ya está ocupada: ${quien} está con ${c.paciente} ` +
+           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
+           `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
   }).join(' ');
 }
 

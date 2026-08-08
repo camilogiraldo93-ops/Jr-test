@@ -59,6 +59,12 @@ const ctx = {};
 
 const sufijo = String(Date.now()).slice(-6);
 
+/** La fecha de hoy en el formato que usan los campos <input type="date">. */
+function hoyIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Chromium escribe en consola un "Failed to load resource" por cada respuesta no-2xx.
 // Los 4xx que la aplicación provoca a propósito (conflicto de agenda, validaciones) y muestra
 // al usuario no son fallos: se ignora ese ruido del navegador, pero cualquier 5xx se registra
@@ -169,6 +175,14 @@ test('UI · Inicio de sesión y panel', async () => {
   await pagina.fill('input[name="password"]', 'admin123');
   await pagina.click('button[type="submit"]');
   await pagina.waitForSelector('.marco', { timeout: 30000 });
+
+  // Lo primero que se ve es la página del día, como una agenda de papel.
+  await pagina.waitForSelector('.hoja-dia');
+  assert.match(await pagina.locator('h2').first().innerText(), /hoy/i);
+  assert.ok(await pagina.locator('.renglon-hora').count() > 10, 'la hoja del día lista las horas');
+  assert.ok(await pagina.locator('.buscador-global input').count(), 'el buscador de pacientes está siempre visible');
+
+  await pagina.click('a[href="#/panel"]');
   await pagina.waitForSelector('.kpi');
   assert.match(await pagina.locator('h2').first().innerText(), /Panel general/);
   assert.ok(await pagina.locator('a[href="#/configuracion"]').count(), 'el admin ve Configuración');
@@ -222,6 +236,7 @@ test('UI · Flujo 2: crear paciente con ficha completa', async () => {
   const m = modal();
   await m.locator('input[name="nombre"]').fill('Beatriz');
   await m.locator('input[name="apellidos"]').fill(`Nájera UI${sufijo}`);
+  await m.locator('button:has-text("Llenar más datos ahora")').click();
   await m.locator('input[name="cedula"]').fill(`09${sufijo}55`);
   await m.locator('input[name="telefono"]').fill('099-777-1234');
   await m.locator('input[name="email"]').fill('beatriz.najera@mail.com');
@@ -234,7 +249,7 @@ test('UI · Flujo 2: crear paciente con ficha completa', async () => {
   await m.locator('textarea[name="antecedentes_odontologicos"]').fill('Ortodoncia 2015-2017');
   await m.locator('input[name="motivo_consulta"]').fill('Dolor en molar inferior izquierdo');
   await m.locator('button:has-text("Crear paciente")').click();
-  await esperarExito(/creado/);
+  await esperarExito(/ya está en la lista/);
 
   await pagina.waitForSelector('h2:has-text("Beatriz")');
   ctx.pacienteUrl = pagina.url();
@@ -260,7 +275,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await m.locator('input[name="motivo"]').fill('Evaluación y diagnóstico inicial');
   await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
   await m.locator('button:has-text("Agendar cita")').click();
-  await esperarExito(/Cita agendada/);
+  await esperarExito(/quedó agendada/);
 
   await pagina.waitForSelector('h2:has-text("Cita #")');
   ctx.citaUrl = pagina.url();
@@ -278,9 +293,9 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await m.locator('input[name="hora_inicio"]').fill('10:30');
   await m.locator('input[name="hora_fin"]').fill('11:30');
 
-  await pagina.waitForSelector('.alerta-caja:has-text("Conflicto de agenda")');
+  await pagina.waitForSelector('.alerta-caja:has-text("ya está ocupada")');
   const textoConflicto = await m.locator('.alerta-caja').innerText();
-  assert.match(textoConflicto, /Conflicto de agenda/);
+  assert.match(textoConflicto, /ya está ocupada/);
   assert.match(textoConflicto, /ya tienen? la cita #/);
 
   await m.locator('button:has-text("Agendar cita")').click();
@@ -321,7 +336,7 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
 
   await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
   await m.locator('button:has-text("Agendar cita")').click();
-  await esperarExito(/Cita agendada/);
+  await esperarExito(/quedó agendada/);
 
   // Agendar desde la agenda deja en la agenda: la cita se abre desde su bloque.
   await pagina.fill('input[name="fecha"]', ctx.fechaCita);
@@ -337,41 +352,40 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
   await pagina.click('button:has-text("En curso")');
   await esperarExito(/En curso/i);
   await pagina.waitForSelector('.eti.en_curso');
-  await abrirModal('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")');
+  await abrirModal('.tarjeta:has-text("Lo que se hizo en esta cita") button:has-text("➕ Anotar lo que se hizo")');
   assert.equal(await modal().locator('input[name="nombre"]').inputValue(), 'Implante dental');
   assert.equal(await modal().locator('select[name="catalogo_id"]').inputValue(), opcionImplante);
   await modal().locator('button:has-text("Cancelar")').click();
   await sinModales();
 });
 
-test('UI · Estados de cita y regla de registro clínico', async () => {
+test('UI · Ningún botón muerto: «El paciente llegó» abre la atención y deja anotar', async () => {
   await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('h2:has-text("Cita #")');
   assert.match(await pagina.locator('.eti.agendada').first().innerText(), /Agendada/);
 
-  // B1: con la cita agendada el botón está visible pero deshabilitado y explicado.
-  const btnRegistrar = pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")');
-  assert.equal(await btnRegistrar.count(), 1, 'el botón sigue visible');
-  assert.equal(await btnRegistrar.isDisabled(), true, 'pero deshabilitado fuera de la atención');
-  assert.match(await btnRegistrar.getAttribute('title'), /En curso/);
-  assert.match(
-    await pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") .alerta-caja').innerText(),
-    /Pásala a "En curso"/);
+  const tarjeta = '.tarjeta:has-text("Lo que se hizo en esta cita")';
+  const btnLlego = pagina.locator(`${tarjeta} button:has-text("El paciente llegó")`);
+  assert.equal(await btnLlego.count(), 1, 'con la cita agendada se ofrece empezar la atención');
+  assert.equal(await btnLlego.isDisabled(), false, 'y el botón responde: no hay botones muertos');
+  assert.match(await pagina.locator(`${tarjeta} .alerta-caja`).innerText(), /El paciente llegó/);
 
-  await pagina.click('button:has-text("Confirmada")');
-  await esperarExito(/Confirmada/i);
-  await pagina.waitForSelector('.eti.confirmada');
-  assert.equal(await btnRegistrar.isDisabled(), true, 'confirmada tampoco habilita el registro');
-
-  await pagina.click('button:has-text("En curso")');
-  await esperarExito(/En curso/i);
+  // Un solo clic: abre la atención y deja el formulario de anotación listo.
+  await btnLlego.click();
+  await pagina.waitForSelector('.modal-fondo .modal-cuerpo');
+  assert.match(await modal().locator('.modal-cab h3, h3').first().innerText(), /Anotar lo que se hizo/i);
+  await modal().locator('button:has-text("Cancelar")').click();
+  await sinModales();
   await pagina.waitForSelector('.eti.en_curso');
-  assert.equal(await btnRegistrar.isDisabled(), false, 'en curso sí lo habilita');
+  await limpiarAvisos();
+
+  // Ya en atención, el botón pasa a ser el de anotar.
+  assert.equal(await pagina.locator(`${tarjeta} button:has-text("➕ Anotar lo que se hizo")`).count(), 1);
 });
 
 test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio', async () => {
   // Tratamiento (con consentimiento requerido, tomado del catálogo)
-  await abrirModal('button:has-text("➕ Registrar")');
+  await abrirModal('button:has-text("➕ Anotar lo que se hizo")');
   let m = modal();
   const opcionEndodoncia = await m.locator('select[name="catalogo_id"] option')
     .evaluateAll((ops) => ops.find((o) => o.textContent.startsWith('Endodoncia unirradicular'))?.value);
@@ -380,12 +394,12 @@ test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio',
   await m.locator('input[name="dientes"]').fill('36');
   await m.locator('select[name="estado_diente"]').selectOption('endodoncia');
   await m.locator('textarea[name="notas_clinicas"]').fill('Conducto instrumentado y obturado. Control en 30 días.');
-  await m.locator('button:has-text("Registrar tratamiento")').click();
-  await esperarExito(/Tratamiento registrado/);
+  await m.locator('button:has-text("Guardar")').click();
+  await esperarExito(/quedó anotado/);
   await pagina.waitForSelector('td:has-text("Endodoncia unirradicular")');
 
   // Dos fotos
-  await abrirModal('button:has-text("➕ Cargar fotos")');
+  await abrirModal('button:has-text("➕ Subir radiografías o fotos")');
   m = modal();
   await m.locator('input[type="file"]').setInputFiles([
     path.join(dirTmp, 'radiografia.png'),
@@ -524,7 +538,7 @@ test('UI · Flujo 6: agendar la cita de seguimiento desde la misma cita', async 
   await m.locator('input[name="hora_fin"]').fill('09:45');
   await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
   await m.locator('button:has-text("Agendar cita")').click();
-  await esperarExito(/Cita agendada/);
+  await esperarExito(/quedó agendada/);
 
   await pagina.waitForSelector('.tarjeta:has-text("Próxima cita derivada") li');
   const seg = await pagina.locator('.tarjeta:has-text("Próxima cita derivada")').innerText();
@@ -545,7 +559,7 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
   await m.locator('select[name="metodo"]').selectOption('tarjeta');
   await m.locator('input[name="nota"]').fill('Abono inicial');
   await m.locator('button:has-text("Registrar pago")').click();
-  await esperarExito(/Pago registrado/);
+  await esperarExito(/pago quedó registrado/);
 
   const cobros = await pagina.locator('.tarjeta:has-text("Cobros de esta cita")').innerText();
   assert.match(cobros, /\$120\.00/);
@@ -553,16 +567,23 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
 
   // Gasto del consultorio
   await pagina.click('a[href="#/contabilidad"]');
-  await pagina.waitForSelector('button:has-text("🧾 Registrar gasto")');
-  await abrirModal('button:has-text("🧾 Registrar gasto")');
+  await pagina.waitForSelector('button:has-text("🧾 Apuntar gasto")');
+  await abrirModal('button:has-text("🧾 Apuntar gasto")');
   m = modal();
+  // Lo de todos los días son tres campos; el resto vive tras «Más opciones».
+  assert.equal(await m.locator('select[name="consultorio_id"]').isVisible(), false,
+    'el gasto se apunta con tres campos a la vista');
+  await m.locator('input[name="concepto"]').fill('Limas rotatorias y gutapercha');
+  await m.locator('input[name="monto"]').fill('80');
+  assert.equal(await m.locator('input[name="fecha"]').inputValue(), hoyIso(),
+    'la fecha viene puesta en hoy');
+
+  await m.locator('button:has-text("Más opciones")').click();
   await elegirOpcion('select[name="consultorio_id"]', `Clínica UI ${sufijo}`);
   await m.locator('select[name="categoria"]').selectOption('insumos');
-  await m.locator('input[name="concepto"]').fill('Limas rotatorias y gutapercha');
   await m.locator('input[name="proveedor"]').fill('Depósito Dental Andino');
-  await m.locator('input[name="monto"]').fill('80');
-  await m.locator('button:has-text("Registrar gasto")').click();
-  await esperarExito(/Gasto registrado/);
+  await m.locator('button:has-text("Apuntar gasto")').last().click();
+  await esperarExito(/quedó apuntado el gasto/);
 
   // Balance del consultorio nuevo: ingresos 120, gastos 80, balance 40.
   await pagina.selectOption('select[name="consultorio_id"]', { label: `Clínica UI ${sufijo}` });
@@ -705,10 +726,12 @@ test('UI · Paciente menor de edad: el documento pide representante legal', asyn
   await abrirModal('button:has-text("➕ Nuevo paciente")');
   await modal().locator('input[name="nombre"]').fill('Tomás');
   await modal().locator('input[name="apellidos"]').fill(`Vera UI${sufijo}`);
+  await modal().locator('input[name="telefono"]').fill('099-555-0102');
+  await modal().locator('button:has-text("Llenar más datos ahora")').click();
   await modal().locator('input[name="cedula"]').fill(`08${sufijo}11`);
   await modal().locator('input[name="fecha_nacimiento"]').fill(`${anio}-04-02`);
   await modal().locator('button:has-text("Crear paciente")').click();
-  await esperarExito(/creado/);
+  await esperarExito(/ya está en la lista/);
   await pagina.waitForSelector('h2:has-text("Tomás")');
 
   await pagina.click('button:has-text("📝 Consentimientos")');
@@ -799,7 +822,7 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
   // La descarga del CSV se intercepta para comprobar su contenido real.
   const [descarga] = await Promise.all([
     pagina.waitForEvent('download'),
-    pagina.click('button:has-text("Exportar pagos (CSV)")'),
+    pagina.click('button:has-text("Exportar cobros a Excel")'),
   ]);
   const ruta = await descarga.path();
   const csv = fs.readFileSync(ruta, 'utf8');
@@ -810,7 +833,7 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
 
   const [descargaGastos] = await Promise.all([
     pagina.waitForEvent('download'),
-    pagina.click('button:has-text("Exportar gastos (CSV)")'),
+    pagina.click('button:has-text("Exportar gastos a Excel")'),
   ]);
   const csvGastos = fs.readFileSync(await descargaGastos.path(), 'utf8');
   assert.match(csvGastos, /Fecha;Consultorio;Categoria;Concepto;Proveedor;Monto/);
@@ -851,7 +874,7 @@ test('UI · Roles: recepción y doctor ven solo lo que les corresponde', async (
   await pagina.goto(`${servidor.base}/#/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('h2:has-text("Cita #")');
   assert.equal(
-    await pagina.locator('.tarjeta:has-text("Tratamientos de esta cita") button:has-text("➕ Registrar")').count(), 0,
+    await pagina.locator('.tarjeta:has-text("Lo que se hizo en esta cita") button:has-text("➕ Anotar lo que se hizo")').count(), 0,
     'recepción no puede registrar tratamientos');
   assert.equal(await pagina.locator('.tarjeta:has-text("Cobros de esta cita") button:has-text("➕ Registrar pago")').count(), 1,
     'recepción sí puede registrar pagos');

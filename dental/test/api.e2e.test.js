@@ -151,7 +151,7 @@ test('Flujo 3 · Agendar cita y bloquear conflictos de cubículo y de doctor', a
     paciente_id: ctx.paciente.id, inicio: `${fecha}T10:30`, fin: `${fecha}T11:30`, motivo: 'Solapada',
   });
   assert.equal(conflicto1.estado, 409, 'debe bloquear el solape');
-  assert.match(conflicto1.datos.error, /[Cc]hoque de horario/);
+  assert.match(conflicto1.datos.error, /ya está ocupada/);
   assert.ok(conflicto1.datos.detalle.conflictos.length >= 1, 'debe explicar el conflicto');
 
   // (b) Mismo cubículo con OTRO doctor → sigue siendo conflicto de cubículo.

@@ -1,5 +1,7 @@
 import { api, sesion, ErrorApi } from './api.js';
-import { el, limpiar, error, campo, entrada, exito } from './ui.js';
+import { el, limpiar, error, campo, entrada, exito, nombreCompleto } from './ui.js';
+import { botonAyuda } from './ayuda.js';
+import { vistaHoy } from './vistas/hoy.js';
 import { vistaPanel } from './vistas/panel.js';
 import { vistaAgenda } from './vistas/agenda.js';
 import { vistaPacientes } from './vistas/pacientes.js';
@@ -14,15 +16,17 @@ import { vistaImprimir } from './vistas/imprimir.js';
 const app = document.getElementById('app');
 
 const MENU = [
-  { ruta: 'panel', texto: 'Panel', icono: '🏠', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'agenda', texto: 'Agenda', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'hoy', texto: 'El día de hoy', icono: '📖', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'agenda', texto: 'Agenda completa', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'pacientes', texto: 'Pacientes', icono: '🧑‍⚕️', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'recordatorios', texto: 'Recordatorios', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'contabilidad', texto: 'Contabilidad', icono: '💰', roles: ['admin'] },
+  { ruta: 'recordatorios', texto: 'Pendientes', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'contabilidad', texto: 'Dinero', icono: '💰', roles: ['admin'] },
+  { ruta: 'panel', texto: 'Resumen', icono: '📊', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'configuracion', texto: 'Configuración', icono: '⚙️', roles: ['admin'] },
 ];
 
 const VISTAS = {
+  hoy: vistaHoy,
   panel: vistaPanel,
   agenda: vistaAgenda,
   pacientes: vistaPacientes,
@@ -53,7 +57,7 @@ function pantallaLogin() {
         const r = await api.login(email.value, pass.value);
         sesion.token = r.token;
         sesion.usuario = r.usuario;
-        location.hash = '#/panel';
+        location.hash = '#/hoy';
         await dibujar();
         exito(`Bienvenido/a, ${r.usuario.nombre}.`);
       } catch (err) {
@@ -92,6 +96,60 @@ function pantallaLogin() {
 
 /* --------------------------------- Marco -------------------------------- */
 
+/**
+ * Buscador de pacientes siempre a la vista. Muestra el teléfono en el propio
+ * resultado: para llamar a alguien no hace falta entrar a su expediente.
+ */
+function buscadorGlobal() {
+  const caja = entrada('busqueda_global', {
+    type: 'search', placeholder: 'Buscar paciente por nombre o teléfono…', autocomplete: 'off',
+  });
+  const resultados = el('div', { clase: 'resultados-busqueda', style: 'display:none' });
+  let temporizador = null;
+
+  const cerrar = () => { resultados.style.display = 'none'; limpiar(resultados); };
+
+  async function buscar() {
+    const q = caja.value.trim();
+    if (q.length < 2) { cerrar(); return; }
+    let lista = [];
+    try {
+      lista = await api.pacientes(q);
+    } catch {
+      limpiar(resultados);
+      resultados.appendChild(el('div', { clase: 'mini', texto: 'No se pudo buscar en este momento.' }));
+      resultados.style.display = 'block';
+      return;
+    }
+    limpiar(resultados);
+    if (!lista.length) {
+      resultados.appendChild(el('div', { clase: 'mini', texto: `Nadie se llama así: "${q}".` }));
+    } else {
+      for (const p of lista.slice(0, 8)) {
+        resultados.appendChild(el('a', {
+          clase: 'resultado', href: `#/paciente/${p.id}`,
+          onclick: () => { caja.value = ''; cerrar(); },
+        }, [
+          el('span', { clase: 'r-nom', texto: nombreCompleto(p.nombre, p.apellidos) }),
+          el('span', { clase: 'r-tel', texto: p.telefono ? `📞 ${p.telefono}` : 'sin teléfono anotado' }),
+        ]));
+      }
+    }
+    resultados.style.display = 'block';
+  }
+
+  caja.addEventListener('input', () => {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => { buscar(); }, 220);
+  });
+  caja.addEventListener('keydown', (e) => { if (e.key === 'Escape') { caja.value = ''; cerrar(); } });
+  document.addEventListener('click', (e) => {
+    if (!caja.contains(e.target) && !resultados.contains(e.target)) cerrar();
+  });
+
+  return el('div', { clase: 'buscador-global' }, [caja, resultados]);
+}
+
 function armarMarco() {
   const nav = el('nav', { clase: 'nav' },
     MENU.filter((m) => m.roles.includes(sesion.usuario.rol)).map((m) =>
@@ -102,6 +160,7 @@ function armarMarco() {
 
   const lateral = el('aside', { clase: 'lateral' }, [
     el('div', { clase: 'marca', html: '🦷 Dental<span>Gest</span>' }),
+    buscadorGlobal(),
     nav,
     el('div', { clase: 'usuario-caja' }, [
       el('div', { clase: 'nom', texto: sesion.usuario.nombre }),
@@ -120,7 +179,10 @@ function armarMarco() {
   ]);
 
   const contenido = el('main', { clase: 'contenido', id: 'contenido' });
-  return { marco: el('div', { clase: 'marco' }, [lateral, contenido]), contenido, nav };
+  return {
+    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda()]),
+    contenido, nav,
+  };
 }
 
 /* -------------------------------- Router -------------------------------- */
@@ -128,7 +190,7 @@ function armarMarco() {
 function rutaActual() {
   const h = location.hash.replace(/^#\/?/, '');
   const partes = h.split('/').filter(Boolean);
-  return { nombre: partes[0] || 'panel', param: partes[1] || null, param2: partes[2] || null };
+  return { nombre: partes[0] || 'hoy', param: partes[1] || null, param2: partes[2] || null };
 }
 
 let contenidoRef = null;
@@ -144,7 +206,7 @@ export async function refrescar() {
 
 async function renderVista() {
   const { nombre, param, param2 } = rutaActual();
-  const vista = VISTAS[nombre] || VISTAS.panel;
+  const vista = VISTAS[nombre] || VISTAS.hoy;
   // Al salir de una pantalla de firma se recupera la interfaz completa.
   if (nombre !== 'consentimiento') document.body.classList.remove('modo-tablet');
   document.body.classList.toggle('imprimiendo', nombre === 'imprimir');
@@ -195,9 +257,44 @@ export async function dibujar() {
   contenidoRef = contenido;
   navRef = nav;
   app.appendChild(marco);
-  if (!location.hash) location.hash = '#/panel';
+  if (!location.hash) location.hash = '#/hoy';
   await renderVista();
 }
+
+/* ---------------------------- Red de seguridad --------------------------- */
+
+/**
+ * Última barrera contra la pantalla en blanco. Si algo falla tan arriba que ni
+ * siquiera se pudo armar la pantalla, aquí se muestra un mensaje en español con
+ * una salida clara, en vez de dejar a la persona mirando un rectángulo vacío.
+ */
+function pantallaFallo(detalle) {
+  limpiar(app);
+  app.classList.remove('cargando');
+  app.appendChild(el('div', { clase: 'login-fondo' }, [
+    el('div', { clase: 'login-caja' }, [
+      el('h1', { texto: '🦷 DentalGest' }),
+      el('p', { clase: 'sub', texto: 'Algo se interrumpió y esta pantalla no se pudo mostrar.' }),
+      el('div', { clase: 'alerta-caja aviso' }, [
+        el('div', { texto: 'No se perdió nada de lo que ya estaba guardado. Vuelve al inicio y sigue trabajando; si vuelve a pasar, avísale a quien te da soporte.' }),
+        detalle ? el('div', { clase: 'mini', style: 'margin-top:8px', texto: `Detalle técnico: ${detalle}` }) : null,
+      ]),
+      el('button', {
+        clase: 'btn', type: 'button', texto: '← Volver al inicio', style: 'width:100%',
+        onclick: () => { location.hash = '#/hoy'; location.reload(); },
+      }),
+    ]),
+  ]));
+}
+
+/** ¿Quedó la pantalla vacía? Entonces la persona está viendo un vacío inexplicable. */
+function pantallaVacia() {
+  return !app.firstElementChild || (app.innerText || '').trim().length === 0;
+}
+
+window.addEventListener('error', (e) => {
+  if (pantallaVacia()) pantallaFallo(e?.message || 'error inesperado');
+});
 
 window.addEventListener('hashchange', () => {
   if (sesion.usuario && contenidoRef) renderVista();
@@ -208,19 +305,25 @@ window.addEventListener('unhandledrejection', (e) => {
   if (err instanceof ErrorApi) {
     e.preventDefault();
     error(err.message);
+    return;
   }
+  if (pantallaVacia()) pantallaFallo(err?.message || 'error inesperado');
 });
 
 /* -------------------------------- Arranque ------------------------------ */
 
 (async function iniciar() {
-  if (sesion.token) {
-    try {
-      sesion.usuario = await api.yo();
-    } catch {
-      sesion.token = null;
-      sesion.usuario = null;
+  try {
+    if (sesion.token) {
+      try {
+        sesion.usuario = await api.yo();
+      } catch {
+        sesion.token = null;
+        sesion.usuario = null;
+      }
     }
+    await dibujar();
+  } catch (e) {
+    pantallaFallo(e?.message || 'no se pudo abrir la aplicación');
   }
-  await dibujar();
 })();

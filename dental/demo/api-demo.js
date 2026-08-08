@@ -267,9 +267,9 @@ function explicarConflictos(conflictos) {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
       : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
       : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
-    return `Choque de horario: ${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
-           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)} el ${c.inicio.slice(0, 10)} (estado: ${c.estado}).`;
+    return `Esa hora ya está ocupada: ${quien} está con ${c.paciente} ` +
+           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
+           `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
   }).join(' ');
 }
 
@@ -559,7 +559,8 @@ export const api = {
   },
   async crearPaciente(d) {
     exigirRol('admin', 'recepcion', 'doctor');
-    requerido(d, ['nombre', 'apellidos']);
+    // Basta el nombre: quien llama a veces no deja el apellido.
+    requerido(d, ['nombre']);
     const cedula = texto(d.cedula);
     if (cedula && tabla('pacientes').some((p) => p.cedula === cedula)) {
       throw new ErrorApi(409, `Ya existe un paciente con la cédula ${cedula}.`);

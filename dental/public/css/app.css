@@ -105,7 +105,8 @@ a { color: var(--azul); }
 }
 .usuario-caja button:hover { background: rgba(255,255,255,.16); }
 
-.contenido { flex: 1; min-width: 0; padding: 22px 26px 60px; }
+/* El hueco de abajo deja sitio al botón flotante de ayuda: nada queda debajo. */
+.contenido { flex: 1; min-width: 0; padding: 22px 26px 96px; }
 .cabecera {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   flex-wrap: wrap; margin-bottom: 20px;
@@ -481,3 +482,90 @@ body.modo-tablet .salir-tablet {
   .firmas { break-inside: avoid; }
   @page { margin: 15mm; }
 }
+
+/* ---------------- Buscador de pacientes en la barra lateral -------------- */
+
+.buscador-global { position: relative; padding: 0 12px 10px; }
+.buscador-global input {
+  width: 100%; padding: 9px 12px; border-radius: 9px; font-size: .88rem;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff;
+}
+.buscador-global input::placeholder { color: rgba(255,255,255,.55); }
+.buscador-global input:focus { background: rgba(255,255,255,.14); outline: 2px solid var(--menta); }
+.resultados-busqueda {
+  position: absolute; left: 12px; right: 12px; top: 100%; z-index: 60;
+  background: #fff; border: 1px solid var(--borde); border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.22); overflow: hidden; max-height: 60vh; overflow-y: auto;
+}
+.resultados-busqueda .mini { padding: 10px 12px; }
+.resultados-busqueda .resultado {
+  display: flex; flex-direction: column; gap: 2px; padding: 9px 12px;
+  border-bottom: 1px solid var(--borde); text-decoration: none;
+}
+.resultados-busqueda .resultado:last-child { border-bottom: 0; }
+.resultados-busqueda .resultado:hover { background: var(--azul-claro); }
+.resultados-busqueda .r-nom { font-weight: 600; color: var(--texto); font-size: .9rem; }
+.resultados-busqueda .r-tel { font-size: .8rem; color: var(--suave); }
+
+/* ------------------- La página del día, como en papel -------------------- */
+
+.hoja-dia {
+  background: #fff; border: 1px solid var(--borde); border-radius: 12px; overflow: hidden;
+}
+.renglon-dia {
+  display: grid; grid-template-columns: 74px 1fr; align-items: stretch;
+  border-bottom: 1px solid var(--borde);
+}
+.renglon-dia:last-child { border-bottom: 0; }
+.renglon-dia.vacia { background: repeating-linear-gradient(180deg, transparent, transparent 27px, #fafcfd 27px, #fafcfd 28px); }
+.renglon-hora {
+  padding: 10px 12px; font-variant-numeric: tabular-nums; font-weight: 600;
+  color: var(--suave); border-right: 1px solid var(--borde); background: #fbfdfe; font-size: .88rem;
+}
+.renglon-cont { padding: 6px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 40px; justify-content: center; }
+
+.linea-cita {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; width: 100%; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--borde); border-left: 5px solid var(--azul);
+  border-radius: 9px; background: #fff; cursor: pointer; font: inherit;
+}
+.linea-cita:hover { background: var(--azul-claro); }
+.linea-cita .lc-pac { font-weight: 700; color: var(--texto); }
+.linea-cita .lc-det { font-size: .85rem; color: var(--suave); }
+.linea-cita .lc-tel { font-size: .85rem; color: var(--suave); margin-left: auto; font-variant-numeric: tabular-nums; }
+.linea-cita.estado-cancelada .lc-pac, .linea-cita.estado-no_asistio .lc-pac {
+  text-decoration: line-through; color: var(--suave);
+}
+
+.hora-libre {
+  width: 100%; text-align: left; padding: 7px 12px; border: 1px dashed var(--borde);
+  border-radius: 9px; background: transparent; color: var(--suave); cursor: pointer;
+  font: inherit; font-size: .85rem;
+}
+.hora-libre:hover { border-color: var(--azul); color: var(--azul); background: var(--azul-claro); }
+.hora-libre-txt { font-size: .85rem; color: var(--suave); padding: 7px 12px; }
+
+.casilla-firma { min-width: 130px; border-bottom: 1px solid var(--borde); }
+
+@media (max-width: 620px) {
+  .renglon-dia { grid-template-columns: 58px 1fr; }
+  .linea-cita .lc-tel { margin-left: 0; }
+}
+
+/* --------------------------- Ayuda del primer día ------------------------ */
+
+.boton-ayuda {
+  position: fixed; right: 16px; bottom: 16px; z-index: 300;
+  padding: 10px 16px; border-radius: 24px; border: 0; cursor: pointer;
+  background: var(--azul); color: #fff; font-weight: 600; font-size: .88rem;
+  box-shadow: 0 6px 18px rgba(13,125,143,.35);
+}
+.boton-ayuda:hover { background: var(--azul-osc); }
+.lista-ayuda details {
+  border: 1px solid var(--borde); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+}
+.lista-ayuda summary { cursor: pointer; font-weight: 600; color: var(--texto); }
+.lista-ayuda ol { margin: 10px 0 2px 20px; display: grid; gap: 6px; }
+.lista-ayuda li { color: var(--suave); font-size: .9rem; }
+@media print { .boton-ayuda { display: none !important; } }
+body.modo-tablet .boton-ayuda, body.imprimiendo .boton-ayuda { display: none; }

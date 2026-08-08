@@ -53,7 +53,9 @@ get('/api/pacientes/:id', ({ params, usuario }) => {
 });
 
 post('/api/pacientes', { roles: ['admin', 'recepcion', 'doctor'] }, ({ cuerpo }) => {
-  requerido(cuerpo, ['nombre', 'apellidos']);
+  // Basta el nombre: quien llama por teléfono a veces no deja el apellido, y
+  // obligar a inventarlo hace que la ficha se cree con datos falsos.
+  requerido(cuerpo, ['nombre']);
   const cedula = texto(cuerpo.cedula);
   if (cedula && uno('SELECT id FROM pacientes WHERE cedula = ?', [cedula])) {
     throw new ErrorApp(409, `Ya existe un paciente con la cédula ${cedula}.`);

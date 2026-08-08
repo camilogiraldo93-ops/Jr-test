@@ -92,31 +92,31 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     selCat.addEventListener('change', aplicarCatalogo);
     aplicarCatalogo();
 
-    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar tratamiento' });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Guardar' });
     const m = modal({
-      titulo: 'Registrar tratamiento realizado',
+      titulo: 'Anotar lo que se hizo',
       ancho: true,
       cuerpo: el('div', {}, [
-        campo('Tratamiento del catálogo', selCat, 'Al elegir uno se completan nombre, precio y consentimiento.'),
-        campo('Nombre del tratamiento *', inNombre),
+        campo('¿Qué se hizo?', selCat, 'Elige de la lista de siempre y se completan el nombre, el precio y el consentimiento.'),
+        campo('Nombre de lo que se hizo *', inNombre),
         el('div', { clase: 'fila' }, [
-          campo('Piezas dentales', inDientes),
-          campo('Estado del odontograma', selEstadoDiente),
-          campo('Precio', inPrecio),
+          campo('¿En qué dientes?', inDientes),
+          campo('¿Cómo quedaron?', selEstadoDiente),
+          campo('¿Cuánto se cobra?', inPrecio),
         ]),
-        campo('Notas clínicas', inNotas),
+        campo('Notas', inNotas),
         el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
-          chkConsent, el('span', { texto: 'Requiere consentimiento informado (se genera automáticamente)' }),
+          chkConsent, el('span', { texto: 'Necesita consentimiento firmado (el documento se prepara solo)' }),
         ]),
         el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
-          chkCargo, el('span', { texto: 'Generar el cargo contable por el precio indicado' }),
+          chkCargo, el('span', { texto: 'Dejar este valor como cobro pendiente del paciente' }),
         ]),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
 
     boton.addEventListener('click', async () => {
-      if (!inNombre.value.trim()) { error('Indica el nombre del tratamiento.'); return; }
+      if (!inNombre.value.trim()) { error('Escribe qué se hizo, aunque sea en pocas palabras.'); return; }
       boton.disabled = true;
       boton.textContent = 'Guardando…';
       try {
@@ -131,13 +131,13 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           generar_cargo: chkCargo.checked,
         });
         m.cerrar();
-        exito('Tratamiento registrado en el expediente del paciente.');
+        exito('Listo, quedó anotado en el expediente del paciente.');
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el tratamiento.');
       } finally {
         boton.disabled = false;
-        boton.textContent = 'Registrar tratamiento';
+        boton.textContent = 'Guardar';
       }
     });
   }
@@ -262,7 +262,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
 
     boton.addEventListener('click', async () => {
       const monto = Number(inMonto.value);
-      if (!(monto > 0)) { error('Indica un monto mayor que cero.'); return; }
+      if (!(monto > 0)) { error('Escribe cuánto pagó. Tiene que ser un número mayor que cero.'); return; }
       boton.disabled = true;
       try {
         await api.crearPago({
@@ -272,7 +272,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           monto, metodo: selMetodo.value, nota: inNota.value.trim(),
         });
         m.cerrar();
-        exito('Pago registrado en el estado de cuenta del paciente.');
+        exito('Listo, el pago quedó registrado en la cuenta del paciente.');
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el pago.');
@@ -285,30 +285,47 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
   /* ------------------------------ Secciones ------------------------------ */
   const cargosConSaldo = await api.cargos({ cita_id: cita.id });
 
+  /**
+   * Ningún botón muerto: si la atención todavía no empezó, el mismo botón la
+   * abre y enseguida deja anotar. El paso intermedio lo da la app, no la persona.
+   */
   function botonRegistrar() {
     if (!puedeClinico || !activa) return null;
     if (enAtencion) {
       return el('button', {
-        clase: 'btn chico', type: 'button', texto: '➕ Registrar',
+        clase: 'btn chico', type: 'button', texto: '➕ Anotar lo que se hizo',
         style: 'margin-left:auto', onclick: abrirTratamiento,
       });
     }
-    // Visible pero deshabilitado: el usuario entiende por qué y qué hacer.
-    return el('button', {
-      clase: 'btn chico', type: 'button', texto: '➕ Registrar',
-      style: 'margin-left:auto', disabled: true,
-      title: 'Pasa la cita a "En curso" para registrar tratamientos',
+    const boton = el('button', {
+      clase: 'btn chico', type: 'button', texto: '▶️ El paciente llegó — empezar',
+      style: 'margin-left:auto',
+      onclick: async () => {
+        boton.disabled = true;
+        boton.textContent = 'Abriendo la atención…';
+        try {
+          await api.cambiarEstadoCita(cita.id, 'en_curso');
+          exito('La atención está abierta. Ahora puedes anotar lo que se hizo.');
+          await refrescar();
+          abrirTratamiento();
+        } catch (err) {
+          error(err instanceof ErrorApi ? err.message : 'No se pudo abrir la atención.');
+          boton.disabled = false;
+          boton.textContent = '▶️ El paciente llegó — empezar';
+        }
+      },
     });
+    return boton;
   }
 
   const seccionTratamientos = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
-      el('span', { texto: '🦷 Tratamientos de esta cita' }),
+      el('span', { texto: '🦷 Lo que se hizo en esta cita' }),
       botonRegistrar(),
     ]),
     puedeClinico && activa && !enAtencion
       ? el('div', { clase: 'alerta-caja aviso', texto:
-          `La cita está "${ETIQUETAS_ESTADO[cita.estado]}". Pásala a "En curso" para registrar el tratamiento realizado.` })
+          'Cuando el paciente llegue, pulsa «El paciente llegó» y podrás anotar el tratamiento aquí mismo.' })
       : null,
     cita.tratamientos.length
       ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
@@ -344,15 +361,15 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           })),
         ])])
       : vacio(cita.catalogo_nombre
-          ? `Todavía no se ha registrado ningún tratamiento. El previsto al agendar es "${cita.catalogo_nombre}".`
-          : 'Todavía no se ha registrado ningún tratamiento en esta cita.'),
+          ? `Todavía no se ha anotado nada. Al agendar quedó previsto: "${cita.catalogo_nombre}".`
+          : 'Todavía no se ha anotado nada en esta cita.'),
   ]);
 
   const seccionFotos = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
-      el('span', { texto: `🖼️ Imágenes de la cita (${cita.fotos.length})` }),
+      el('span', { texto: `🖼️ Radiografías y fotos (${cita.fotos.length})` }),
       activa
-        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Cargar fotos', style: 'margin-left:auto', onclick: abrirFotos })
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Subir radiografías o fotos', style: 'margin-left:auto', onclick: abrirFotos })
         : null,
     ]),
     cita.fotos.length

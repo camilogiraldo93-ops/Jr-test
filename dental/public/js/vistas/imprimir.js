@@ -1,5 +1,5 @@
 import { api, urlFoto } from '../api.js';
-import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtMarca, ETIQUETAS_ESTADO } from '../ui.js';
+import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia, ETIQUETAS_ESTADO } from '../ui.js';
 import { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
 /** Barra superior que no se imprime, con el botón que abre el diálogo de impresión. */
@@ -45,12 +45,46 @@ function membrete(nombre, datos, subtitulo) {
 
 export async function vistaImprimir({ param, param2, usuario }) {
   const tipo = param;
+  // La agenda se identifica por fecha (2026-08-08), no por número.
+  if (tipo === 'dia') return imprimirDia(param2 || new Date().toISOString().slice(0, 10));
   const id = Number(param2);
   if (!Number.isInteger(id)) return vacio('Documento no válido.');
   if (tipo === 'consentimiento') return imprimirConsentimiento(id);
   if (tipo === 'expediente') return imprimirExpediente(id);
   if (tipo === 'cita') return imprimirCita(id, usuario);
   return vacio(`Tipo de documento desconocido: ${tipo}.`);
+}
+
+/* ------------------------------ Agenda del día --------------------------- */
+
+/** Una página por día, una línea por cita: la hoja de la agenda de papel. */
+async function imprimirDia(fecha) {
+  const citas = await api.citas({ desde: fecha, hasta: fecha });
+  const dia = nombreDia(fecha);
+
+  const filas = citas.map((c) => el('tr', {}, [
+    el('td', { texto: `${fmtHora(c.inicio)} – ${fmtHora(c.fin)}` }),
+    el('td', {}, [
+      el('b', { texto: `${c.paciente_nombre} ${c.paciente_apellidos}` }),
+      c.paciente_telefono ? el('div', { clase: 'mini', texto: c.paciente_telefono }) : null,
+    ]),
+    el('td', { texto: c.catalogo_nombre || c.motivo || '—' }),
+    el('td', { texto: c.doctor_nombre }),
+    el('td', { texto: `${c.consultorio_nombre} · ${c.cubiculo_nombre}` }),
+    el('td', { texto: ETIQUETAS_ESTADO[c.estado] || c.estado }),
+    el('td', { clase: 'casilla-firma', texto: '' }),
+  ]));
+
+  const hoja = el('div', { clase: 'hoja' }, [
+    membrete('Agenda del día', `${dia.charAt(0).toUpperCase()}${dia.slice(1)}`, null),
+    citas.length
+      ? tabla(['Horario', 'Paciente', 'Motivo', 'Doctor', 'Lugar', 'Estado', 'Observaciones'], filas)
+      : vacio('No hay citas anotadas para este día.'),
+    el('p', { clase: 'mini', style: 'margin-top:14px',
+      texto: `${citas.length} cita(s) anotada(s) para el día.` }),
+  ]);
+
+  return el('div', {}, [barra(`Agenda del día`, '#/hoy'), hoja]);
 }
 
 /* ------------------------------ Consentimiento --------------------------- */

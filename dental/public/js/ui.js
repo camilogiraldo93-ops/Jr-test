@@ -128,6 +128,21 @@ export function datosFormulario(form) {
   return d;
 }
 
+/* ---------------------------- Nombres de personas ------------------------ */
+
+// Los apellidos son opcionales: quien llama por teléfono a veces solo deja el
+// nombre. Estas dos funciones evitan que eso se vea como ", Juan" o "Juan ".
+
+/** Para listas ordenadas alfabéticamente: «González Pérez, María». */
+export function nombreLista(nombre, apellidos) {
+  return apellidos ? `${apellidos}, ${nombre}` : String(nombre || '');
+}
+
+/** Para títulos y saludos: «María González Pérez». */
+export function nombreCompleto(nombre, apellidos) {
+  return [nombre, apellidos].filter(Boolean).join(' ');
+}
+
 /* -------------------------------- Formato ------------------------------- */
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',

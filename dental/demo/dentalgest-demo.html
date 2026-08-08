@@ -107,7 +107,8 @@ a { color: var(--azul); }
 }
 .usuario-caja button:hover { background: rgba(255,255,255,.16); }
 
-.contenido { flex: 1; min-width: 0; padding: 22px 26px 60px; }
+/* El hueco de abajo deja sitio al botón flotante de ayuda: nada queda debajo. */
+.contenido { flex: 1; min-width: 0; padding: 22px 26px 96px; }
 .cabecera {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   flex-wrap: wrap; margin-bottom: 20px;
@@ -484,6 +485,93 @@ body.modo-tablet .salir-tablet {
   @page { margin: 15mm; }
 }
 
+/* ---------------- Buscador de pacientes en la barra lateral -------------- */
+
+.buscador-global { position: relative; padding: 0 12px 10px; }
+.buscador-global input {
+  width: 100%; padding: 9px 12px; border-radius: 9px; font-size: .88rem;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff;
+}
+.buscador-global input::placeholder { color: rgba(255,255,255,.55); }
+.buscador-global input:focus { background: rgba(255,255,255,.14); outline: 2px solid var(--menta); }
+.resultados-busqueda {
+  position: absolute; left: 12px; right: 12px; top: 100%; z-index: 60;
+  background: #fff; border: 1px solid var(--borde); border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.22); overflow: hidden; max-height: 60vh; overflow-y: auto;
+}
+.resultados-busqueda .mini { padding: 10px 12px; }
+.resultados-busqueda .resultado {
+  display: flex; flex-direction: column; gap: 2px; padding: 9px 12px;
+  border-bottom: 1px solid var(--borde); text-decoration: none;
+}
+.resultados-busqueda .resultado:last-child { border-bottom: 0; }
+.resultados-busqueda .resultado:hover { background: var(--azul-claro); }
+.resultados-busqueda .r-nom { font-weight: 600; color: var(--texto); font-size: .9rem; }
+.resultados-busqueda .r-tel { font-size: .8rem; color: var(--suave); }
+
+/* ------------------- La página del día, como en papel -------------------- */
+
+.hoja-dia {
+  background: #fff; border: 1px solid var(--borde); border-radius: 12px; overflow: hidden;
+}
+.renglon-dia {
+  display: grid; grid-template-columns: 74px 1fr; align-items: stretch;
+  border-bottom: 1px solid var(--borde);
+}
+.renglon-dia:last-child { border-bottom: 0; }
+.renglon-dia.vacia { background: repeating-linear-gradient(180deg, transparent, transparent 27px, #fafcfd 27px, #fafcfd 28px); }
+.renglon-hora {
+  padding: 10px 12px; font-variant-numeric: tabular-nums; font-weight: 600;
+  color: var(--suave); border-right: 1px solid var(--borde); background: #fbfdfe; font-size: .88rem;
+}
+.renglon-cont { padding: 6px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 40px; justify-content: center; }
+
+.linea-cita {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; width: 100%; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--borde); border-left: 5px solid var(--azul);
+  border-radius: 9px; background: #fff; cursor: pointer; font: inherit;
+}
+.linea-cita:hover { background: var(--azul-claro); }
+.linea-cita .lc-pac { font-weight: 700; color: var(--texto); }
+.linea-cita .lc-det { font-size: .85rem; color: var(--suave); }
+.linea-cita .lc-tel { font-size: .85rem; color: var(--suave); margin-left: auto; font-variant-numeric: tabular-nums; }
+.linea-cita.estado-cancelada .lc-pac, .linea-cita.estado-no_asistio .lc-pac {
+  text-decoration: line-through; color: var(--suave);
+}
+
+.hora-libre {
+  width: 100%; text-align: left; padding: 7px 12px; border: 1px dashed var(--borde);
+  border-radius: 9px; background: transparent; color: var(--suave); cursor: pointer;
+  font: inherit; font-size: .85rem;
+}
+.hora-libre:hover { border-color: var(--azul); color: var(--azul); background: var(--azul-claro); }
+.hora-libre-txt { font-size: .85rem; color: var(--suave); padding: 7px 12px; }
+
+.casilla-firma { min-width: 130px; border-bottom: 1px solid var(--borde); }
+
+@media (max-width: 620px) {
+  .renglon-dia { grid-template-columns: 58px 1fr; }
+  .linea-cita .lc-tel { margin-left: 0; }
+}
+
+/* --------------------------- Ayuda del primer día ------------------------ */
+
+.boton-ayuda {
+  position: fixed; right: 16px; bottom: 16px; z-index: 300;
+  padding: 10px 16px; border-radius: 24px; border: 0; cursor: pointer;
+  background: var(--azul); color: #fff; font-weight: 600; font-size: .88rem;
+  box-shadow: 0 6px 18px rgba(13,125,143,.35);
+}
+.boton-ayuda:hover { background: var(--azul-osc); }
+.lista-ayuda details {
+  border: 1px solid var(--borde); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+}
+.lista-ayuda summary { cursor: pointer; font-weight: 600; color: var(--texto); }
+.lista-ayuda ol { margin: 10px 0 2px 20px; display: grid; gap: 6px; }
+.lista-ayuda li { color: var(--suave); font-size: .9rem; }
+@media print { .boton-ayuda { display: none !important; } }
+body.modo-tablet .boton-ayuda, body.imprimiendo .boton-ayuda { display: none; }
+
 
 #cinta-demo {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
@@ -517,7 +605,7 @@ body { padding-bottom: 42px; }
   <button type="button" id="btn-reiniciar-demo">↺ Reiniciar datos</button>
 </div>
 
-<script>window.__SEMILLA_DENTALGEST__ = {"consultorios":[{"id":1,"nombre":"Clínica Dental Centro","direccion":"Av. Amazonas N32-145 y Whymper","telefono":"02-250-1122","ciudad":"Quito","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"nombre":"Clínica Dental Norte","direccion":"Av. Eloy Alfaro 3410 y Portugal","telefono":"02-244-8899","ciudad":"Quito","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"}],"cubiculos":[{"id":1,"consultorio_id":1,"nombre":"Cubículo 1","descripcion":"Unidad dental con rayos X periapical","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"consultorio_id":1,"nombre":"Cubículo 2","descripcion":"Unidad dental estándar","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"consultorio_id":1,"nombre":"Cubículo 3","descripcion":"Quirófano de cirugía e implantes","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":4,"consultorio_id":2,"nombre":"Cubículo A","descripcion":"Unidad dental con cámara intraoral","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"}],"doctores":[{"id":1,"nombre":"Dra. Ana Morales","cedula":"1712345678","especialidad":"Odontología general","telefono":"099-111-2233","email":"ana.morales@clinica.com","color":"#0ea5e9","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"nombre":"Dr. Luis Cabrera","cedula":"1798765432","especialidad":"Endodoncia","telefono":"099-444-5566","email":"luis.cabrera@clinica.com","color":"#10b981","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"nombre":"Dra. Sofía Herrera","cedula":"1755512345","especialidad":"Cirugía maxilofacial e implantes","telefono":"099-777-8899","email":"sofia.herrera@clinica.com","color":"#f59e0b","activo":1,"creado_en":"2026-08-08T17:04:00.411Z"}],"doctor_consultorio":[{"doctor_id":1,"consultorio_id":1},{"doctor_id":1,"consultorio_id":2},{"doctor_id":2,"consultorio_id":1},{"doctor_id":3,"consultorio_id":1},{"doctor_id":3,"consultorio_id":2}],"doctor_cubiculo":[{"doctor_id":1,"cubiculo_id":1},{"doctor_id":1,"cubiculo_id":2},{"doctor_id":1,"cubiculo_id":4},{"doctor_id":2,"cubiculo_id":2},{"doctor_id":2,"cubiculo_id":3},{"doctor_id":3,"cubiculo_id":3},{"doctor_id":3,"cubiculo_id":4}],"pacientes":[{"id":1,"nombre":"María","apellidos":"González Pérez","cedula":"1701234567","telefono":"099-100-1001","email":"maria.gonzalez@mail.com","fecha_nacimiento":"1988-04-12","sexo":"F","direccion":"Av. 10 de Agosto 1234","ocupacion":"Contadora","contacto_emergencia":"Jorge González","telefono_emergencia":"099-100-2001","alergias":"Penicilina","medicamentos":"Losartán 50mg","antecedentes_medicos":"Hipertensión controlada","antecedentes_odontologicos":"Sangrado de encías ocasional","motivo_consulta":"Limpieza y control","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"nombre":"Carlos","apellidos":"Ramírez Vega","cedula":"1702345678","telefono":"099-100-1002","email":"carlos.ramirez@mail.com","fecha_nacimiento":"1975-09-30","sexo":"M","direccion":"Calle Cuero y Caicedo 456","ocupacion":"Ingeniero","contacto_emergencia":"Lucía Vega","telefono_emergencia":"099-100-2002","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Diabetes tipo 2","antecedentes_odontologicos":"Endodoncia previa en pieza 26","motivo_consulta":"Dolor en molar superior","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"nombre":"Lucía","apellidos":"Torres Andrade","cedula":"1703456789","telefono":"099-100-1003","email":"lucia.torres@mail.com","fecha_nacimiento":"1996-01-22","sexo":"F","direccion":"Av. República 890","ocupacion":"Diseñadora","contacto_emergencia":"Marta Andrade","telefono_emergencia":"099-100-2003","alergias":"Látex","medicamentos":"Anticonceptivo oral","antecedentes_medicos":"Sin antecedentes relevantes","antecedentes_odontologicos":"Ortodoncia finalizada en 2021","motivo_consulta":"Blanqueamiento dental","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":4,"nombre":"Andrés","apellidos":"Salazar Mora","cedula":"1704567890","telefono":"099-100-1004","email":"andres.salazar@mail.com","fecha_nacimiento":"1982-07-05","sexo":"M","direccion":"Calle Madrid 321","ocupacion":"Comerciante","contacto_emergencia":"Paola Mora","telefono_emergencia":"099-100-2004","alergias":"Ninguna conocida","medicamentos":"Omeprazol","antecedentes_medicos":"Gastritis crónica","antecedentes_odontologicos":"Bruxismo severo","motivo_consulta":"Desgaste dental","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":5,"nombre":"Valeria","apellidos":"Cedeño Loor","cedula":"1705678901","telefono":"099-100-1005","email":"valeria.cedeno@mail.com","fecha_nacimiento":"2001-11-17","sexo":"F","direccion":"Av. Colón 654","ocupacion":"Estudiante","contacto_emergencia":"Rosa Loor","telefono_emergencia":"099-100-2005","alergias":"Ibuprofeno","medicamentos":"Ninguno","antecedentes_medicos":"Asma leve","antecedentes_odontologicos":"Caries interproximales","motivo_consulta":"Control semestral","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":6,"nombre":"Jorge","apellidos":"Paredes Núñez","cedula":"1706789012","telefono":"099-100-1006","email":"jorge.paredes@mail.com","fecha_nacimiento":"1969-03-08","sexo":"M","direccion":"Calle Veintimilla 77","ocupacion":"Jubilado","contacto_emergencia":"Elena Núñez","telefono_emergencia":"099-100-2006","alergias":"Sulfas","medicamentos":"Metformina, Aspirina","antecedentes_medicos":"Diabetes tipo 2, cardiopatía","antecedentes_odontologicos":"Pérdida de piezas posteriores","motivo_consulta":"Evaluación para implantes","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":7,"nombre":"Daniela","apellidos":"Mendoza Ruiz","cedula":"1707890123","telefono":"099-100-1007","email":"daniela.mendoza@mail.com","fecha_nacimiento":"1993-06-25","sexo":"F","direccion":"Av. 6 de Diciembre 2100","ocupacion":"Abogada","contacto_emergencia":"Iván Mendoza","telefono_emergencia":"099-100-2007","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Embarazo de 20 semanas","antecedentes_odontologicos":"Gingivitis del embarazo","motivo_consulta":"Limpieza dental","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":8,"nombre":"Fernando","apellidos":"Ochoa Silva","cedula":"1708901234","telefono":"099-100-1008","email":"fernando.ochoa@mail.com","fecha_nacimiento":"1985-12-01","sexo":"M","direccion":"Calle Foch 145","ocupacion":"Chef","contacto_emergencia":"Karina Silva","telefono_emergencia":"099-100-2008","alergias":"Anestesia con epinefrina","medicamentos":"Ninguno","antecedentes_medicos":"Arritmia leve","antecedentes_odontologicos":"Fractura de pieza 11","motivo_consulta":"Reconstrucción estética","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":9,"nombre":"Gabriela","apellidos":"Vinueza Castro","cedula":"1709012345","telefono":"099-100-1009","email":"gabriela.vinueza@mail.com","fecha_nacimiento":"1979-08-14","sexo":"F","direccion":"Av. Naciones Unidas 500","ocupacion":"Docente","contacto_emergencia":"Pedro Castro","telefono_emergencia":"099-100-2009","alergias":"Ninguna conocida","medicamentos":"Levotiroxina","antecedentes_medicos":"Hipotiroidismo","antecedentes_odontologicos":"Periodontitis moderada","motivo_consulta":"Tratamiento periodontal","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":10,"nombre":"Ricardo","apellidos":"Aguirre León","cedula":"1710123456","telefono":"099-100-1010","email":"ricardo.aguirre@mail.com","fecha_nacimiento":"2010-02-19","sexo":"M","direccion":"Calle Japón 88","ocupacion":"Estudiante","contacto_emergencia":"Nadia León","telefono_emergencia":"099-100-2010","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Sin antecedentes relevantes","antecedentes_odontologicos":"Primera visita odontológica","motivo_consulta":"Revisión y sellantes","notas":null,"creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"}],"odontograma":[{"id":1,"paciente_id":2,"diente":"26","cara":"oclusal","estado":"obturado","nota":"Resina compuesta","tratamiento_id":2,"actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"paciente_id":2,"diente":"36","cara":"general","estado":"caries","nota":"Caries incipiente a controlar","tratamiento_id":null,"actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"paciente_id":6,"diente":"46","cara":"general","estado":"ausente","nota":"Candidato a implante","tratamiento_id":null,"actualizado_en":"2026-08-08T17:04:00.411Z"}],"catalogo_tratamientos":[{"id":1,"nombre":"Profilaxis dental","descripcion":"Limpieza dental con ultrasonido y pulido.","precio_base":35,"duracion_min":30,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1},{"id":2,"nombre":"Resina compuesta","descripcion":"Restauración estética con resina fotocurable.","precio_base":55,"duracion_min":45,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1},{"id":3,"nombre":"Endodoncia unirradicular","descripcion":"Tratamiento de conductos en diente de una raíz.","precio_base":220,"duracion_min":90,"requiere_consentimiento":1,"riesgos":"Dolor postoperatorio, fractura del instrumento, perforación radicular, necesidad de retratamiento o extracción.","alternativas":"Extracción dental, mantenimiento sintomático temporal o derivación a endodoncista.","activo":1},{"id":4,"nombre":"Extracción simple","descripcion":"Exodoncia de pieza dental sin complicaciones.","precio_base":60,"duracion_min":30,"requiere_consentimiento":1,"riesgos":"Sangrado, alveolitis, infección, lesión de tejidos blandos, parestesia temporal.","alternativas":"Tratamiento de conducto para conservar la pieza, o mantenimiento periodontal.","activo":1},{"id":5,"nombre":"Implante dental","descripcion":"Colocación de implante de titanio con cirugía.","precio_base":950,"duracion_min":120,"requiere_consentimiento":1,"riesgos":"Fracaso de la osteointegración, infección, lesión nerviosa, perforación del seno maxilar, necesidad de injerto óseo.","alternativas":"Prótesis parcial removible, puente fijo convencional o no reponer la pieza.","activo":1},{"id":6,"nombre":"Blanqueamiento dental","descripcion":"Blanqueamiento en consultorio con peróxido.","precio_base":180,"duracion_min":60,"requiere_consentimiento":1,"riesgos":"Sensibilidad dental transitoria, irritación gingival, resultado variable según pigmentación.","alternativas":"Microabrasión, carillas o no realizar el tratamiento.","activo":1},{"id":7,"nombre":"Corona de porcelana","descripcion":"Rehabilitación con corona cerámica.","precio_base":420,"duracion_min":90,"requiere_consentimiento":1,"riesgos":"Sensibilidad, necesidad de endodoncia posterior, fractura de la cerámica, desajuste marginal.","alternativas":"Incrustación, resina de gran extensión o extracción.","activo":1},{"id":8,"nombre":"Control de ortodoncia","descripcion":"Ajuste mensual de aparatología fija.","precio_base":45,"duracion_min":30,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1}],"citas":[{"id":1,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-03T08:00","fin":"2026-08-03T08:30","motivo":"Profilaxis y control","notas":null,"estado":"completada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":2,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-03T09:00","fin":"2026-08-03T09:45","motivo":"Dolor en molar superior derecho","notas":null,"estado":"completada","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":3,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-03T10:00","fin":"2026-08-03T11:00","motivo":"Evaluación para implante","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":4,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":3,"inicio":"2026-08-03T11:00","fin":"2026-08-03T11:30","motivo":"Consulta de blanqueamiento","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":5,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":7,"inicio":"2026-08-04T08:30","fin":"2026-08-04T09:15","motivo":"Limpieza dental (embarazo)","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":6,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-04T09:30","fin":"2026-08-04T11:00","motivo":"Endodoncia pieza 26","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":7,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":9,"inicio":"2026-08-04T11:00","fin":"2026-08-04T11:30","motivo":"Control periodontal","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":8,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":10,"inicio":"2026-08-04T14:00","fin":"2026-08-04T14:30","motivo":"Revisión y sellantes","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":9,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":4,"inicio":"2026-08-05T08:00","fin":"2026-08-05T08:45","motivo":"Control por bruxismo","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":10,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-05T09:00","fin":"2026-08-05T10:00","motivo":"Cirugía de implante","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":11,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":5,"inicio":"2026-08-05T10:30","fin":"2026-08-05T11:00","motivo":"Control semestral","notas":null,"estado":"cancelada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":12,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":8,"inicio":"2026-08-06T08:00","fin":"2026-08-06T09:00","motivo":"Reconstrucción pieza 11","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":13,"consultorio_id":2,"cubiculo_id":4,"doctor_id":3,"paciente_id":3,"inicio":"2026-08-06T09:30","fin":"2026-08-06T10:00","motivo":"Blanqueamiento dental","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":6,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":14,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-06T11:00","fin":"2026-08-06T11:30","motivo":"Control post-profilaxis","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":15,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":5,"inicio":"2026-08-07T08:30","fin":"2026-08-07T09:15","motivo":"Restauración con resina","notas":null,"estado":"no_asistio","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":16,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-10T08:00","fin":"2026-08-10T09:00","motivo":"Cirugía de implante (2.ª fase)","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":17,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":7,"inicio":"2026-08-10T09:30","fin":"2026-08-10T10:00","motivo":"Control de gingivitis del embarazo","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":18,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":3,"inicio":"2026-08-10T11:00","fin":"2026-08-10T11:45","motivo":"Blanqueamiento — sesión 1","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":6,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":19,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":4,"inicio":"2026-08-11T08:30","fin":"2026-08-11T10:00","motivo":"Endodoncia pieza 46","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":20,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":10,"inicio":"2026-08-11T10:30","fin":"2026-08-11T11:00","motivo":"Sellantes en molares definitivos","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":21,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":9,"inicio":"2026-08-12T09:00","fin":"2026-08-12T10:00","motivo":"Fase quirúrgica periodontal","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":22,"consultorio_id":2,"cubiculo_id":4,"doctor_id":3,"paciente_id":8,"inicio":"2026-08-13T08:00","fin":"2026-08-13T08:45","motivo":"Corona de porcelana pieza 11","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":7,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":23,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-14T09:00","fin":"2026-08-14T09:30","motivo":"Control anual y profilaxis","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":24,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-17T10:00","fin":"2026-08-17T11:00","motivo":"Retratamiento de conducto","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"},{"id":25,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-08T16:00","fin":"2026-08-08T17:00","motivo":"Colocación de implante pieza 46","notas":null,"estado":"en_curso","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:04:00.411Z","actualizada_en":"2026-08-08T17:04:00.411Z"}],"tratamientos":[{"id":1,"cita_id":1,"paciente_id":1,"doctor_id":1,"consultorio_id":1,"cubiculo_id":1,"catalogo_id":1,"nombre":"Profilaxis dental","descripcion":"Limpieza dental con ultrasonido y pulido.","dientes":"","notas_clinicas":"Cálculo supragingival moderado. Se indica enjuague con clorhexidina 7 días.","precio":35,"requiere_consentimiento":0,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"cita_id":2,"paciente_id":2,"doctor_id":2,"consultorio_id":1,"cubiculo_id":2,"catalogo_id":2,"nombre":"Resina compuesta","descripcion":"Restauración estética con resina fotocurable.","dientes":"26","notas_clinicas":"Caries oclusal profunda. Se coloca base de ionómero y resina A2.","precio":55,"requiere_consentimiento":0,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"cita_id":25,"paciente_id":6,"doctor_id":3,"consultorio_id":1,"cubiculo_id":3,"catalogo_id":5,"nombre":"Implante dental","descripcion":"Colocación de implante de titanio con cirugía.","dientes":"46","notas_clinicas":"Lecho preparado con fresado secuencial. Pendiente firmar consentimiento antes de cerrar la atención.","precio":950,"requiere_consentimiento":1,"fecha":"2026-08-08","creado_en":"2026-08-08T17:04:00.411Z"}],"fotos":[{"id":1,"paciente_id":2,"cita_id":2,"tratamiento_id":null,"tipo":"radiografia","nombre":"radiografia-periapical-26.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Control radiográfico de la obturación","creada_en":"2026-08-08T17:04:00.411Z"},{"id":2,"paciente_id":2,"cita_id":2,"tratamiento_id":null,"tipo":"intraoral","nombre":"intraoral-cuadrante-2.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Foto intraoral posoperatoria","creada_en":"2026-08-08T17:04:00.411Z"},{"id":3,"paciente_id":6,"cita_id":25,"tratamiento_id":null,"tipo":"radiografia","nombre":"radiografia-panoramica-implante.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Panorámica previa a la cirugía","creada_en":"2026-08-08T17:04:00.411Z"}],"recordatorios":[{"id":1,"paciente_id":2,"cita_id":2,"doctor_id":2,"titulo":"Control de la resina en pieza 26","descripcion":"Verificar sensibilidad y ajuste oclusal.","fecha_objetivo":"2026-08-24","prioridad":"media","estado":"pendiente","creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"paciente_id":6,"cita_id":3,"doctor_id":3,"titulo":"Solicitar tomografía previa al implante","descripcion":"Enviar orden de CBCT del sector posterior inferior derecho.","fecha_objetivo":"2026-08-10","prioridad":"alta","estado":"pendiente","creado_en":"2026-08-08T17:04:00.411Z","actualizado_en":"2026-08-08T17:04:00.411Z"}],"consentimientos":[{"id":1,"paciente_id":6,"doctor_id":3,"consultorio_id":1,"cita_id":25,"tratamiento_id":3,"catalogo_id":5,"tratamiento":"Implante dental","observaciones":"Paciente diabético controlado; se refuerzan cuidados posoperatorios.","paciente_nombre":"Jorge Paredes Núñez","paciente_cedula":"1706789012","paciente_fecha_nacimiento":"1969-03-08","es_menor":0,"doctor_nombre":"Dra. Sofía Herrera","doctor_especialidad":"Cirugía maxilofacial e implantes","consultorio_nombre":"Clínica Dental Centro","consultorio_direccion":"Av. Amazonas N32-145 y Whymper","consultorio_telefono":"02-250-1122","consultorio_ciudad":"Quito","fecha":"2026-08-08","hora":"17:04","representante_nombre":null,"representante_cedula":null,"representante_parentesco":null,"firma_paciente":null,"firma_paciente_nombre":null,"firma_paciente_en":null,"firma_doctor":null,"firma_doctor_en":null,"estado":"pendiente","firmado_en":null,"anulado_en":null,"anulado_motivo":null,"anulado_por":null,"reemplaza_a":null,"reemplazado_por":null,"creado_por":"Datos de ejemplo","creado_en":"2026-08-08T17:04:00.681Z"}],"cargos":[{"id":1,"paciente_id":1,"consultorio_id":1,"cita_id":1,"tratamiento_id":1,"concepto":"Profilaxis dental","monto":35,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"paciente_id":2,"consultorio_id":1,"cita_id":2,"tratamiento_id":2,"concepto":"Resina compuesta","monto":55,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"paciente_id":6,"consultorio_id":1,"cita_id":25,"tratamiento_id":3,"concepto":"Implante dental","monto":950,"fecha":"2026-08-08","creado_en":"2026-08-08T17:04:00.411Z"}],"pagos":[{"id":1,"cargo_id":1,"paciente_id":1,"consultorio_id":1,"monto":35,"metodo":"efectivo","fecha":"2026-08-03","nota":"Pago completo","creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"cargo_id":2,"paciente_id":2,"consultorio_id":1,"monto":30,"metodo":"tarjeta","fecha":"2026-08-03","nota":"Abono parcial","creado_en":"2026-08-08T17:04:00.411Z"}],"gastos":[{"id":1,"consultorio_id":1,"categoria":"insumos","concepto":"Compra de resinas y adhesivos","proveedor":"Depósito Dental Andino","monto":420.5,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":2,"consultorio_id":1,"categoria":"servicios","concepto":"Energía eléctrica del mes","proveedor":"Empresa Eléctrica","monto":185.3,"fecha":"2026-08-04","creado_en":"2026-08-08T17:04:00.411Z"},{"id":3,"consultorio_id":1,"categoria":"nomina","concepto":"Sueldo asistente dental","proveedor":"","monto":620,"fecha":"2026-08-04","creado_en":"2026-08-08T17:04:00.411Z"},{"id":4,"consultorio_id":2,"categoria":"alquiler","concepto":"Arriendo del local","proveedor":"Inmobiliaria Norte","monto":900,"fecha":"2026-08-03","creado_en":"2026-08-08T17:04:00.411Z"},{"id":5,"consultorio_id":2,"categoria":"insumos","concepto":"Guantes, mascarillas y esterilización","proveedor":"BioDental S.A.","monto":210.75,"fecha":"2026-08-05","creado_en":"2026-08-08T17:04:00.411Z"},{"id":6,"consultorio_id":1,"categoria":"mantenimiento","concepto":"Mantenimiento del compresor","proveedor":"Servitec","monto":130,"fecha":"2026-08-06","creado_en":"2026-08-08T17:04:00.411Z"}],"usuarios":[{"id":1,"nombre":"Administrador","email":"admin@clinica.com","rol":"admin","doctor_id":null,"activo":1,"creado_en":"2026-08-08T17:04:00.469Z"},{"id":2,"nombre":"Recepción Centro","email":"recepcion@clinica.com","rol":"recepcion","doctor_id":null,"activo":1,"creado_en":"2026-08-08T17:04:00.516Z"},{"id":3,"nombre":"Dra. Ana Morales","email":"ana.morales@clinica.com","rol":"doctor","doctor_id":1,"activo":1,"creado_en":"2026-08-08T17:04:00.564Z"},{"id":4,"nombre":"Dr. Luis Cabrera","email":"luis.cabrera@clinica.com","rol":"doctor","doctor_id":2,"activo":1,"creado_en":"2026-08-08T17:04:00.610Z"},{"id":5,"nombre":"Dra. Sofía Herrera","email":"sofia.herrera@clinica.com","rol":"doctor","doctor_id":3,"activo":1,"creado_en":"2026-08-08T17:04:00.653Z"}],"fecha_base":"2026-08-08","version":"demo-2026-08-08"};</script>
+<script>window.__SEMILLA_DENTALGEST__ = {"consultorios":[{"id":1,"nombre":"Clínica Dental Centro","direccion":"Av. Amazonas N32-145 y Whymper","telefono":"02-250-1122","ciudad":"Quito","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"nombre":"Clínica Dental Norte","direccion":"Av. Eloy Alfaro 3410 y Portugal","telefono":"02-244-8899","ciudad":"Quito","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"}],"cubiculos":[{"id":1,"consultorio_id":1,"nombre":"Cubículo 1","descripcion":"Unidad dental con rayos X periapical","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"consultorio_id":1,"nombre":"Cubículo 2","descripcion":"Unidad dental estándar","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"consultorio_id":1,"nombre":"Cubículo 3","descripcion":"Quirófano de cirugía e implantes","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":4,"consultorio_id":2,"nombre":"Cubículo A","descripcion":"Unidad dental con cámara intraoral","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"}],"doctores":[{"id":1,"nombre":"Dra. Ana Morales","cedula":"1712345678","especialidad":"Odontología general","telefono":"099-111-2233","email":"ana.morales@clinica.com","color":"#0ea5e9","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"nombre":"Dr. Luis Cabrera","cedula":"1798765432","especialidad":"Endodoncia","telefono":"099-444-5566","email":"luis.cabrera@clinica.com","color":"#10b981","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"nombre":"Dra. Sofía Herrera","cedula":"1755512345","especialidad":"Cirugía maxilofacial e implantes","telefono":"099-777-8899","email":"sofia.herrera@clinica.com","color":"#f59e0b","activo":1,"creado_en":"2026-08-08T17:59:14.200Z"}],"doctor_consultorio":[{"doctor_id":1,"consultorio_id":1},{"doctor_id":1,"consultorio_id":2},{"doctor_id":2,"consultorio_id":1},{"doctor_id":3,"consultorio_id":1},{"doctor_id":3,"consultorio_id":2}],"doctor_cubiculo":[{"doctor_id":1,"cubiculo_id":1},{"doctor_id":1,"cubiculo_id":2},{"doctor_id":1,"cubiculo_id":4},{"doctor_id":2,"cubiculo_id":2},{"doctor_id":2,"cubiculo_id":3},{"doctor_id":3,"cubiculo_id":3},{"doctor_id":3,"cubiculo_id":4}],"pacientes":[{"id":1,"nombre":"María","apellidos":"González Pérez","cedula":"1701234567","telefono":"099-100-1001","email":"maria.gonzalez@mail.com","fecha_nacimiento":"1988-04-12","sexo":"F","direccion":"Av. 10 de Agosto 1234","ocupacion":"Contadora","contacto_emergencia":"Jorge González","telefono_emergencia":"099-100-2001","alergias":"Penicilina","medicamentos":"Losartán 50mg","antecedentes_medicos":"Hipertensión controlada","antecedentes_odontologicos":"Sangrado de encías ocasional","motivo_consulta":"Limpieza y control","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"nombre":"Carlos","apellidos":"Ramírez Vega","cedula":"1702345678","telefono":"099-100-1002","email":"carlos.ramirez@mail.com","fecha_nacimiento":"1975-09-30","sexo":"M","direccion":"Calle Cuero y Caicedo 456","ocupacion":"Ingeniero","contacto_emergencia":"Lucía Vega","telefono_emergencia":"099-100-2002","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Diabetes tipo 2","antecedentes_odontologicos":"Endodoncia previa en pieza 26","motivo_consulta":"Dolor en molar superior","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"nombre":"Lucía","apellidos":"Torres Andrade","cedula":"1703456789","telefono":"099-100-1003","email":"lucia.torres@mail.com","fecha_nacimiento":"1996-01-22","sexo":"F","direccion":"Av. República 890","ocupacion":"Diseñadora","contacto_emergencia":"Marta Andrade","telefono_emergencia":"099-100-2003","alergias":"Látex","medicamentos":"Anticonceptivo oral","antecedentes_medicos":"Sin antecedentes relevantes","antecedentes_odontologicos":"Ortodoncia finalizada en 2021","motivo_consulta":"Blanqueamiento dental","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":4,"nombre":"Andrés","apellidos":"Salazar Mora","cedula":"1704567890","telefono":"099-100-1004","email":"andres.salazar@mail.com","fecha_nacimiento":"1982-07-05","sexo":"M","direccion":"Calle Madrid 321","ocupacion":"Comerciante","contacto_emergencia":"Paola Mora","telefono_emergencia":"099-100-2004","alergias":"Ninguna conocida","medicamentos":"Omeprazol","antecedentes_medicos":"Gastritis crónica","antecedentes_odontologicos":"Bruxismo severo","motivo_consulta":"Desgaste dental","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":5,"nombre":"Valeria","apellidos":"Cedeño Loor","cedula":"1705678901","telefono":"099-100-1005","email":"valeria.cedeno@mail.com","fecha_nacimiento":"2001-11-17","sexo":"F","direccion":"Av. Colón 654","ocupacion":"Estudiante","contacto_emergencia":"Rosa Loor","telefono_emergencia":"099-100-2005","alergias":"Ibuprofeno","medicamentos":"Ninguno","antecedentes_medicos":"Asma leve","antecedentes_odontologicos":"Caries interproximales","motivo_consulta":"Control semestral","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":6,"nombre":"Jorge","apellidos":"Paredes Núñez","cedula":"1706789012","telefono":"099-100-1006","email":"jorge.paredes@mail.com","fecha_nacimiento":"1969-03-08","sexo":"M","direccion":"Calle Veintimilla 77","ocupacion":"Jubilado","contacto_emergencia":"Elena Núñez","telefono_emergencia":"099-100-2006","alergias":"Sulfas","medicamentos":"Metformina, Aspirina","antecedentes_medicos":"Diabetes tipo 2, cardiopatía","antecedentes_odontologicos":"Pérdida de piezas posteriores","motivo_consulta":"Evaluación para implantes","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":7,"nombre":"Daniela","apellidos":"Mendoza Ruiz","cedula":"1707890123","telefono":"099-100-1007","email":"daniela.mendoza@mail.com","fecha_nacimiento":"1993-06-25","sexo":"F","direccion":"Av. 6 de Diciembre 2100","ocupacion":"Abogada","contacto_emergencia":"Iván Mendoza","telefono_emergencia":"099-100-2007","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Embarazo de 20 semanas","antecedentes_odontologicos":"Gingivitis del embarazo","motivo_consulta":"Limpieza dental","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":8,"nombre":"Fernando","apellidos":"Ochoa Silva","cedula":"1708901234","telefono":"099-100-1008","email":"fernando.ochoa@mail.com","fecha_nacimiento":"1985-12-01","sexo":"M","direccion":"Calle Foch 145","ocupacion":"Chef","contacto_emergencia":"Karina Silva","telefono_emergencia":"099-100-2008","alergias":"Anestesia con epinefrina","medicamentos":"Ninguno","antecedentes_medicos":"Arritmia leve","antecedentes_odontologicos":"Fractura de pieza 11","motivo_consulta":"Reconstrucción estética","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":9,"nombre":"Gabriela","apellidos":"Vinueza Castro","cedula":"1709012345","telefono":"099-100-1009","email":"gabriela.vinueza@mail.com","fecha_nacimiento":"1979-08-14","sexo":"F","direccion":"Av. Naciones Unidas 500","ocupacion":"Docente","contacto_emergencia":"Pedro Castro","telefono_emergencia":"099-100-2009","alergias":"Ninguna conocida","medicamentos":"Levotiroxina","antecedentes_medicos":"Hipotiroidismo","antecedentes_odontologicos":"Periodontitis moderada","motivo_consulta":"Tratamiento periodontal","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":10,"nombre":"Ricardo","apellidos":"Aguirre León","cedula":"1710123456","telefono":"099-100-1010","email":"ricardo.aguirre@mail.com","fecha_nacimiento":"2010-02-19","sexo":"M","direccion":"Calle Japón 88","ocupacion":"Estudiante","contacto_emergencia":"Nadia León","telefono_emergencia":"099-100-2010","alergias":"Ninguna conocida","medicamentos":"Ninguno","antecedentes_medicos":"Sin antecedentes relevantes","antecedentes_odontologicos":"Primera visita odontológica","motivo_consulta":"Revisión y sellantes","notas":null,"creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"}],"odontograma":[{"id":1,"paciente_id":2,"diente":"26","cara":"oclusal","estado":"obturado","nota":"Resina compuesta","tratamiento_id":2,"actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"paciente_id":2,"diente":"36","cara":"general","estado":"caries","nota":"Caries incipiente a controlar","tratamiento_id":null,"actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"paciente_id":6,"diente":"46","cara":"general","estado":"ausente","nota":"Candidato a implante","tratamiento_id":null,"actualizado_en":"2026-08-08T17:59:14.200Z"}],"catalogo_tratamientos":[{"id":1,"nombre":"Profilaxis dental","descripcion":"Limpieza dental con ultrasonido y pulido.","precio_base":35,"duracion_min":30,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1},{"id":2,"nombre":"Resina compuesta","descripcion":"Restauración estética con resina fotocurable.","precio_base":55,"duracion_min":45,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1},{"id":3,"nombre":"Endodoncia unirradicular","descripcion":"Tratamiento de conductos en diente de una raíz.","precio_base":220,"duracion_min":90,"requiere_consentimiento":1,"riesgos":"Dolor postoperatorio, fractura del instrumento, perforación radicular, necesidad de retratamiento o extracción.","alternativas":"Extracción dental, mantenimiento sintomático temporal o derivación a endodoncista.","activo":1},{"id":4,"nombre":"Extracción simple","descripcion":"Exodoncia de pieza dental sin complicaciones.","precio_base":60,"duracion_min":30,"requiere_consentimiento":1,"riesgos":"Sangrado, alveolitis, infección, lesión de tejidos blandos, parestesia temporal.","alternativas":"Tratamiento de conducto para conservar la pieza, o mantenimiento periodontal.","activo":1},{"id":5,"nombre":"Implante dental","descripcion":"Colocación de implante de titanio con cirugía.","precio_base":950,"duracion_min":120,"requiere_consentimiento":1,"riesgos":"Fracaso de la osteointegración, infección, lesión nerviosa, perforación del seno maxilar, necesidad de injerto óseo.","alternativas":"Prótesis parcial removible, puente fijo convencional o no reponer la pieza.","activo":1},{"id":6,"nombre":"Blanqueamiento dental","descripcion":"Blanqueamiento en consultorio con peróxido.","precio_base":180,"duracion_min":60,"requiere_consentimiento":1,"riesgos":"Sensibilidad dental transitoria, irritación gingival, resultado variable según pigmentación.","alternativas":"Microabrasión, carillas o no realizar el tratamiento.","activo":1},{"id":7,"nombre":"Corona de porcelana","descripcion":"Rehabilitación con corona cerámica.","precio_base":420,"duracion_min":90,"requiere_consentimiento":1,"riesgos":"Sensibilidad, necesidad de endodoncia posterior, fractura de la cerámica, desajuste marginal.","alternativas":"Incrustación, resina de gran extensión o extracción.","activo":1},{"id":8,"nombre":"Control de ortodoncia","descripcion":"Ajuste mensual de aparatología fija.","precio_base":45,"duracion_min":30,"requiere_consentimiento":0,"riesgos":"","alternativas":"","activo":1}],"citas":[{"id":1,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-03T08:00","fin":"2026-08-03T08:30","motivo":"Profilaxis y control","notas":null,"estado":"completada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":2,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-03T09:00","fin":"2026-08-03T09:45","motivo":"Dolor en molar superior derecho","notas":null,"estado":"completada","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":3,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-03T10:00","fin":"2026-08-03T11:00","motivo":"Evaluación para implante","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":4,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":3,"inicio":"2026-08-03T11:00","fin":"2026-08-03T11:30","motivo":"Consulta de blanqueamiento","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":5,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":7,"inicio":"2026-08-04T08:30","fin":"2026-08-04T09:15","motivo":"Limpieza dental (embarazo)","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":6,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-04T09:30","fin":"2026-08-04T11:00","motivo":"Endodoncia pieza 26","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":7,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":9,"inicio":"2026-08-04T11:00","fin":"2026-08-04T11:30","motivo":"Control periodontal","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":8,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":10,"inicio":"2026-08-04T14:00","fin":"2026-08-04T14:30","motivo":"Revisión y sellantes","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":9,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":4,"inicio":"2026-08-05T08:00","fin":"2026-08-05T08:45","motivo":"Control por bruxismo","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":10,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-05T09:00","fin":"2026-08-05T10:00","motivo":"Cirugía de implante","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":11,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":5,"inicio":"2026-08-05T10:30","fin":"2026-08-05T11:00","motivo":"Control semestral","notas":null,"estado":"cancelada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":12,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":8,"inicio":"2026-08-06T08:00","fin":"2026-08-06T09:00","motivo":"Reconstrucción pieza 11","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":13,"consultorio_id":2,"cubiculo_id":4,"doctor_id":3,"paciente_id":3,"inicio":"2026-08-06T09:30","fin":"2026-08-06T10:00","motivo":"Blanqueamiento dental","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":6,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":14,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-06T11:00","fin":"2026-08-06T11:30","motivo":"Control post-profilaxis","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":15,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":5,"inicio":"2026-08-07T08:30","fin":"2026-08-07T09:15","motivo":"Restauración con resina","notas":null,"estado":"no_asistio","cita_origen_id":null,"catalogo_id":2,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":16,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-10T08:00","fin":"2026-08-10T09:00","motivo":"Cirugía de implante (2.ª fase)","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":17,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":7,"inicio":"2026-08-10T09:30","fin":"2026-08-10T10:00","motivo":"Control de gingivitis del embarazo","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":18,"consultorio_id":2,"cubiculo_id":4,"doctor_id":1,"paciente_id":3,"inicio":"2026-08-10T11:00","fin":"2026-08-10T11:45","motivo":"Blanqueamiento — sesión 1","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":6,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":19,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":4,"inicio":"2026-08-11T08:30","fin":"2026-08-11T10:00","motivo":"Endodoncia pieza 46","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":20,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":10,"inicio":"2026-08-11T10:30","fin":"2026-08-11T11:00","motivo":"Sellantes en molares definitivos","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":21,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":9,"inicio":"2026-08-12T09:00","fin":"2026-08-12T10:00","motivo":"Fase quirúrgica periodontal","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":null,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":22,"consultorio_id":2,"cubiculo_id":4,"doctor_id":3,"paciente_id":8,"inicio":"2026-08-13T08:00","fin":"2026-08-13T08:45","motivo":"Corona de porcelana pieza 11","notas":null,"estado":"confirmada","cita_origen_id":null,"catalogo_id":7,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":23,"consultorio_id":1,"cubiculo_id":1,"doctor_id":1,"paciente_id":1,"inicio":"2026-08-14T09:00","fin":"2026-08-14T09:30","motivo":"Control anual y profilaxis","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":1,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":24,"consultorio_id":1,"cubiculo_id":2,"doctor_id":2,"paciente_id":2,"inicio":"2026-08-17T10:00","fin":"2026-08-17T11:00","motivo":"Retratamiento de conducto","notas":null,"estado":"agendada","cita_origen_id":null,"catalogo_id":3,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"},{"id":25,"consultorio_id":1,"cubiculo_id":3,"doctor_id":3,"paciente_id":6,"inicio":"2026-08-08T16:00","fin":"2026-08-08T17:00","motivo":"Colocación de implante pieza 46","notas":null,"estado":"en_curso","cita_origen_id":null,"catalogo_id":5,"creada_en":"2026-08-08T17:59:14.200Z","actualizada_en":"2026-08-08T17:59:14.200Z"}],"tratamientos":[{"id":1,"cita_id":1,"paciente_id":1,"doctor_id":1,"consultorio_id":1,"cubiculo_id":1,"catalogo_id":1,"nombre":"Profilaxis dental","descripcion":"Limpieza dental con ultrasonido y pulido.","dientes":"","notas_clinicas":"Cálculo supragingival moderado. Se indica enjuague con clorhexidina 7 días.","precio":35,"requiere_consentimiento":0,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"cita_id":2,"paciente_id":2,"doctor_id":2,"consultorio_id":1,"cubiculo_id":2,"catalogo_id":2,"nombre":"Resina compuesta","descripcion":"Restauración estética con resina fotocurable.","dientes":"26","notas_clinicas":"Caries oclusal profunda. Se coloca base de ionómero y resina A2.","precio":55,"requiere_consentimiento":0,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"cita_id":25,"paciente_id":6,"doctor_id":3,"consultorio_id":1,"cubiculo_id":3,"catalogo_id":5,"nombre":"Implante dental","descripcion":"Colocación de implante de titanio con cirugía.","dientes":"46","notas_clinicas":"Lecho preparado con fresado secuencial. Pendiente firmar consentimiento antes de cerrar la atención.","precio":950,"requiere_consentimiento":1,"fecha":"2026-08-08","creado_en":"2026-08-08T17:59:14.200Z"}],"fotos":[{"id":1,"paciente_id":2,"cita_id":2,"tratamiento_id":null,"tipo":"radiografia","nombre":"radiografia-periapical-26.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Control radiográfico de la obturación","creada_en":"2026-08-08T17:59:14.200Z"},{"id":2,"paciente_id":2,"cita_id":2,"tratamiento_id":null,"tipo":"intraoral","nombre":"intraoral-cuadrante-2.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Foto intraoral posoperatoria","creada_en":"2026-08-08T17:59:14.200Z"},{"id":3,"paciente_id":6,"cita_id":25,"tratamiento_id":null,"tipo":"radiografia","nombre":"radiografia-panoramica-implante.png","archivo":"data:image/png;base64,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","mime":"image/png","descripcion":"Panorámica previa a la cirugía","creada_en":"2026-08-08T17:59:14.200Z"}],"recordatorios":[{"id":1,"paciente_id":2,"cita_id":2,"doctor_id":2,"titulo":"Control de la resina en pieza 26","descripcion":"Verificar sensibilidad y ajuste oclusal.","fecha_objetivo":"2026-08-24","prioridad":"media","estado":"pendiente","creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"paciente_id":6,"cita_id":3,"doctor_id":3,"titulo":"Solicitar tomografía previa al implante","descripcion":"Enviar orden de CBCT del sector posterior inferior derecho.","fecha_objetivo":"2026-08-10","prioridad":"alta","estado":"pendiente","creado_en":"2026-08-08T17:59:14.200Z","actualizado_en":"2026-08-08T17:59:14.200Z"}],"consentimientos":[{"id":1,"paciente_id":6,"doctor_id":3,"consultorio_id":1,"cita_id":25,"tratamiento_id":3,"catalogo_id":5,"tratamiento":"Implante dental","observaciones":"Paciente diabético controlado; se refuerzan cuidados posoperatorios.","paciente_nombre":"Jorge Paredes Núñez","paciente_cedula":"1706789012","paciente_fecha_nacimiento":"1969-03-08","es_menor":0,"doctor_nombre":"Dra. Sofía Herrera","doctor_especialidad":"Cirugía maxilofacial e implantes","consultorio_nombre":"Clínica Dental Centro","consultorio_direccion":"Av. Amazonas N32-145 y Whymper","consultorio_telefono":"02-250-1122","consultorio_ciudad":"Quito","fecha":"2026-08-08","hora":"17:59","representante_nombre":null,"representante_cedula":null,"representante_parentesco":null,"firma_paciente":null,"firma_paciente_nombre":null,"firma_paciente_en":null,"firma_doctor":null,"firma_doctor_en":null,"estado":"pendiente","firmado_en":null,"anulado_en":null,"anulado_motivo":null,"anulado_por":null,"reemplaza_a":null,"reemplazado_por":null,"creado_por":"Datos de ejemplo","creado_en":"2026-08-08T17:59:14.515Z"}],"cargos":[{"id":1,"paciente_id":1,"consultorio_id":1,"cita_id":1,"tratamiento_id":1,"concepto":"Profilaxis dental","monto":35,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"paciente_id":2,"consultorio_id":1,"cita_id":2,"tratamiento_id":2,"concepto":"Resina compuesta","monto":55,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"paciente_id":6,"consultorio_id":1,"cita_id":25,"tratamiento_id":3,"concepto":"Implante dental","monto":950,"fecha":"2026-08-08","creado_en":"2026-08-08T17:59:14.200Z"}],"pagos":[{"id":1,"cargo_id":1,"paciente_id":1,"consultorio_id":1,"monto":35,"metodo":"efectivo","fecha":"2026-08-03","nota":"Pago completo","creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"cargo_id":2,"paciente_id":2,"consultorio_id":1,"monto":30,"metodo":"tarjeta","fecha":"2026-08-03","nota":"Abono parcial","creado_en":"2026-08-08T17:59:14.200Z"}],"gastos":[{"id":1,"consultorio_id":1,"categoria":"insumos","concepto":"Compra de resinas y adhesivos","proveedor":"Depósito Dental Andino","monto":420.5,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":2,"consultorio_id":1,"categoria":"servicios","concepto":"Energía eléctrica del mes","proveedor":"Empresa Eléctrica","monto":185.3,"fecha":"2026-08-04","creado_en":"2026-08-08T17:59:14.200Z"},{"id":3,"consultorio_id":1,"categoria":"nomina","concepto":"Sueldo asistente dental","proveedor":"","monto":620,"fecha":"2026-08-04","creado_en":"2026-08-08T17:59:14.200Z"},{"id":4,"consultorio_id":2,"categoria":"alquiler","concepto":"Arriendo del local","proveedor":"Inmobiliaria Norte","monto":900,"fecha":"2026-08-03","creado_en":"2026-08-08T17:59:14.200Z"},{"id":5,"consultorio_id":2,"categoria":"insumos","concepto":"Guantes, mascarillas y esterilización","proveedor":"BioDental S.A.","monto":210.75,"fecha":"2026-08-05","creado_en":"2026-08-08T17:59:14.200Z"},{"id":6,"consultorio_id":1,"categoria":"mantenimiento","concepto":"Mantenimiento del compresor","proveedor":"Servitec","monto":130,"fecha":"2026-08-06","creado_en":"2026-08-08T17:59:14.200Z"}],"usuarios":[{"id":1,"nombre":"Administrador","email":"admin@clinica.com","rol":"admin","doctor_id":null,"activo":1,"creado_en":"2026-08-08T17:59:14.267Z"},{"id":2,"nombre":"Recepción Centro","email":"recepcion@clinica.com","rol":"recepcion","doctor_id":null,"activo":1,"creado_en":"2026-08-08T17:59:14.323Z"},{"id":3,"nombre":"Dra. Ana Morales","email":"ana.morales@clinica.com","rol":"doctor","doctor_id":1,"activo":1,"creado_en":"2026-08-08T17:59:14.380Z"},{"id":4,"nombre":"Dr. Luis Cabrera","email":"luis.cabrera@clinica.com","rol":"doctor","doctor_id":2,"activo":1,"creado_en":"2026-08-08T17:59:14.427Z"},{"id":5,"nombre":"Dra. Sofía Herrera","email":"sofia.herrera@clinica.com","rol":"doctor","doctor_id":3,"activo":1,"creado_en":"2026-08-08T17:59:14.475Z"}],"fecha_base":"2026-08-08","version":"demo-2026-08-08"};</script>
 <script>
 
 (function () {
@@ -802,9 +890,9 @@ function explicarConflictos(conflictos) {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
       : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
       : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
-    return `Choque de horario: ${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
-           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)} el ${c.inicio.slice(0, 10)} (estado: ${c.estado}).`;
+    return `Esa hora ya está ocupada: ${quien} está con ${c.paciente} ` +
+           `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
+           `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
   }).join(' ');
 }
 
@@ -1094,7 +1182,8 @@ const api = {
   },
   async crearPaciente(d) {
     exigirRol('admin', 'recepcion', 'doctor');
-    requerido(d, ['nombre', 'apellidos']);
+    // Basta el nombre: quien llama a veces no deja el apellido.
+    requerido(d, ['nombre']);
     const cedula = texto(d.cedula);
     if (cedula && tabla('pacientes').some((p) => p.cedula === cedula)) {
       throw new ErrorApi(409, `Ya existe un paciente con la cédula ${cedula}.`);
@@ -2008,6 +2097,21 @@ function datosFormulario(form) {
   return d;
 }
 
+/* ---------------------------- Nombres de personas ------------------------ */
+
+// Los apellidos son opcionales: quien llama por teléfono a veces solo deja el
+// nombre. Estas dos funciones evitan que eso se vea como ", Juan" o "Juan ".
+
+/** Para listas ordenadas alfabéticamente: «González Pérez, María». */
+function nombreLista(nombre, apellidos) {
+  return apellidos ? `${apellidos}, ${nombre}` : String(nombre || '');
+}
+
+/** Para títulos y saludos: «María González Pérez». */
+function nombreCompleto(nombre, apellidos) {
+  return [nombre, apellidos].filter(Boolean).join(' ');
+}
+
 /* -------------------------------- Formato ------------------------------- */
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
@@ -2100,7 +2204,590 @@ function vacio(mensaje) {
   return el('div', { clase: 'vacio', texto: mensaje });
 }
 
-return { el, limpiar, aviso, exito, error, modal, confirmar, campo, entrada, area, selector, datosFormulario, fmtDinero, fmtFecha, fmtFechaCorta, fmtHora, fmtFechaHora, fmtMarca, nombreDia, hoyIso, sumarDias, sumarMinutos, ETIQUETAS_ESTADO, etiquetaEstado, vacio };
+return { el, limpiar, aviso, exito, error, modal, confirmar, campo, entrada, area, selector, datosFormulario, nombreLista, nombreCompleto, fmtDinero, fmtFecha, fmtFechaCorta, fmtHora, fmtFechaHora, fmtMarca, nombreDia, hoyIso, sumarDias, sumarMinutos, ETIQUETAS_ESTADO, etiquetaEstado, vacio };
+});
+
+__def("js/ayuda.js", function () {
+const { el, modal } = __mod("js/ui.js");
+
+/**
+ * «¿Cómo hago…?»: las tareas de todos los días explicadas en pasos numerados,
+ * con las palabras que aparecen en pantalla. Está siempre a mano para que nadie
+ * tenga que acordarse de una capacitación que nunca hubo.
+ */
+const TAREAS = [
+  {
+    titulo: 'Agendar una cita',
+    pasos: [
+      'En «El día de hoy», busca la hora que quieres y pulsa «＋ Agendar a las …».',
+      'Elige al paciente en la primera lista (si es nuevo, créalo antes desde Pacientes).',
+      'Pulsa «Agendar cita». Si esa hora está ocupada, la app te lo dice antes de guardar.',
+    ],
+  },
+  {
+    titulo: 'Anotar un paciente nuevo que llama',
+    pasos: [
+      'Entra a «Pacientes» y pulsa «➕ Nuevo paciente».',
+      'Escribe el nombre y el teléfono. Con eso basta para agendarle.',
+      'Pulsa «Crear paciente». Lo demás se llena cuando la persona venga.',
+    ],
+  },
+  {
+    titulo: 'Atender a alguien y cobrarle',
+    pasos: [
+      'Abre la cita desde la página del día.',
+      'Pulsa «El paciente llegó — empezar»: se abre solo el cuadro para anotar.',
+      'Escribe qué se hizo y cuánto se cobra, y pulsa «Guardar».',
+      'Baja hasta «Cobros de esta cita» y pulsa «Cobrar» en la línea correspondiente.',
+    ],
+  },
+  {
+    titulo: 'Hacer firmar un consentimiento',
+    pasos: [
+      'Si el tratamiento lo necesita, el documento aparece solo al anotarlo.',
+      'También lo encuentras en «Resumen», en el recuadro «Consentimientos por firmar».',
+      'Pásale la tablet al paciente, que firme con el dedo y pulse «Confirmar».',
+      'Firma tú también y pulsa «✍️ Firmar y archivar».',
+    ],
+  },
+  {
+    titulo: 'Apuntar un gasto',
+    pasos: [
+      'Entra a «Dinero» y pulsa «🧾 Apuntar gasto».',
+      'Escribe en qué se gastó y cuánto. El día ya viene puesto en hoy.',
+      'Pulsa «Apuntar gasto».',
+    ],
+  },
+  {
+    titulo: 'Ver cuánto se cobró hoy',
+    pasos: [
+      'En «El día de hoy», debajo del título dice «cobrado en el día».',
+      'Para el detalle, entra a «Dinero» y elige «Día» en el primer selector.',
+    ],
+  },
+  {
+    titulo: 'Buscar el teléfono de un paciente',
+    pasos: [
+      'Escribe su nombre en la caja de búsqueda de arriba a la izquierda.',
+      'El teléfono aparece junto al nombre, sin tener que entrar a la ficha.',
+    ],
+  },
+  {
+    titulo: 'Imprimir la agenda del día o llevar algo a Excel',
+    pasos: [
+      'En «El día de hoy» pulsa «🖨️ Imprimir este día» y luego «Imprimir / Guardar PDF».',
+      'En Pacientes y en Dinero hay un botón «⬇️ Exportar a Excel» sobre cada tabla.',
+    ],
+  },
+];
+
+function botonAyuda() {
+  return el('button', {
+    clase: 'boton-ayuda', type: 'button', texto: '❓ ¿Cómo hago…?',
+    title: 'Pasos para las tareas de todos los días',
+    onclick: abrirAyuda,
+  });
+}
+
+function abrirAyuda() {
+  const m = modal({
+    titulo: '¿Cómo hago…?',
+    ancho: true,
+    cuerpo: el('div', { clase: 'lista-ayuda' }, TAREAS.map((t) => el('details', {}, [
+      el('summary', { texto: t.titulo }),
+      el('ol', {}, t.pasos.map((p) => el('li', { texto: p }))),
+    ]))),
+    pie: [el('button', { clase: 'btn', type: 'button', texto: 'Entendido', onclick: () => m.cerrar() })],
+  });
+}
+
+return { botonAyuda };
+});
+
+__def("js/preferencias.js", function () {
+/**
+ * Recuerda los valores con los que se trabaja todos los días (consultorio,
+ * cubículo y doctor habituales) para que agendar no obligue a repetirlos.
+ *
+ * Vive en el navegador de cada persona: la recepcionista de una sede no hereda
+ * las preferencias de otra. Si el almacenamiento no está disponible (modo
+ * privado, permisos), la app sigue funcionando sin recordar nada.
+ */
+const CLAVE = 'dentalgest_habituales';
+
+function habituales() {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function recordarHabituales({ consultorio_id, cubiculo_id, doctor_id }) {
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify({ consultorio_id, cubiculo_id, doctor_id }));
+  } catch { /* sin almacenamiento: simplemente no se recuerda */ }
+}
+
+return { habituales, recordarHabituales };
+});
+
+__def("js/vistas/formCita.js", function () {
+const { api, ErrorApi } = __mod("js/api.js");
+const { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero, nombreLista } = __mod("js/ui.js");
+const { recordarHabituales } = __mod("js/preferencias.js");
+
+/**
+ * Modal reutilizable para crear o reprogramar una cita.
+ * Valida conflictos contra el servidor antes y durante el guardado.
+ */
+async function abrirFormularioCita(opciones = {}) {
+  const {
+    cita = null,                 // cita existente → reprogramar
+    paciente_id = null,
+    consultorio_id = null,
+    cubiculo_id = null,
+    doctor_id = null,
+    fecha = hoyIso(),
+    hora = '09:00',
+    duracion = 30,
+    motivo = '',
+    catalogo_id = null,
+    cita_origen_id = null,
+    titulo = null,
+    alGuardar = null,
+  } = opciones;
+
+  const [consultorios, doctores, pacientes, catalogo] = await Promise.all([
+    api.consultorios(), api.doctores(), api.pacientes(), api.catalogo(),
+  ]);
+
+  if (!consultorios.length) {
+    error('Primero debes crear al menos un consultorio con un cubículo en Configuración.');
+    return;
+  }
+  if (!pacientes.length) {
+    error('No hay pacientes registrados. Crea primero el paciente.');
+    return;
+  }
+
+  const inicial = {
+    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? consultorios[0].id,
+    cubiculo_id: cita?.cubiculo_id ?? cubiculo_id ?? null,
+    doctor_id: cita?.doctor_id ?? doctor_id ?? null,
+    paciente_id: cita?.paciente_id ?? paciente_id ?? pacientes[0].id,
+    fecha: cita ? cita.inicio.slice(0, 10) : fecha,
+    hora_inicio: cita ? cita.inicio.slice(11, 16) : hora,
+    hora_fin: cita ? cita.fin.slice(11, 16) : sumarMinutos(hora, duracion),
+    motivo: cita?.motivo ?? motivo,
+    notas: cita?.notas ?? '',
+    catalogo_id: cita?.catalogo_id ?? catalogo_id ?? '',
+  };
+
+  const selConsultorio = selector('consultorio_id',
+    consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), inicial.consultorio_id);
+  const selCubiculo = selector('cubiculo_id', [], null);
+  const selDoctor = selector('doctor_id', [], null);
+  const selPaciente = selector('paciente_id',
+    pacientes.map((p) => ({ valor: p.id, texto: `${nombreLista(p.nombre, p.apellidos)}${p.cedula ? ` (${p.cedula})` : ''}` })),
+    inicial.paciente_id);
+
+  const selTratamiento = selector('catalogo_id', [
+    { valor: '', texto: '— Sin definir todavía —' },
+    ...catalogo.map((c) => ({
+      valor: c.id,
+      texto: `${c.nombre} · ${c.duracion_min} min · ${fmtDinero(c.precio_base)}`,
+    })),
+  ], inicial.catalogo_id);
+  const notaTratamiento = el('div', { clase: 'mini' });
+
+  const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
+  const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
+  const inFin = entrada('hora_fin', { type: 'time', value: inicial.hora_fin, required: true, step: 300 });
+  const inMotivo = entrada('motivo', { value: inicial.motivo, placeholder: 'Ej.: Control y profilaxis' });
+  const inNotas = area('notas', { value: inicial.notas, placeholder: 'Notas para el equipo (opcional)' });
+
+  const avisoConflicto = el('div', { clase: 'alerta-caja', style: 'display:none' });
+
+  function refrescarCubiculos() {
+    const cid = Number(selConsultorio.value);
+    const cons = consultorios.find((c) => c.id === cid);
+    const lista = (cons?.cubiculos || []).filter((c) => c.activo);
+    selCubiculo.innerHTML = '';
+    if (!lista.length) {
+      selCubiculo.appendChild(el('option', { value: '', texto: 'Sin cubículos disponibles' }));
+    }
+    for (const c of lista) {
+      const op = el('option', { value: String(c.id), texto: c.nombre });
+      if (Number(inicial.cubiculo_id) === c.id) op.selected = true;
+      selCubiculo.appendChild(op);
+    }
+    refrescarDoctores();
+  }
+
+  function refrescarDoctores() {
+    const cid = Number(selConsultorio.value);
+    const lista = doctores.filter((d) => d.activo && d.consultorios.some((c) => c.id === cid));
+    selDoctor.innerHTML = '';
+    if (!lista.length) {
+      selDoctor.appendChild(el('option', { value: '', texto: 'Ningún doctor asignado a este consultorio' }));
+    }
+    for (const d of lista) {
+      const op = el('option', { value: String(d.id), texto: `${d.nombre} — ${d.especialidad || 'General'}` });
+      if (Number(inicial.doctor_id) === d.id) op.selected = true;
+      selDoctor.appendChild(op);
+    }
+  }
+
+  /**
+   * El tratamiento previsto ajusta la duración y sugiere el motivo. El motivo
+   * solo se sobrescribe si está vacío o si lo puso una elección anterior: lo
+   * que escribe una persona no se pisa.
+   */
+  let motivoSugerido = '';
+  function aplicarTratamiento(ajustarHorario) {
+    const cat = catalogo.find((c) => String(c.id) === selTratamiento.value) || null;
+    notaTratamiento.className = 'mini';
+    if (!cat) {
+      notaTratamiento.textContent = 'Puedes agendar sin definirlo; se registra igual durante la atención.';
+      return;
+    }
+    if (ajustarHorario && inInicio.value) inFin.value = sumarMinutos(inInicio.value, cat.duracion_min);
+    if (!inMotivo.value.trim() || inMotivo.value === motivoSugerido) inMotivo.value = cat.nombre;
+    motivoSugerido = cat.nombre;
+    if (cat.requiere_consentimiento) {
+      notaTratamiento.className = 'alerta-caja aviso';
+      notaTratamiento.textContent = `⚠️ "${cat.nombre}" exige consentimiento informado: al registrarlo en la ` +
+        'atención se generará el documento, y la cita no podrá completarse hasta que esté firmado.';
+    } else {
+      notaTratamiento.textContent = `Duración sugerida ${cat.duracion_min} min · precio base ${fmtDinero(cat.precio_base)}.`;
+    }
+  }
+
+  selTratamiento.addEventListener('change', () => {
+    aplicarTratamiento(true);
+    verificar();
+  });
+
+  selConsultorio.addEventListener('change', () => {
+    inicial.cubiculo_id = null;
+    inicial.doctor_id = null;
+    refrescarCubiculos();
+    verificar();
+  });
+  refrescarCubiculos();
+  aplicarTratamiento(false);
+
+  inInicio.addEventListener('change', () => {
+    if (inFin.value <= inInicio.value) inFin.value = sumarMinutos(inInicio.value, duracion);
+    verificar();
+  });
+  [selCubiculo, selDoctor, inFecha, inFin].forEach((c) => c.addEventListener('change', verificar));
+
+  function mostrarConflictos(conflictos, mensaje) {
+    if (!conflictos.length) {
+      avisoConflicto.className = 'alerta-caja ok';
+      avisoConflicto.textContent = '✅ Horario disponible: ni el cubículo ni el doctor tienen otra cita en ese rango.';
+      avisoConflicto.style.display = 'block';
+      return;
+    }
+    avisoConflicto.className = 'alerta-caja';
+    avisoConflicto.innerHTML = '';
+    avisoConflicto.appendChild(el('b', { texto: '⛔ Esa hora ya está ocupada' }));
+    avisoConflicto.appendChild(el('ul', {}, conflictos.map((c) => {
+      const quien = c.motivo === 'doctor' ? 'El doctor'
+        : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor';
+      const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
+      return el('li', {
+        texto: `${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
+          `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}). Prueba después de las ${c.fin.slice(11)}.`,
+      });
+    })));
+    if (mensaje) avisoConflicto.appendChild(el('div', { clase: 'mini', style: 'margin-top:6px', texto: mensaje }));
+    avisoConflicto.style.display = 'block';
+  }
+
+  let ultimaVerificacion = { disponible: false };
+
+  async function verificar() {
+    if (!selCubiculo.value || !selDoctor.value || !inFecha.value || !inInicio.value || !inFin.value) {
+      avisoConflicto.style.display = 'none';
+      return;
+    }
+    if (inFin.value <= inInicio.value) {
+      avisoConflicto.className = 'alerta-caja aviso';
+      avisoConflicto.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
+      avisoConflicto.style.display = 'block';
+      ultimaVerificacion = { disponible: false };
+      return;
+    }
+    try {
+      const r = await api.verificarDisponibilidad({
+        cubiculo_id: Number(selCubiculo.value),
+        doctor_id: Number(selDoctor.value),
+        inicio: `${inFecha.value}T${inInicio.value}`,
+        fin: `${inFecha.value}T${inFin.value}`,
+        excluir_id: cita?.id ?? null,
+      });
+      ultimaVerificacion = r;
+      mostrarConflictos(r.conflictos, '');
+    } catch (e) {
+      ultimaVerificacion = { disponible: false };
+      avisoConflicto.className = 'alerta-caja aviso';
+      avisoConflicto.textContent = e instanceof ErrorApi ? e.message : 'No se pudo verificar la disponibilidad.';
+      avisoConflicto.style.display = 'block';
+    }
+  }
+
+  const botonGuardar = el('button', { clase: 'btn', type: 'submit', texto: cita ? 'Guardar cambios' : 'Agendar cita' });
+
+  const form = el('form', {}, [
+    avisoConflicto,
+    campo('¿Para quién es la cita?', selPaciente,
+      'Elige a la persona y pulsa Enter: el resto ya viene puesto con lo de siempre.'),
+    el('div', { clase: 'fila' }, [
+      campo('Consultorio (sede)', selConsultorio),
+      campo('Cubículo', selCubiculo),
+    ]),
+    campo('Doctor', selDoctor, 'Solo se listan los doctores asignados al consultorio seleccionado.'),
+    el('div', { clase: 'fila' }, [
+      campo('Fecha', inFecha),
+      campo('Hora de inicio', inInicio),
+      campo('Hora de fin', inFin),
+    ]),
+    campo('Tratamiento previsto', selTratamiento,
+      'Ajusta la duración, sugiere el motivo y avisa si hará falta consentimiento informado.'),
+    notaTratamiento,
+    campo('Motivo de la cita', inMotivo),
+    campo('Notas', inNotas),
+  ]);
+
+  const m = modal({
+    titulo: titulo || (cita ? `Reprogramar cita #${cita.id}` : 'Nueva cita'),
+    cuerpo: form,
+    pie: [
+      el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }),
+      botonGuardar,
+    ],
+  });
+
+  // El botón vive en el pie del modal, fuera del <form>: lo enlazamos a mano.
+  botonGuardar.addEventListener('click', (e) => {
+    e.preventDefault();
+    form.requestSubmit();
+  });
+
+  // Con los valores de siempre ya puestos, elegir al paciente y pulsar Enter
+  // basta para agendar. Enter dentro de un <select> no envía el formulario solo.
+  selPaciente.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selCubiculo.value) { error('Selecciona un cubículo válido.'); return; }
+    if (!selDoctor.value) { error('Selecciona un doctor asignado a ese consultorio.'); return; }
+    botonGuardar.disabled = true;
+    botonGuardar.textContent = 'Guardando…';
+    const datos = {
+      consultorio_id: Number(selConsultorio.value),
+      cubiculo_id: Number(selCubiculo.value),
+      doctor_id: Number(selDoctor.value),
+      paciente_id: Number(selPaciente.value),
+      inicio: `${inFecha.value}T${inInicio.value}`,
+      fin: `${inFecha.value}T${inFin.value}`,
+      motivo: inMotivo.value,
+      notas: inNotas.value,
+      catalogo_id: selTratamiento.value ? Number(selTratamiento.value) : null,
+    };
+    if (cita_origen_id) datos.cita_origen_id = cita_origen_id;
+    try {
+      const guardada = cita
+        ? await api.actualizarCita(cita.id, datos)
+        : await api.crearCita(datos);
+      // La próxima vez estos tres campos vienen puestos: son los de siempre.
+      recordarHabituales({
+        consultorio_id: datos.consultorio_id,
+        cubiculo_id: datos.cubiculo_id,
+        doctor_id: datos.doctor_id,
+      });
+      m.cerrar();
+      exito(cita
+        ? `Listo, la cita quedó cambiada al ${fmtFechaHora(guardada.inicio)}.`
+        : `Listo, la cita quedó agendada para el ${fmtFechaHora(guardada.inicio)}.`);
+      if (alGuardar) await alGuardar(guardada);
+    } catch (err) {
+      if (err instanceof ErrorApi && err.estado === 409 && err.detalle?.conflictos) {
+        mostrarConflictos(err.detalle.conflictos, err.message);
+        error('La cita no se guardó: hay un choque de horario.');
+      } else {
+        error(err instanceof ErrorApi ? err.message : 'No se pudo guardar la cita.');
+      }
+    } finally {
+      botonGuardar.disabled = false;
+      botonGuardar.textContent = cita ? 'Guardar cambios' : 'Agendar cita';
+    }
+  });
+
+  await verificar();
+  return m;
+}
+
+return { abrirFormularioCita };
+});
+
+__def("js/vistas/hoy.js", function () {
+const { api } = __mod("js/api.js");
+const { el, limpiar, fmtDinero, fmtHora, etiquetaEstado, hoyIso, sumarDias, nombreDia, nombreCompleto } = __mod("js/ui.js");
+const { abrirFormularioCita } = __mod("js/vistas/formCita.js");
+const { habituales } = __mod("js/preferencias.js");
+
+/**
+ * La página del día: una línea por media hora, de arriba abajo, como la agenda
+ * de papel que ya usan. Las horas libres se pulsan para agendar ahí mismo.
+ */
+const PRIMERA_HORA = 7;
+const ULTIMA_HORA = 20;
+const PASO = 30;
+
+function franjas() {
+  const lista = [];
+  for (let h = PRIMERA_HORA; h < ULTIMA_HORA; h++) {
+    for (let m = 0; m < 60; m += PASO) {
+      lista.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+  }
+  return lista;
+}
+
+function tituloDia(fecha) {
+  const dia = nombreDia(fecha);
+  return dia.charAt(0).toUpperCase() + dia.slice(1);
+}
+
+async function vistaHoy({ usuario, navegar }) {
+  const estado = { fecha: hoyIso() };
+  const puedeAgendar = ['admin', 'recepcion', 'doctor'].includes(usuario.rol);
+  const puedeVerDinero = ['admin', 'recepcion'].includes(usuario.rol);
+
+  const zona = el('div', {});
+  const tituloFecha = el('h2', {});
+  const resumenDia = el('div', { clase: 'desc' });
+
+  function nuevaCitaEn(hora) {
+    const h = habituales();
+    abrirFormularioCita({
+      fecha: estado.fecha,
+      hora,
+      consultorio_id: h.consultorio_id ?? null,
+      cubiculo_id: h.cubiculo_id ?? null,
+      doctor_id: h.doctor_id ?? null,
+      titulo: `Nueva cita — ${tituloDia(estado.fecha)} a las ${hora}`,
+      alGuardar: (c) => navegar(`#/cita/${c.id}`),
+    });
+  }
+
+  function lineaCita(c) {
+    return el('button', {
+      clase: `linea-cita estado-${c.estado}`, type: 'button',
+      style: `border-left-color:${c.doctor_color || '#0d7d8f'}`,
+      onclick: () => navegar(`#/cita/${c.id}`),
+    }, [
+      el('span', { clase: 'lc-pac', texto: nombreCompleto(c.paciente_nombre, c.paciente_apellidos) }),
+      el('span', { clase: 'lc-det', texto: c.catalogo_nombre || c.motivo || 'Sin motivo anotado' }),
+      el('span', { clase: 'lc-det', texto: `${c.doctor_nombre} · ${c.cubiculo_nombre}` }),
+      el('span', { clase: 'lc-tel', texto: c.paciente_telefono || '' }),
+      etiquetaEstado(c.estado),
+    ]);
+  }
+
+  function lineaLibre(hora) {
+    if (!puedeAgendar) return el('span', { clase: 'hora-libre-txt', texto: 'Libre' });
+    return el('button', {
+      clase: 'hora-libre', type: 'button',
+      texto: `＋ Agendar a las ${hora}`,
+      onclick: () => nuevaCitaEn(hora),
+    });
+  }
+
+  async function cargar() {
+    const fecha = estado.fecha;
+    const peticiones = [api.citas({ desde: fecha, hasta: fecha })];
+    peticiones.push(puedeVerDinero ? api.pagos({ desde: fecha, hasta: fecha }) : Promise.resolve([]));
+    const [citas, pagos] = await Promise.all(peticiones);
+
+    tituloFecha.textContent = `${tituloDia(fecha)}${fecha === hoyIso() ? ' (hoy)' : ''}`;
+    const atendidas = citas.filter((c) => c.estado === 'completada').length;
+    const cobrado = pagos.reduce((s, p) => s + p.monto, 0);
+    resumenDia.textContent = puedeVerDinero
+      ? `${citas.length} cita(s) · ${atendidas} ya atendida(s) · cobrado en el día: ${fmtDinero(cobrado)}`
+      : `${citas.length} cita(s) · ${atendidas} ya atendida(s)`;
+
+    limpiar(zona);
+    const filas = franjas().map((f) => {
+      const siguiente = franjaSiguiente(f);
+      const enFranja = citas.filter((c) => {
+        const hora = c.inicio.slice(11, 16);
+        return hora >= f && hora < siguiente;
+      });
+      return el('div', { clase: `renglon-dia${enFranja.length ? '' : ' vacia'}` }, [
+        el('div', { clase: 'renglon-hora', texto: f }),
+        el('div', { clase: 'renglon-cont' },
+          enFranja.length ? enFranja.map(lineaCita) : [lineaLibre(f)]),
+      ]);
+    });
+    zona.appendChild(el('div', { clase: 'hoja-dia' }, filas));
+
+    if (!citas.length) {
+      zona.appendChild(el('p', { clase: 'mini', style: 'margin-top:12px', texto:
+        'No hay ninguna cita este día. Pulsa la hora en la que quieras atender a alguien.' }));
+    }
+  }
+
+  function mover(dias) {
+    estado.fecha = sumarDias(estado.fecha, dias);
+    cargar().catch(mostrarFallo);
+  }
+
+  function mostrarFallo(e) {
+    limpiar(zona);
+    zona.appendChild(el('div', { clase: 'alerta-caja', texto:
+      e?.message || 'No se pudo cargar el día. Vuelve a intentarlo en un momento.' }));
+  }
+
+  const contenedor = el('div', {}, [
+    el('div', { clase: 'cabecera' }, [
+      el('div', {}, [tituloFecha, resumenDia]),
+      el('div', { clase: 'acciones' }, [
+        el('button', { clase: 'btn sec', type: 'button', texto: '‹ Día anterior', onclick: () => mover(-1) }),
+        el('button', {
+          clase: 'btn sec', type: 'button', texto: 'Hoy',
+          onclick: () => { estado.fecha = hoyIso(); cargar().catch(mostrarFallo); },
+        }),
+        el('button', { clase: 'btn sec', type: 'button', texto: 'Día siguiente ›', onclick: () => mover(1) }),
+        el('button', {
+          clase: 'btn sec', type: 'button', texto: '🖨️ Imprimir este día',
+          onclick: () => navegar(`#/imprimir/dia/${estado.fecha}`),
+        }),
+        puedeAgendar
+          ? el('button', { clase: 'btn', type: 'button', texto: '➕ Nueva cita', onclick: () => nuevaCitaEn('09:00') })
+          : null,
+      ]),
+    ]),
+    zona,
+  ]);
+
+  await cargar();
+  return contenedor;
+}
+
+function franjaSiguiente(f) {
+  const [h, m] = f.split(':').map(Number);
+  const t = h * 60 + m + PASO;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
+return { vistaHoy };
 });
 
 __def("js/vistas/panel.js", function () {
@@ -2208,294 +2895,6 @@ async function vistaPanel({ usuario }) {
 }
 
 return { vistaPanel };
-});
-
-__def("js/vistas/formCita.js", function () {
-const { api, ErrorApi } = __mod("js/api.js");
-const { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero } = __mod("js/ui.js");
-
-/**
- * Modal reutilizable para crear o reprogramar una cita.
- * Valida conflictos contra el servidor antes y durante el guardado.
- */
-async function abrirFormularioCita(opciones = {}) {
-  const {
-    cita = null,                 // cita existente → reprogramar
-    paciente_id = null,
-    consultorio_id = null,
-    cubiculo_id = null,
-    doctor_id = null,
-    fecha = hoyIso(),
-    hora = '09:00',
-    duracion = 30,
-    motivo = '',
-    catalogo_id = null,
-    cita_origen_id = null,
-    titulo = null,
-    alGuardar = null,
-  } = opciones;
-
-  const [consultorios, doctores, pacientes, catalogo] = await Promise.all([
-    api.consultorios(), api.doctores(), api.pacientes(), api.catalogo(),
-  ]);
-
-  if (!consultorios.length) {
-    error('Primero debes crear al menos un consultorio con un cubículo en Configuración.');
-    return;
-  }
-  if (!pacientes.length) {
-    error('No hay pacientes registrados. Crea primero el paciente.');
-    return;
-  }
-
-  const inicial = {
-    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? consultorios[0].id,
-    cubiculo_id: cita?.cubiculo_id ?? cubiculo_id ?? null,
-    doctor_id: cita?.doctor_id ?? doctor_id ?? null,
-    paciente_id: cita?.paciente_id ?? paciente_id ?? pacientes[0].id,
-    fecha: cita ? cita.inicio.slice(0, 10) : fecha,
-    hora_inicio: cita ? cita.inicio.slice(11, 16) : hora,
-    hora_fin: cita ? cita.fin.slice(11, 16) : sumarMinutos(hora, duracion),
-    motivo: cita?.motivo ?? motivo,
-    notas: cita?.notas ?? '',
-    catalogo_id: cita?.catalogo_id ?? catalogo_id ?? '',
-  };
-
-  const selConsultorio = selector('consultorio_id',
-    consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), inicial.consultorio_id);
-  const selCubiculo = selector('cubiculo_id', [], null);
-  const selDoctor = selector('doctor_id', [], null);
-  const selPaciente = selector('paciente_id',
-    pacientes.map((p) => ({ valor: p.id, texto: `${p.apellidos}, ${p.nombre}${p.cedula ? ` (${p.cedula})` : ''}` })),
-    inicial.paciente_id);
-
-  const selTratamiento = selector('catalogo_id', [
-    { valor: '', texto: '— Sin definir todavía —' },
-    ...catalogo.map((c) => ({
-      valor: c.id,
-      texto: `${c.nombre} · ${c.duracion_min} min · ${fmtDinero(c.precio_base)}`,
-    })),
-  ], inicial.catalogo_id);
-  const notaTratamiento = el('div', { clase: 'mini' });
-
-  const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
-  const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
-  const inFin = entrada('hora_fin', { type: 'time', value: inicial.hora_fin, required: true, step: 300 });
-  const inMotivo = entrada('motivo', { value: inicial.motivo, placeholder: 'Ej.: Control y profilaxis' });
-  const inNotas = area('notas', { value: inicial.notas, placeholder: 'Notas para el equipo (opcional)' });
-
-  const avisoConflicto = el('div', { clase: 'alerta-caja', style: 'display:none' });
-
-  function refrescarCubiculos() {
-    const cid = Number(selConsultorio.value);
-    const cons = consultorios.find((c) => c.id === cid);
-    const lista = (cons?.cubiculos || []).filter((c) => c.activo);
-    selCubiculo.innerHTML = '';
-    if (!lista.length) {
-      selCubiculo.appendChild(el('option', { value: '', texto: 'Sin cubículos disponibles' }));
-    }
-    for (const c of lista) {
-      const op = el('option', { value: String(c.id), texto: c.nombre });
-      if (Number(inicial.cubiculo_id) === c.id) op.selected = true;
-      selCubiculo.appendChild(op);
-    }
-    refrescarDoctores();
-  }
-
-  function refrescarDoctores() {
-    const cid = Number(selConsultorio.value);
-    const lista = doctores.filter((d) => d.activo && d.consultorios.some((c) => c.id === cid));
-    selDoctor.innerHTML = '';
-    if (!lista.length) {
-      selDoctor.appendChild(el('option', { value: '', texto: 'Ningún doctor asignado a este consultorio' }));
-    }
-    for (const d of lista) {
-      const op = el('option', { value: String(d.id), texto: `${d.nombre} — ${d.especialidad || 'General'}` });
-      if (Number(inicial.doctor_id) === d.id) op.selected = true;
-      selDoctor.appendChild(op);
-    }
-  }
-
-  /**
-   * El tratamiento previsto ajusta la duración y sugiere el motivo. El motivo
-   * solo se sobrescribe si está vacío o si lo puso una elección anterior: lo
-   * que escribe una persona no se pisa.
-   */
-  let motivoSugerido = '';
-  function aplicarTratamiento(ajustarHorario) {
-    const cat = catalogo.find((c) => String(c.id) === selTratamiento.value) || null;
-    notaTratamiento.className = 'mini';
-    if (!cat) {
-      notaTratamiento.textContent = 'Puedes agendar sin definirlo; se registra igual durante la atención.';
-      return;
-    }
-    if (ajustarHorario && inInicio.value) inFin.value = sumarMinutos(inInicio.value, cat.duracion_min);
-    if (!inMotivo.value.trim() || inMotivo.value === motivoSugerido) inMotivo.value = cat.nombre;
-    motivoSugerido = cat.nombre;
-    if (cat.requiere_consentimiento) {
-      notaTratamiento.className = 'alerta-caja aviso';
-      notaTratamiento.textContent = `⚠️ "${cat.nombre}" exige consentimiento informado: al registrarlo en la ` +
-        'atención se generará el documento, y la cita no podrá completarse hasta que esté firmado.';
-    } else {
-      notaTratamiento.textContent = `Duración sugerida ${cat.duracion_min} min · precio base ${fmtDinero(cat.precio_base)}.`;
-    }
-  }
-
-  selTratamiento.addEventListener('change', () => {
-    aplicarTratamiento(true);
-    verificar();
-  });
-
-  selConsultorio.addEventListener('change', () => {
-    inicial.cubiculo_id = null;
-    inicial.doctor_id = null;
-    refrescarCubiculos();
-    verificar();
-  });
-  refrescarCubiculos();
-  aplicarTratamiento(false);
-
-  inInicio.addEventListener('change', () => {
-    if (inFin.value <= inInicio.value) inFin.value = sumarMinutos(inInicio.value, duracion);
-    verificar();
-  });
-  [selCubiculo, selDoctor, inFecha, inFin].forEach((c) => c.addEventListener('change', verificar));
-
-  function mostrarConflictos(conflictos, mensaje) {
-    if (!conflictos.length) {
-      avisoConflicto.className = 'alerta-caja ok';
-      avisoConflicto.textContent = '✅ Horario disponible: ni el cubículo ni el doctor tienen otra cita en ese rango.';
-      avisoConflicto.style.display = 'block';
-      return;
-    }
-    avisoConflicto.className = 'alerta-caja';
-    avisoConflicto.innerHTML = '';
-    avisoConflicto.appendChild(el('b', { texto: '⛔ Conflicto de agenda — no se puede guardar' }));
-    avisoConflicto.appendChild(el('ul', {}, conflictos.map((c) => {
-      const quien = c.motivo === 'doctor' ? 'El doctor'
-        : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor';
-      const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
-      return el('li', {
-        texto: `${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
-          `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}), estado ${c.estado}.`,
-      });
-    })));
-    if (mensaje) avisoConflicto.appendChild(el('div', { clase: 'mini', style: 'margin-top:6px', texto: mensaje }));
-    avisoConflicto.style.display = 'block';
-  }
-
-  let ultimaVerificacion = { disponible: false };
-
-  async function verificar() {
-    if (!selCubiculo.value || !selDoctor.value || !inFecha.value || !inInicio.value || !inFin.value) {
-      avisoConflicto.style.display = 'none';
-      return;
-    }
-    if (inFin.value <= inInicio.value) {
-      avisoConflicto.className = 'alerta-caja aviso';
-      avisoConflicto.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
-      avisoConflicto.style.display = 'block';
-      ultimaVerificacion = { disponible: false };
-      return;
-    }
-    try {
-      const r = await api.verificarDisponibilidad({
-        cubiculo_id: Number(selCubiculo.value),
-        doctor_id: Number(selDoctor.value),
-        inicio: `${inFecha.value}T${inInicio.value}`,
-        fin: `${inFecha.value}T${inFin.value}`,
-        excluir_id: cita?.id ?? null,
-      });
-      ultimaVerificacion = r;
-      mostrarConflictos(r.conflictos, '');
-    } catch (e) {
-      ultimaVerificacion = { disponible: false };
-      avisoConflicto.className = 'alerta-caja aviso';
-      avisoConflicto.textContent = e instanceof ErrorApi ? e.message : 'No se pudo verificar la disponibilidad.';
-      avisoConflicto.style.display = 'block';
-    }
-  }
-
-  const botonGuardar = el('button', { clase: 'btn', type: 'submit', texto: cita ? 'Guardar cambios' : 'Agendar cita' });
-
-  const form = el('form', {}, [
-    avisoConflicto,
-    campo('Paciente', selPaciente),
-    el('div', { clase: 'fila' }, [
-      campo('Consultorio (sede)', selConsultorio),
-      campo('Cubículo', selCubiculo),
-    ]),
-    campo('Doctor', selDoctor, 'Solo se listan los doctores asignados al consultorio seleccionado.'),
-    el('div', { clase: 'fila' }, [
-      campo('Fecha', inFecha),
-      campo('Hora de inicio', inInicio),
-      campo('Hora de fin', inFin),
-    ]),
-    campo('Tratamiento previsto', selTratamiento,
-      'Ajusta la duración, sugiere el motivo y avisa si hará falta consentimiento informado.'),
-    notaTratamiento,
-    campo('Motivo de la cita', inMotivo),
-    campo('Notas', inNotas),
-  ]);
-
-  const m = modal({
-    titulo: titulo || (cita ? `Reprogramar cita #${cita.id}` : 'Nueva cita'),
-    cuerpo: form,
-    pie: [
-      el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }),
-      botonGuardar,
-    ],
-  });
-
-  // El botón vive en el pie del modal, fuera del <form>: lo enlazamos a mano.
-  botonGuardar.addEventListener('click', (e) => {
-    e.preventDefault();
-    form.requestSubmit();
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!selCubiculo.value) { error('Selecciona un cubículo válido.'); return; }
-    if (!selDoctor.value) { error('Selecciona un doctor asignado a ese consultorio.'); return; }
-    botonGuardar.disabled = true;
-    botonGuardar.textContent = 'Guardando…';
-    const datos = {
-      consultorio_id: Number(selConsultorio.value),
-      cubiculo_id: Number(selCubiculo.value),
-      doctor_id: Number(selDoctor.value),
-      paciente_id: Number(selPaciente.value),
-      inicio: `${inFecha.value}T${inInicio.value}`,
-      fin: `${inFecha.value}T${inFin.value}`,
-      motivo: inMotivo.value,
-      notas: inNotas.value,
-      catalogo_id: selTratamiento.value ? Number(selTratamiento.value) : null,
-    };
-    if (cita_origen_id) datos.cita_origen_id = cita_origen_id;
-    try {
-      const guardada = cita
-        ? await api.actualizarCita(cita.id, datos)
-        : await api.crearCita(datos);
-      m.cerrar();
-      exito(cita ? 'Cita reprogramada correctamente.' : `Cita agendada para el ${inFecha.value} a las ${inInicio.value}.`);
-      if (alGuardar) await alGuardar(guardada);
-    } catch (err) {
-      if (err instanceof ErrorApi && err.estado === 409 && err.detalle?.conflictos) {
-        mostrarConflictos(err.detalle.conflictos, err.message);
-        error('La cita no se guardó: hay un choque de horario.');
-      } else {
-        error(err instanceof ErrorApi ? err.message : 'No se pudo guardar la cita.');
-      }
-    } finally {
-      botonGuardar.disabled = false;
-      botonGuardar.textContent = cita ? 'Guardar cambios' : 'Agendar cita';
-    }
-  });
-
-  await verificar();
-  return m;
-}
-
-return { abrirFormularioCita };
 });
 
 __def("js/vistas/agenda.js", function () {
@@ -2727,20 +3126,64 @@ async function vistaAgenda({ navegar, usuario }) {
 return { vistaAgenda };
 });
 
+__def("js/exportar.js", function () {
+const { el } = __mod("js/ui.js");
+
+/**
+ * Descarga una tabla como archivo que Excel abre de un doble clic.
+ *
+ * Se usa punto y coma como separador y se antepone el BOM porque es lo que Excel
+ * espera en configuraciones regionales de habla hispana: con coma y sin BOM, la
+ * hoja se abre con todo en una sola columna y los acentos rotos.
+ */
+function descargarExcel(nombreArchivo, encabezados, filas) {
+  const escapar = (v) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const contenido = [encabezados, ...filas].map((f) => f.map(escapar).join(';')).join('\r\n');
+  const blob = new Blob([`﻿${contenido}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: nombreArchivo });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Botón estándar «Exportar a Excel» para cualquier tabla de la app. */
+function botonExcel(nombreArchivo, encabezados, obtenerFilas, clase = 'btn sec chico') {
+  return el('button', {
+    clase, type: 'button', texto: '⬇️ Exportar a Excel',
+    onclick: () => descargarExcel(nombreArchivo, encabezados, obtenerFilas()),
+  });
+}
+
+return { descargarExcel, botonExcel };
+});
+
 __def("js/vistas/pacientes.js", function () {
 const { api, ErrorApi } = __mod("js/api.js");
-const { el, limpiar, modal, campo, entrada, area, selector, exito, error, fmtFechaCorta, vacio, datosFormulario } = __mod("js/ui.js");
+const { el, limpiar, modal, campo, entrada, area, selector, exito, error, fmtFechaCorta, vacio, datosFormulario, nombreLista, nombreCompleto } = __mod("js/ui.js");
+const { descargarExcel } = __mod("js/exportar.js");
 
 function formularioPaciente(paciente = null) {
   const v = (c) => paciente?.[c] ?? '';
-  const form = el('form', {}, [
+
+  // Lo imprescindible para contestar el teléfono: nombre y número. Todo lo
+  // demás se puede completar después, cuando la persona llegue al consultorio.
+  const esenciales = el('div', {}, [
     el('div', { clase: 'fila' }, [
-      campo('Nombres *', entrada('nombre', { value: v('nombre'), required: true })),
-      campo('Apellidos *', entrada('apellidos', { value: v('apellidos'), required: true })),
+      campo('Nombres *', entrada('nombre', { value: v('nombre'), required: true, placeholder: 'María' })),
+      campo('Apellidos', entrada('apellidos', { value: v('apellidos'), placeholder: 'Si lo sabes' })),
     ]),
+    campo('Teléfono *', entrada('telefono', { value: v('telefono'), required: true, placeholder: '099-123-4567' }),
+      'Con esto ya puedes agendarle una cita. Lo demás se llena cuando venga.'),
+  ]);
+
+  const resto = el('div', { style: 'display:none' }, [
     el('div', { clase: 'fila' }, [
       campo('Cédula / ID', entrada('cedula', { value: v('cedula') })),
-      campo('Teléfono', entrada('telefono', { value: v('telefono') })),
       campo('Correo', entrada('email', { type: 'email', value: v('email') })),
     ]),
     el('div', { clase: 'fila' }, [
@@ -2766,7 +3209,23 @@ function formularioPaciente(paciente = null) {
     campo('Motivo de consulta', entrada('motivo_consulta', { value: v('motivo_consulta') })),
     campo('Notas', area('notas', { value: v('notas') })),
   ]);
-  return form;
+
+  const verMas = el('button', {
+    clase: 'btn sec chico', type: 'button',
+    texto: paciente ? 'Ver todos los datos ▾' : 'Llenar más datos ahora ▾',
+    onclick: () => {
+      const abierto = resto.style.display !== 'none';
+      resto.style.display = abierto ? 'none' : '';
+      verMas.textContent = abierto
+        ? (paciente ? 'Ver todos los datos ▾' : 'Llenar más datos ahora ▾')
+        : 'Ocultar los demás datos ▴';
+    },
+  });
+
+  // Al editar una ficha existente se muestra todo: ahí sí se viene a completar.
+  if (paciente) resto.style.display = '';
+
+  return el('form', {}, [esenciales, paciente ? null : verMas, resto]);
 }
 
 function abrirFormularioPaciente(paciente, alGuardar) {
@@ -2774,7 +3233,7 @@ function abrirFormularioPaciente(paciente, alGuardar) {
   const boton = el('button', { clase: 'btn', type: 'button', texto: paciente ? 'Guardar cambios' : 'Crear paciente' });
 
   const m = modal({
-    titulo: paciente ? `Editar ficha de ${paciente.nombre} ${paciente.apellidos}` : 'Nuevo paciente',
+    titulo: paciente ? `Editar la ficha de ${nombreCompleto(paciente.nombre, paciente.apellidos)}` : 'Nuevo paciente',
     cuerpo: form,
     ancho: true,
     pie: [
@@ -2794,7 +3253,9 @@ function abrirFormularioPaciente(paciente, alGuardar) {
         ? await api.actualizarPaciente(paciente.id, datos)
         : await api.crearPaciente(datos);
       m.cerrar();
-      exito(paciente ? 'Ficha actualizada.' : `Paciente ${guardado.nombre} ${guardado.apellidos} creado.`);
+      exito(paciente
+        ? 'Listo, la ficha quedó actualizada.'
+        : `Listo, ${nombreCompleto(guardado.nombre, guardado.apellidos)} ya está en la lista de pacientes.`);
       if (alGuardar) await alGuardar(guardado);
     } catch (err) {
       error(err instanceof ErrorApi ? err.message : 'No se pudo guardar el paciente.');
@@ -2809,9 +3270,19 @@ function abrirFormularioPaciente(paciente, alGuardar) {
 async function vistaPacientes({ navegar }) {
   const zona = el('div', {});
   const buscador = entrada('q', { placeholder: 'Buscar por nombre, cédula o teléfono…', type: 'search' });
+  let visibles = [];
+
+  const btnExcel = el('button', {
+    clase: 'btn sec', type: 'button', texto: '⬇️ Exportar a Excel',
+    onclick: () => descargarExcel('pacientes.csv',
+      ['Apellidos', 'Nombres', 'Cédula', 'Teléfono', 'Correo', 'Nacimiento', 'Alergias'],
+      visibles.map((p) => [p.apellidos, p.nombre, p.cedula || '', p.telefono || '',
+        p.email || '', p.fecha_nacimiento || '', p.alergias || ''])),
+  });
 
   async function cargar() {
     const lista = await api.pacientes(buscador.value.trim());
+    visibles = lista;
     limpiar(zona);
     if (!lista.length) {
       zona.appendChild(vacio(buscador.value.trim()
@@ -2824,7 +3295,7 @@ async function vistaPacientes({ navegar }) {
         el('thead', {}, [el('tr', {}, ['Paciente', 'Cédula / ID', 'Teléfono', 'Nacimiento', 'Alergias', ''].map(
           (t) => el('th', { texto: t })))]),
         el('tbody', {}, lista.map((p) => el('tr', {}, [
-          el('td', {}, [el('a', { href: `#/paciente/${p.id}`, texto: `${p.apellidos}, ${p.nombre}` })]),
+          el('td', {}, [el('a', { href: `#/paciente/${p.id}`, texto: nombreLista(p.nombre, p.apellidos) })]),
           el('td', { texto: p.cedula || '—' }),
           el('td', { texto: p.telefono || '—' }),
           el('td', { texto: p.fecha_nacimiento ? fmtFechaCorta(p.fecha_nacimiento) : '—' }),
@@ -2848,10 +3319,13 @@ async function vistaPacientes({ navegar }) {
         el('h2', { texto: 'Pacientes' }),
         el('div', { clase: 'desc', texto: 'Base de datos de expedientes con buscador por nombre, cédula o teléfono.' }),
       ]),
-      el('button', {
-        clase: 'btn', type: 'button', texto: '➕ Nuevo paciente',
-        onclick: () => abrirFormularioPaciente(null, (p) => navegar(`#/paciente/${p.id}`)),
-      }),
+      el('div', { clase: 'acciones' }, [
+        btnExcel,
+        el('button', {
+          clase: 'btn', type: 'button', texto: '➕ Nuevo paciente',
+          onclick: () => abrirFormularioPaciente(null, (p) => navegar(`#/paciente/${p.id}`)),
+        }),
+      ]),
     ]),
     el('div', { clase: 'tarjeta' }, [
       el('div', { clase: 'buscador' }, [buscador]),
@@ -3936,31 +4410,31 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
     selCat.addEventListener('change', aplicarCatalogo);
     aplicarCatalogo();
 
-    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar tratamiento' });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Guardar' });
     const m = modal({
-      titulo: 'Registrar tratamiento realizado',
+      titulo: 'Anotar lo que se hizo',
       ancho: true,
       cuerpo: el('div', {}, [
-        campo('Tratamiento del catálogo', selCat, 'Al elegir uno se completan nombre, precio y consentimiento.'),
-        campo('Nombre del tratamiento *', inNombre),
+        campo('¿Qué se hizo?', selCat, 'Elige de la lista de siempre y se completan el nombre, el precio y el consentimiento.'),
+        campo('Nombre de lo que se hizo *', inNombre),
         el('div', { clase: 'fila' }, [
-          campo('Piezas dentales', inDientes),
-          campo('Estado del odontograma', selEstadoDiente),
-          campo('Precio', inPrecio),
+          campo('¿En qué dientes?', inDientes),
+          campo('¿Cómo quedaron?', selEstadoDiente),
+          campo('¿Cuánto se cobra?', inPrecio),
         ]),
-        campo('Notas clínicas', inNotas),
+        campo('Notas', inNotas),
         el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
-          chkConsent, el('span', { texto: 'Requiere consentimiento informado (se genera automáticamente)' }),
+          chkConsent, el('span', { texto: 'Necesita consentimiento firmado (el documento se prepara solo)' }),
         ]),
         el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
-          chkCargo, el('span', { texto: 'Generar el cargo contable por el precio indicado' }),
+          chkCargo, el('span', { texto: 'Dejar este valor como cobro pendiente del paciente' }),
         ]),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
 
     boton.addEventListener('click', async () => {
-      if (!inNombre.value.trim()) { error('Indica el nombre del tratamiento.'); return; }
+      if (!inNombre.value.trim()) { error('Escribe qué se hizo, aunque sea en pocas palabras.'); return; }
       boton.disabled = true;
       boton.textContent = 'Guardando…';
       try {
@@ -3975,13 +4449,13 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
           generar_cargo: chkCargo.checked,
         });
         m.cerrar();
-        exito('Tratamiento registrado en el expediente del paciente.');
+        exito('Listo, quedó anotado en el expediente del paciente.');
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el tratamiento.');
       } finally {
         boton.disabled = false;
-        boton.textContent = 'Registrar tratamiento';
+        boton.textContent = 'Guardar';
       }
     });
   }
@@ -4106,7 +4580,7 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
 
     boton.addEventListener('click', async () => {
       const monto = Number(inMonto.value);
-      if (!(monto > 0)) { error('Indica un monto mayor que cero.'); return; }
+      if (!(monto > 0)) { error('Escribe cuánto pagó. Tiene que ser un número mayor que cero.'); return; }
       boton.disabled = true;
       try {
         await api.crearPago({
@@ -4116,7 +4590,7 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
           monto, metodo: selMetodo.value, nota: inNota.value.trim(),
         });
         m.cerrar();
-        exito('Pago registrado en el estado de cuenta del paciente.');
+        exito('Listo, el pago quedó registrado en la cuenta del paciente.');
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el pago.');
@@ -4129,30 +4603,47 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
   /* ------------------------------ Secciones ------------------------------ */
   const cargosConSaldo = await api.cargos({ cita_id: cita.id });
 
+  /**
+   * Ningún botón muerto: si la atención todavía no empezó, el mismo botón la
+   * abre y enseguida deja anotar. El paso intermedio lo da la app, no la persona.
+   */
   function botonRegistrar() {
     if (!puedeClinico || !activa) return null;
     if (enAtencion) {
       return el('button', {
-        clase: 'btn chico', type: 'button', texto: '➕ Registrar',
+        clase: 'btn chico', type: 'button', texto: '➕ Anotar lo que se hizo',
         style: 'margin-left:auto', onclick: abrirTratamiento,
       });
     }
-    // Visible pero deshabilitado: el usuario entiende por qué y qué hacer.
-    return el('button', {
-      clase: 'btn chico', type: 'button', texto: '➕ Registrar',
-      style: 'margin-left:auto', disabled: true,
-      title: 'Pasa la cita a "En curso" para registrar tratamientos',
+    const boton = el('button', {
+      clase: 'btn chico', type: 'button', texto: '▶️ El paciente llegó — empezar',
+      style: 'margin-left:auto',
+      onclick: async () => {
+        boton.disabled = true;
+        boton.textContent = 'Abriendo la atención…';
+        try {
+          await api.cambiarEstadoCita(cita.id, 'en_curso');
+          exito('La atención está abierta. Ahora puedes anotar lo que se hizo.');
+          await refrescar();
+          abrirTratamiento();
+        } catch (err) {
+          error(err instanceof ErrorApi ? err.message : 'No se pudo abrir la atención.');
+          boton.disabled = false;
+          boton.textContent = '▶️ El paciente llegó — empezar';
+        }
+      },
     });
+    return boton;
   }
 
   const seccionTratamientos = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
-      el('span', { texto: '🦷 Tratamientos de esta cita' }),
+      el('span', { texto: '🦷 Lo que se hizo en esta cita' }),
       botonRegistrar(),
     ]),
     puedeClinico && activa && !enAtencion
       ? el('div', { clase: 'alerta-caja aviso', texto:
-          `La cita está "${ETIQUETAS_ESTADO[cita.estado]}". Pásala a "En curso" para registrar el tratamiento realizado.` })
+          'Cuando el paciente llegue, pulsa «El paciente llegó» y podrás anotar el tratamiento aquí mismo.' })
       : null,
     cita.tratamientos.length
       ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
@@ -4188,15 +4679,15 @@ async function vistaCita({ param, usuario, refrescar, navegar }) {
           })),
         ])])
       : vacio(cita.catalogo_nombre
-          ? `Todavía no se ha registrado ningún tratamiento. El previsto al agendar es "${cita.catalogo_nombre}".`
-          : 'Todavía no se ha registrado ningún tratamiento en esta cita.'),
+          ? `Todavía no se ha anotado nada. Al agendar quedó previsto: "${cita.catalogo_nombre}".`
+          : 'Todavía no se ha anotado nada en esta cita.'),
   ]);
 
   const seccionFotos = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
-      el('span', { texto: `🖼️ Imágenes de la cita (${cita.fotos.length})` }),
+      el('span', { texto: `🖼️ Radiografías y fotos (${cita.fotos.length})` }),
       activa
-        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Cargar fotos', style: 'margin-left:auto', onclick: abrirFotos })
+        ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Subir radiografías o fotos', style: 'margin-left:auto', onclick: abrirFotos })
         : null,
     ]),
     cita.fotos.length
@@ -4377,23 +4868,8 @@ return { vistaCita };
 
 __def("js/vistas/contabilidad.js", function () {
 const { api, ErrorApi } = __mod("js/api.js");
-const { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, fmtDinero, fmtFechaCorta, hoyIso } = __mod("js/ui.js");
-
-/** Convierte filas a CSV con comillas escapadas y BOM para que Excel respete los acentos. */
-function descargarCsv(nombreArchivo, encabezados, filas) {
-  const escapar = (v) => {
-    const s = v === null || v === undefined ? '' : String(v);
-    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const contenido = [encabezados, ...filas].map((f) => f.map(escapar).join(';')).join('\r\n');
-  const blob = new Blob([`\uFEFF${contenido}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = el('a', { href: url, download: nombreArchivo });
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+const { descargarExcel } = __mod("js/exportar.js");
+const { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, fmtDinero, fmtFechaCorta, hoyIso, nombreLista } = __mod("js/ui.js");
 
 async function vistaContabilidad({ refrescar }) {
   const consultorios = await api.consultorios();
@@ -4414,27 +4890,55 @@ async function vistaContabilidad({ refrescar }) {
   function abrirGasto() {
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), selConsultorio.value || consultorios[0]?.id);
-    const selCat = selector('categoria', ['insumos', 'nomina', 'alquiler', 'servicios', 'equipos', 'mantenimiento', 'marketing', 'otro']
-      .map((c) => ({ valor: c, texto: c })), 'insumos');
+    const selCat = selector('categoria', [
+      { valor: 'insumos', texto: 'Insumos y materiales' },
+      { valor: 'nomina', texto: 'Sueldos' },
+      { valor: 'alquiler', texto: 'Arriendo del local' },
+      { valor: 'servicios', texto: 'Luz, agua, internet' },
+      { valor: 'equipos', texto: 'Equipos' },
+      { valor: 'mantenimiento', texto: 'Mantenimiento y reparaciones' },
+      { valor: 'marketing', texto: 'Publicidad' },
+      { valor: 'otro', texto: 'Otro' },
+    ], 'insumos');
     const inConcepto = entrada('concepto', { required: true, placeholder: 'Ej.: Compra de anestesia' });
-    const inProveedor = entrada('proveedor', { placeholder: 'Proveedor (opcional)' });
-    const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true });
-    const inFechaG = entrada('fecha', { type: 'date', value: inFecha.value || hoyIso() });
-    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar gasto' });
+    const inProveedor = entrada('proveedor', { placeholder: 'A quién se le compró (opcional)' });
+    const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true, placeholder: '50.00' });
+    const inFechaG = entrada('fecha', { type: 'date', value: hoyIso() });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Apuntar gasto' });
+
+    // Lo de todos los días son tres campos. Consultorio, categoría y proveedor
+    // ya vienen con un valor razonable y se despliegan solo si hay que cambiarlos.
+    const masOpciones = el('div', { style: 'display:none' }, [
+      el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('Tipo de gasto', selCat)]),
+      campo('Proveedor', inProveedor),
+    ]);
+    const verMas = el('button', {
+      clase: 'btn sec chico', type: 'button', texto: 'Más opciones ▾',
+      onclick: () => {
+        const abierto = masOpciones.style.display !== 'none';
+        masOpciones.style.display = abierto ? 'none' : '';
+        verMas.textContent = abierto ? 'Más opciones ▾' : 'Menos opciones ▴';
+      },
+    });
 
     const m = modal({
-      titulo: 'Nuevo gasto del consultorio',
+      titulo: 'Apuntar un gasto',
       cuerpo: el('div', {}, [
-        el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('Categoría', selCat)]),
-        campo('Concepto *', inConcepto),
-        el('div', { clase: 'fila' }, [campo('Proveedor', inProveedor), campo('Monto *', inMonto), campo('Fecha', inFechaG)]),
+        campo('¿En qué se gastó? *', inConcepto),
+        el('div', { clase: 'fila' }, [campo('¿Cuánto? *', inMonto), campo('¿Qué día?', inFechaG)]),
+        verMas,
+        masOpciones,
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
 
     boton.addEventListener('click', async () => {
-      if (!inConcepto.value.trim() || !(Number(inMonto.value) > 0)) {
-        error('Indica un concepto y un monto mayor que cero.');
+      if (!inConcepto.value.trim()) {
+        error('Escribe en qué se gastó, aunque sea en pocas palabras.');
+        return;
+      }
+      if (!(Number(inMonto.value) > 0)) {
+        error('Escribe cuánto se gastó. Tiene que ser un número mayor que cero.');
         return;
       }
       boton.disabled = true;
@@ -4445,10 +4949,10 @@ async function vistaContabilidad({ refrescar }) {
           monto: Number(inMonto.value), fecha: inFechaG.value,
         });
         m.cerrar();
-        exito('Gasto registrado.');
+        exito(`Listo, quedó apuntado el gasto de ${fmtDinero(Number(inMonto.value))}.`);
         await cargar();
       } catch (err) {
-        error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el gasto.');
+        error(err instanceof ErrorApi ? err.message : 'No se pudo apuntar el gasto.');
       } finally { boton.disabled = false; }
     });
   }
@@ -4458,7 +4962,7 @@ async function vistaContabilidad({ refrescar }) {
     const pacientes = await api.pacientes();
     if (!pacientes.length) { error('No hay pacientes registrados.'); return; }
     const selPac = selector('paciente_id',
-      pacientes.map((p) => ({ valor: p.id, texto: `${p.apellidos}, ${p.nombre}` })), pacientes[0].id);
+      pacientes.map((p) => ({ valor: p.id, texto: nombreLista(p.nombre, p.apellidos) })), pacientes[0].id);
     const selCargo = selector('cargo_id', [{ valor: '', texto: 'Abono general (sin cargo específico)' }], '');
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), consultorios[0]?.id);
@@ -4541,7 +5045,7 @@ async function vistaContabilidad({ refrescar }) {
     for (const c of cargos) {
       if (c.saldo <= 0) continue;
       const k = c.paciente_id;
-      const prev = deudores.get(k) || { nombre: `${c.paciente_apellidos}, ${c.paciente_nombre}`, saldo: 0, id: k };
+      const prev = deudores.get(k) || { nombre: nombreLista(c.paciente_nombre, c.paciente_apellidos), saldo: 0, id: k };
       prev.saldo += c.saldo;
       deudores.set(k, prev);
     }
@@ -4585,7 +5089,7 @@ async function vistaContabilidad({ refrescar }) {
               el('thead', {}, [el('tr', {}, ['Fecha', 'Paciente', 'Método', 'Monto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, pagosP.map((p) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(p.fecha) }),
-                el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: `${p.paciente_apellidos}, ${p.paciente_nombre}` })]),
+                el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: nombreLista(p.paciente_nombre, p.paciente_apellidos) })]),
                 el('td', { texto: p.metodo }),
                 el('td', { clase: 'num', texto: fmtDinero(p.monto) }),
               ]))),
@@ -4610,14 +5114,14 @@ async function vistaContabilidad({ refrescar }) {
 
     const filaCsv = el('div', { clase: 'acciones', style: 'margin-bottom:16px' }, [
       el('button', {
-        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar pagos (CSV)',
-        onclick: () => descargarCsv(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar cobros a Excel',
+        onclick: () => descargarExcel(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
           ['Fecha', 'Paciente', 'Metodo', 'Nota', 'Monto'],
           pagosP.map((x) => [x.fecha, `${x.paciente_apellidos}, ${x.paciente_nombre}`, x.metodo, x.nota || '', x.monto])),
       }),
       el('button', {
-        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos (CSV)',
-        onclick: () => descargarCsv(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
+        clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos a Excel',
+        onclick: () => descargarExcel(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
           ['Fecha', 'Consultorio', 'Categoria', 'Concepto', 'Proveedor', 'Monto'],
           gastosP.map((g) => [g.fecha, g.consultorio_nombre, g.categoria, g.concepto, g.proveedor || '', g.monto])),
       }),
@@ -4686,7 +5190,7 @@ async function vistaContabilidad({ refrescar }) {
       ]),
       el('div', { clase: 'acciones' }, [
         el('button', { clase: 'btn sec', type: 'button', texto: '💵 Registrar pago', onclick: () => { abrirPago().catch((e) => error(e?.message || 'Error')); } }),
-        el('button', { clase: 'btn', type: 'button', texto: '🧾 Registrar gasto', onclick: abrirGasto }),
+        el('button', { clase: 'btn', type: 'button', texto: '🧾 Apuntar gasto', onclick: abrirGasto }),
       ]),
     ]),
     el('div', { clase: 'agenda-controles' }, [
@@ -4706,7 +5210,7 @@ return { vistaContabilidad };
 
 __def("js/vistas/recordatorios.js", function () {
 const { api, ErrorApi } = __mod("js/api.js");
-const { el, limpiar, selector, campo, exito, error, vacio, fmtFechaCorta } = __mod("js/ui.js");
+const { el, limpiar, selector, campo, exito, error, vacio, fmtFechaCorta, nombreLista } = __mod("js/ui.js");
 
 async function vistaRecordatorios({ refrescar }) {
   const selEstado = selector('estado', [
@@ -4726,7 +5230,7 @@ async function vistaRecordatorios({ refrescar }) {
       el('thead', {}, [el('tr', {}, ['Paciente', 'Recordatorio', 'Fecha objetivo', 'Prioridad', 'Estado', ''].map(
         (t) => el('th', { texto: t })))]),
       el('tbody', {}, lista.map((r) => el('tr', {}, [
-        el('td', {}, [el('a', { href: `#/paciente/${r.paciente_id}`, texto: `${r.paciente_apellidos}, ${r.paciente_nombre}` })]),
+        el('td', {}, [el('a', { href: `#/paciente/${r.paciente_id}`, texto: nombreLista(r.paciente_nombre, r.paciente_apellidos) })]),
         el('td', {}, [
           el('b', { texto: r.titulo }),
           r.descripcion ? el('div', { clase: 'mini', texto: r.descripcion }) : null,
@@ -5084,7 +5588,7 @@ return { vistaConfiguracion };
 
 __def("js/vistas/imprimir.js", function () {
 const { api, urlFoto } = __mod("js/api.js");
-const { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtMarca, ETIQUETAS_ESTADO } = __mod("js/ui.js");
+const { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia, ETIQUETAS_ESTADO } = __mod("js/ui.js");
 const { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } = __mod("js/consentimiento-doc.js");
 
 /** Barra superior que no se imprime, con el botón que abre el diálogo de impresión. */
@@ -5130,12 +5634,46 @@ function membrete(nombre, datos, subtitulo) {
 
 async function vistaImprimir({ param, param2, usuario }) {
   const tipo = param;
+  // La agenda se identifica por fecha (2026-08-08), no por número.
+  if (tipo === 'dia') return imprimirDia(param2 || new Date().toISOString().slice(0, 10));
   const id = Number(param2);
   if (!Number.isInteger(id)) return vacio('Documento no válido.');
   if (tipo === 'consentimiento') return imprimirConsentimiento(id);
   if (tipo === 'expediente') return imprimirExpediente(id);
   if (tipo === 'cita') return imprimirCita(id, usuario);
   return vacio(`Tipo de documento desconocido: ${tipo}.`);
+}
+
+/* ------------------------------ Agenda del día --------------------------- */
+
+/** Una página por día, una línea por cita: la hoja de la agenda de papel. */
+async function imprimirDia(fecha) {
+  const citas = await api.citas({ desde: fecha, hasta: fecha });
+  const dia = nombreDia(fecha);
+
+  const filas = citas.map((c) => el('tr', {}, [
+    el('td', { texto: `${fmtHora(c.inicio)} – ${fmtHora(c.fin)}` }),
+    el('td', {}, [
+      el('b', { texto: `${c.paciente_nombre} ${c.paciente_apellidos}` }),
+      c.paciente_telefono ? el('div', { clase: 'mini', texto: c.paciente_telefono }) : null,
+    ]),
+    el('td', { texto: c.catalogo_nombre || c.motivo || '—' }),
+    el('td', { texto: c.doctor_nombre }),
+    el('td', { texto: `${c.consultorio_nombre} · ${c.cubiculo_nombre}` }),
+    el('td', { texto: ETIQUETAS_ESTADO[c.estado] || c.estado }),
+    el('td', { clase: 'casilla-firma', texto: '' }),
+  ]));
+
+  const hoja = el('div', { clase: 'hoja' }, [
+    membrete('Agenda del día', `${dia.charAt(0).toUpperCase()}${dia.slice(1)}`, null),
+    citas.length
+      ? tabla(['Horario', 'Paciente', 'Motivo', 'Doctor', 'Lugar', 'Estado', 'Observaciones'], filas)
+      : vacio('No hay citas anotadas para este día.'),
+    el('p', { clase: 'mini', style: 'margin-top:14px',
+      texto: `${citas.length} cita(s) anotada(s) para el día.` }),
+  ]);
+
+  return el('div', {}, [barra(`Agenda del día`, '#/hoy'), hoja]);
 }
 
 /* ------------------------------ Consentimiento --------------------------- */
@@ -5374,7 +5912,9 @@ return { vistaImprimir };
 
 __def("js/app.js", function () {
 const { api, sesion, ErrorApi } = __mod("js/api.js");
-const { el, limpiar, error, campo, entrada, exito } = __mod("js/ui.js");
+const { el, limpiar, error, campo, entrada, exito, nombreCompleto } = __mod("js/ui.js");
+const { botonAyuda } = __mod("js/ayuda.js");
+const { vistaHoy } = __mod("js/vistas/hoy.js");
 const { vistaPanel } = __mod("js/vistas/panel.js");
 const { vistaAgenda } = __mod("js/vistas/agenda.js");
 const { vistaPacientes } = __mod("js/vistas/pacientes.js");
@@ -5389,15 +5929,17 @@ const { vistaImprimir } = __mod("js/vistas/imprimir.js");
 const app = document.getElementById('app');
 
 const MENU = [
-  { ruta: 'panel', texto: 'Panel', icono: '🏠', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'agenda', texto: 'Agenda', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'hoy', texto: 'El día de hoy', icono: '📖', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'agenda', texto: 'Agenda completa', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'pacientes', texto: 'Pacientes', icono: '🧑‍⚕️', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'recordatorios', texto: 'Recordatorios', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'contabilidad', texto: 'Contabilidad', icono: '💰', roles: ['admin'] },
+  { ruta: 'recordatorios', texto: 'Pendientes', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
+  { ruta: 'contabilidad', texto: 'Dinero', icono: '💰', roles: ['admin'] },
+  { ruta: 'panel', texto: 'Resumen', icono: '📊', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'configuracion', texto: 'Configuración', icono: '⚙️', roles: ['admin'] },
 ];
 
 const VISTAS = {
+  hoy: vistaHoy,
   panel: vistaPanel,
   agenda: vistaAgenda,
   pacientes: vistaPacientes,
@@ -5428,7 +5970,7 @@ function pantallaLogin() {
         const r = await api.login(email.value, pass.value);
         sesion.token = r.token;
         sesion.usuario = r.usuario;
-        location.hash = '#/panel';
+        location.hash = '#/hoy';
         await dibujar();
         exito(`Bienvenido/a, ${r.usuario.nombre}.`);
       } catch (err) {
@@ -5467,6 +6009,60 @@ function pantallaLogin() {
 
 /* --------------------------------- Marco -------------------------------- */
 
+/**
+ * Buscador de pacientes siempre a la vista. Muestra el teléfono en el propio
+ * resultado: para llamar a alguien no hace falta entrar a su expediente.
+ */
+function buscadorGlobal() {
+  const caja = entrada('busqueda_global', {
+    type: 'search', placeholder: 'Buscar paciente por nombre o teléfono…', autocomplete: 'off',
+  });
+  const resultados = el('div', { clase: 'resultados-busqueda', style: 'display:none' });
+  let temporizador = null;
+
+  const cerrar = () => { resultados.style.display = 'none'; limpiar(resultados); };
+
+  async function buscar() {
+    const q = caja.value.trim();
+    if (q.length < 2) { cerrar(); return; }
+    let lista = [];
+    try {
+      lista = await api.pacientes(q);
+    } catch {
+      limpiar(resultados);
+      resultados.appendChild(el('div', { clase: 'mini', texto: 'No se pudo buscar en este momento.' }));
+      resultados.style.display = 'block';
+      return;
+    }
+    limpiar(resultados);
+    if (!lista.length) {
+      resultados.appendChild(el('div', { clase: 'mini', texto: `Nadie se llama así: "${q}".` }));
+    } else {
+      for (const p of lista.slice(0, 8)) {
+        resultados.appendChild(el('a', {
+          clase: 'resultado', href: `#/paciente/${p.id}`,
+          onclick: () => { caja.value = ''; cerrar(); },
+        }, [
+          el('span', { clase: 'r-nom', texto: nombreCompleto(p.nombre, p.apellidos) }),
+          el('span', { clase: 'r-tel', texto: p.telefono ? `📞 ${p.telefono}` : 'sin teléfono anotado' }),
+        ]));
+      }
+    }
+    resultados.style.display = 'block';
+  }
+
+  caja.addEventListener('input', () => {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => { buscar(); }, 220);
+  });
+  caja.addEventListener('keydown', (e) => { if (e.key === 'Escape') { caja.value = ''; cerrar(); } });
+  document.addEventListener('click', (e) => {
+    if (!caja.contains(e.target) && !resultados.contains(e.target)) cerrar();
+  });
+
+  return el('div', { clase: 'buscador-global' }, [caja, resultados]);
+}
+
 function armarMarco() {
   const nav = el('nav', { clase: 'nav' },
     MENU.filter((m) => m.roles.includes(sesion.usuario.rol)).map((m) =>
@@ -5477,6 +6073,7 @@ function armarMarco() {
 
   const lateral = el('aside', { clase: 'lateral' }, [
     el('div', { clase: 'marca', html: '🦷 Dental<span>Gest</span>' }),
+    buscadorGlobal(),
     nav,
     el('div', { clase: 'usuario-caja' }, [
       el('div', { clase: 'nom', texto: sesion.usuario.nombre }),
@@ -5495,7 +6092,10 @@ function armarMarco() {
   ]);
 
   const contenido = el('main', { clase: 'contenido', id: 'contenido' });
-  return { marco: el('div', { clase: 'marco' }, [lateral, contenido]), contenido, nav };
+  return {
+    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda()]),
+    contenido, nav,
+  };
 }
 
 /* -------------------------------- Router -------------------------------- */
@@ -5503,7 +6103,7 @@ function armarMarco() {
 function rutaActual() {
   const h = location.hash.replace(/^#\/?/, '');
   const partes = h.split('/').filter(Boolean);
-  return { nombre: partes[0] || 'panel', param: partes[1] || null, param2: partes[2] || null };
+  return { nombre: partes[0] || 'hoy', param: partes[1] || null, param2: partes[2] || null };
 }
 
 let contenidoRef = null;
@@ -5519,7 +6119,7 @@ async function refrescar() {
 
 async function renderVista() {
   const { nombre, param, param2 } = rutaActual();
-  const vista = VISTAS[nombre] || VISTAS.panel;
+  const vista = VISTAS[nombre] || VISTAS.hoy;
   // Al salir de una pantalla de firma se recupera la interfaz completa.
   if (nombre !== 'consentimiento') document.body.classList.remove('modo-tablet');
   document.body.classList.toggle('imprimiendo', nombre === 'imprimir');
@@ -5570,9 +6170,44 @@ async function dibujar() {
   contenidoRef = contenido;
   navRef = nav;
   app.appendChild(marco);
-  if (!location.hash) location.hash = '#/panel';
+  if (!location.hash) location.hash = '#/hoy';
   await renderVista();
 }
+
+/* ---------------------------- Red de seguridad --------------------------- */
+
+/**
+ * Última barrera contra la pantalla en blanco. Si algo falla tan arriba que ni
+ * siquiera se pudo armar la pantalla, aquí se muestra un mensaje en español con
+ * una salida clara, en vez de dejar a la persona mirando un rectángulo vacío.
+ */
+function pantallaFallo(detalle) {
+  limpiar(app);
+  app.classList.remove('cargando');
+  app.appendChild(el('div', { clase: 'login-fondo' }, [
+    el('div', { clase: 'login-caja' }, [
+      el('h1', { texto: '🦷 DentalGest' }),
+      el('p', { clase: 'sub', texto: 'Algo se interrumpió y esta pantalla no se pudo mostrar.' }),
+      el('div', { clase: 'alerta-caja aviso' }, [
+        el('div', { texto: 'No se perdió nada de lo que ya estaba guardado. Vuelve al inicio y sigue trabajando; si vuelve a pasar, avísale a quien te da soporte.' }),
+        detalle ? el('div', { clase: 'mini', style: 'margin-top:8px', texto: `Detalle técnico: ${detalle}` }) : null,
+      ]),
+      el('button', {
+        clase: 'btn', type: 'button', texto: '← Volver al inicio', style: 'width:100%',
+        onclick: () => { location.hash = '#/hoy'; location.reload(); },
+      }),
+    ]),
+  ]));
+}
+
+/** ¿Quedó la pantalla vacía? Entonces la persona está viendo un vacío inexplicable. */
+function pantallaVacia() {
+  return !app.firstElementChild || (app.innerText || '').trim().length === 0;
+}
+
+window.addEventListener('error', (e) => {
+  if (pantallaVacia()) pantallaFallo(e?.message || 'error inesperado');
+});
 
 window.addEventListener('hashchange', () => {
   if (sesion.usuario && contenidoRef) renderVista();
@@ -5583,21 +6218,27 @@ window.addEventListener('unhandledrejection', (e) => {
   if (err instanceof ErrorApi) {
     e.preventDefault();
     error(err.message);
+    return;
   }
+  if (pantallaVacia()) pantallaFallo(err?.message || 'error inesperado');
 });
 
 /* -------------------------------- Arranque ------------------------------ */
 
 (async function iniciar() {
-  if (sesion.token) {
-    try {
-      sesion.usuario = await api.yo();
-    } catch {
-      sesion.token = null;
-      sesion.usuario = null;
+  try {
+    if (sesion.token) {
+      try {
+        sesion.usuario = await api.yo();
+      } catch {
+        sesion.token = null;
+        sesion.usuario = null;
+      }
     }
+    await dibujar();
+  } catch (e) {
+    pantallaFallo(e?.message || 'no se pudo abrir la aplicación');
   }
-  await dibujar();
 })();
 
 return { navegar, refrescar, dibujar };

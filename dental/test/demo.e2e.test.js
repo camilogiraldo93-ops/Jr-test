@@ -118,6 +118,10 @@ test('preparación: construye la demo y la sirve', async () => {
 
 test('Demo · inicia sesión y carga el panel con los datos de ejemplo', async () => {
   await entrar('admin@clinica.com', 'admin123');
+  await pagina.waitForSelector('.hoja-dia');
+  assert.match(await pagina.locator('h2').first().innerText(), /hoy/i);
+
+  await pagina.click('a[href="#/panel"]');
   await pagina.waitForSelector('.kpi');
   const kpis = await pagina.locator('.rejilla.c4').first().innerText();
   assert.match(kpis, /10/, '10 pacientes de ejemplo');
@@ -184,7 +188,7 @@ test('Demo · agendar eligiendo el tratamiento previsto', async () => {
 
   await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")', { timeout: 20000 });
   await m.locator('button:has-text("Agendar cita")').click();
-  await esperarExito(/Cita agendada/);
+  await esperarExito(/quedó agendada/);
 
   await pagina.fill('input[name="fecha"]', iso);
   await pagina.click('.bloque-cita:has-text("Implante dental")');
@@ -275,7 +279,7 @@ test('Demo · contabilidad con desglose por doctor y exportación CSV', async ()
 
   const [descarga] = await Promise.all([
     pagina.waitForEvent('download'),
-    pagina.click('button:has-text("Exportar gastos (CSV)")'),
+    pagina.click('button:has-text("Exportar gastos a Excel")'),
   ]);
   const csv = fs.readFileSync(await descarga.path(), 'utf8');
   assert.match(csv, /Fecha;Consultorio;Categoria;Concepto;Proveedor;Monto/);
@@ -288,7 +292,7 @@ test('Demo · los cambios sobreviven a recargar la página', async () => {
   await modal().locator('input[name="apellidos"]').fill('De Prueba Demo');
   await modal().locator('input[name="telefono"]').fill('099-000-1111');
   await modal().locator('button:has-text("Crear paciente")').click();
-  await esperarExito(/creado/);
+  await esperarExito(/ya está en la lista/);
   await pagina.waitForSelector('h2:has-text("Persona")');
 
   await pagina.reload({ waitUntil: 'networkidle' });

@@ -1,5 +1,6 @@
 import { api, ErrorApi } from '../api.js';
-import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero } from '../ui.js';
+import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero, nombreLista } from '../ui.js';
+import { recordarHabituales } from '../preferencias.js';
 
 /**
  * Modal reutilizable para crear o reprogramar una cita.
@@ -53,7 +54,7 @@ export async function abrirFormularioCita(opciones = {}) {
   const selCubiculo = selector('cubiculo_id', [], null);
   const selDoctor = selector('doctor_id', [], null);
   const selPaciente = selector('paciente_id',
-    pacientes.map((p) => ({ valor: p.id, texto: `${p.apellidos}, ${p.nombre}${p.cedula ? ` (${p.cedula})` : ''}` })),
+    pacientes.map((p) => ({ valor: p.id, texto: `${nombreLista(p.nombre, p.apellidos)}${p.cedula ? ` (${p.cedula})` : ''}` })),
     inicial.paciente_id);
 
   const selTratamiento = selector('catalogo_id', [
@@ -157,14 +158,14 @@ export async function abrirFormularioCita(opciones = {}) {
     }
     avisoConflicto.className = 'alerta-caja';
     avisoConflicto.innerHTML = '';
-    avisoConflicto.appendChild(el('b', { texto: '⛔ Conflicto de agenda — no se puede guardar' }));
+    avisoConflicto.appendChild(el('b', { texto: '⛔ Esa hora ya está ocupada' }));
     avisoConflicto.appendChild(el('ul', {}, conflictos.map((c) => {
       const quien = c.motivo === 'doctor' ? 'El doctor'
         : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor';
       const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
       return el('li', {
         texto: `${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
-          `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}), estado ${c.estado}.`,
+          `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}). Prueba después de las ${c.fin.slice(11)}.`,
       });
     })));
     if (mensaje) avisoConflicto.appendChild(el('div', { clase: 'mini', style: 'margin-top:6px', texto: mensaje }));
@@ -207,7 +208,8 @@ export async function abrirFormularioCita(opciones = {}) {
 
   const form = el('form', {}, [
     avisoConflicto,
-    campo('Paciente', selPaciente),
+    campo('¿Para quién es la cita?', selPaciente,
+      'Elige a la persona y pulsa Enter: el resto ya viene puesto con lo de siempre.'),
     el('div', { clase: 'fila' }, [
       campo('Consultorio (sede)', selConsultorio),
       campo('Cubículo', selCubiculo),
@@ -240,6 +242,12 @@ export async function abrirFormularioCita(opciones = {}) {
     form.requestSubmit();
   });
 
+  // Con los valores de siempre ya puestos, elegir al paciente y pulsar Enter
+  // basta para agendar. Enter dentro de un <select> no envía el formulario solo.
+  selPaciente.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); form.requestSubmit(); }
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!selCubiculo.value) { error('Selecciona un cubículo válido.'); return; }
@@ -262,8 +270,16 @@ export async function abrirFormularioCita(opciones = {}) {
       const guardada = cita
         ? await api.actualizarCita(cita.id, datos)
         : await api.crearCita(datos);
+      // La próxima vez estos tres campos vienen puestos: son los de siempre.
+      recordarHabituales({
+        consultorio_id: datos.consultorio_id,
+        cubiculo_id: datos.cubiculo_id,
+        doctor_id: datos.doctor_id,
+      });
       m.cerrar();
-      exito(cita ? 'Cita reprogramada correctamente.' : `Cita agendada para el ${inFecha.value} a las ${inInicio.value}.`);
+      exito(cita
+        ? `Listo, la cita quedó cambiada al ${fmtFechaHora(guardada.inicio)}.`
+        : `Listo, la cita quedó agendada para el ${fmtFechaHora(guardada.inicio)}.`);
       if (alGuardar) await alGuardar(guardada);
     } catch (err) {
       if (err instanceof ErrorApi && err.estado === 409 && err.detalle?.conflictos) {
