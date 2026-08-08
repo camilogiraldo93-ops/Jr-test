@@ -180,7 +180,7 @@ get('/api/contabilidad/balance', { roles: ['admin', 'recepcion'] }, ({ consulta,
   let hasta = soloFecha(consulta.get('hasta'));
   if (periodo === 'dia') { desde = fecha; hasta = fecha; }
   else if (periodo === 'mes') { desde = `${fecha.slice(0, 7)}-01`; hasta = `${fecha.slice(0, 7)}-31`; }
-  if (!desde || !hasta) throw new ErrorApp(400, 'Debes indicar el período (dia/mes) o un rango desde-hasta.');
+  if (!desde || !hasta) throw new ErrorApp(400, 'Falta decir de qué fechas quieres el resumen.');
 
   const filtroC = cid ? 'AND consultorio_id = ?' : '';
   const pc = cid ? [cid] : [];

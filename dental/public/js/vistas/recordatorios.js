@@ -15,7 +15,7 @@ export async function vistaRecordatorios({ refrescar }) {
   async function cargar() {
     const lista = await api.recordatorios({ estado: selEstado.value || undefined });
     limpiar(zona);
-    if (!lista.length) { zona.appendChild(vacio('No hay nada anotado con ese filtro.')); return; }
+    if (!lista.length) { zona.appendChild(vacio('No hay nada anotado en este grupo.')); return; }
     zona.appendChild(el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
       el('thead', {}, [el('tr', {}, ['Paciente', 'Qué hay que hacer', 'Para cuándo', 'Urgencia', 'Cómo va', ''].map(
         (t) => el('th', { texto: t })))]),

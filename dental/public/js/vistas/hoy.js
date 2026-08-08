@@ -63,11 +63,11 @@ export async function vistaHoy({ usuario, navegar }) {
     ]);
   }
 
-  function lineaLibre(hora) {
-    if (!puedeAgendar) return el('span', { clase: 'hora-libre-txt', texto: 'Libre' });
+  function lineaLibre(hora, hayCitas) {
+    if (!puedeAgendar) return hayCitas ? null : el('span', { clase: 'hora-libre-txt', texto: 'Libre' });
     return el('button', {
-      clase: 'hora-libre', type: 'button',
-      texto: `＋ Agendar a las ${hora}`,
+      clase: `hora-libre${hayCitas ? ' extra' : ''}`, type: 'button',
+      texto: hayCitas ? `＋ Otra cita a las ${hora}` : `＋ Agendar a las ${hora}`,
       onclick: () => nuevaCitaEn(hora),
     });
   }
@@ -95,10 +95,14 @@ export async function vistaHoy({ usuario, navegar }) {
         const hora = c.inicio.slice(11, 16);
         return hora >= f && hora < siguiente;
       });
+      // Una hora con una cita no está llena: quedan los demás cubículos. El
+      // botón de agendar se queda siempre, debajo de lo que ya haya.
       return el('div', { clase: `renglon-dia${enFranja.length ? '' : ' vacia'}` }, [
         el('div', { clase: 'renglon-hora', texto: f }),
-        el('div', { clase: 'renglon-cont' },
-          enFranja.length ? enFranja.map(lineaCita) : [lineaLibre(f)]),
+        el('div', { clase: 'renglon-cont' }, [
+          ...enFranja.map(lineaCita),
+          lineaLibre(f, enFranja.length > 0),
+        ]),
       ]);
     });
     zona.appendChild(el('div', { clase: 'hoja-dia' }, filas));

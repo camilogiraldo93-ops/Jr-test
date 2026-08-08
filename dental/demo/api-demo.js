@@ -1308,7 +1308,7 @@ export const api = {
     usuarioActual();
     const guardados = tabla('ajustes');
     const fila = guardados.find((a) => a.clave === 'recepcion_dinero');
-    return { recepcion_dinero: (fila?.valor ?? '0') === '1' };
+    return { recepcion_dinero: (fila?.valor ?? '1') === '1' };
   },
   async guardarAjustes(d) {
     exigirRol('admin');

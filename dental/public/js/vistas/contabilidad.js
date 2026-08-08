@@ -329,8 +329,8 @@ export async function vistaContabilidad({ refrescar }) {
       ]),
     ]),
     el('div', { clase: 'agenda-controles' }, [
-      campo('Período', selPeriodo),
-      campo('Fecha de referencia', inFecha),
+      campo('¿Qué quieres ver?', selPeriodo),
+      campo('¿De qué fecha?', inFecha),
       campo('Consultorio', selConsultorio),
     ]),
     zona,

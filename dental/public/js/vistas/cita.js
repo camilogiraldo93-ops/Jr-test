@@ -251,11 +251,11 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar pago' });
 
     const m = modal({
-      titulo: cargo ? `Registrar pago del cargo: ${cargo.concepto}` : 'Registrar pago del paciente',
+      titulo: cargo ? `Cobrar: ${cargo.concepto}` : 'Registrar un pago',
       cuerpo: el('div', {}, [
-        cargo ? el('div', { clase: 'alerta-caja ok', texto: `Cargo de ${fmtDinero(cargo.monto)} · Saldo pendiente ${fmtDinero(cargo.saldo)}.` }) : null,
-        campo('Monto', inMonto),
-        campo('Método de pago', selMetodo),
+        cargo ? el('div', { clase: 'alerta-caja ok', texto: `Se le cobró ${fmtDinero(cargo.monto)} y le faltan ${fmtDinero(cargo.saldo)}.` }) : null,
+        campo('¿Cuánto pagó?', inMonto),
+        campo('¿Cómo pagó?', selMetodo),
         campo('Nota', inNota),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
@@ -355,7 +355,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
                     })
                   : puedeClinico
                     ? el('button', {
-                        clase: 'btn sec chico', type: 'button', texto: 'Generar consentimiento',
+                        clase: 'btn sec chico', type: 'button', texto: 'Preparar el consentimiento',
                         onclick: async () => {
                           try {
                             const c = await api.generarConsentimiento(t.id);

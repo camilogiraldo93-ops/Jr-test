@@ -6,15 +6,17 @@ import { todos, correr } from '../db.js';
  *
  * `recepcion_dinero` existe porque hay dos formas legítimas de trabajar: en unas
  * clínicas el dueño lleva el dinero y recepción no lo toca; en otras, recepción
- * apunta los gastos del día y saca los reportes. Viene apagado —que es lo
- * acordado al construir la app— y la administradora puede encenderlo.
+ * apunta los gastos del día y saca los reportes. Viene encendido, que es lo más
+ * común en un consultorio pequeño, y la administradora puede apagarlo. Lo que
+ * nunca se abre a recepción es la configuración del consultorio.
  */
 export const AJUSTES = {
   recepcion_dinero: {
-    valorPorDefecto: '0',
+    valorPorDefecto: '1',
     etiqueta: 'Recepción puede ver y apuntar el dinero',
-    ayuda: 'Si lo enciendes, recepción verá la sección «Dinero» para apuntar gastos ' +
-           'y exportar los cobros. La configuración del consultorio nunca se le abre.',
+    ayuda: 'Viene encendido: recepción apunta los gastos del día y exporta los cobros. ' +
+           'Apágalo si en tu consultorio eso lo lleva solo la administradora. ' +
+           'La configuración del consultorio no se le abre en ningún caso.',
   },
 };
 
@@ -32,7 +34,7 @@ export function exigirDinero(usuario) {
   if (usuario.rol === 'admin') return;
   if (usuario.rol === 'recepcion' && ajustes().recepcion_dinero) return;
   throw new ErrorApp(403,
-    'El dinero del consultorio lo lleva la administradora. Si quieres que recepción también ' +
+    'En este consultorio el dinero lo lleva la administradora. Si quieres que recepción también ' +
     'pueda, se enciende en Configuración → «Recepción puede ver y apuntar el dinero».');
 }
 

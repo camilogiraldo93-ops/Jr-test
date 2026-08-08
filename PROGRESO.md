@@ -267,4 +267,45 @@ preselección; se corrigieron para elegir cubículo y doctor.
 
 ### Veredicto del revisor-ux sobre el ciclo 5
 
+**VEREDICTO GLOBAL: RECHAZADO** — 5 tareas ❌ por causas nuevas y viejas.
+
+Bloqueantes:
+1. En instalación de fábrica recepción no tiene «Dinero», así que las tareas 5 y
+   9 son imposibles para el perfil auditado. Agravante: `seed:reset` no limpiaba
+   la tabla `ajustes`, así que el estado dependía del historial de la base y la
+   demo no era reproducible.
+2. El aviso de «hora ocupada» se dibujaba **fuera de la pantalla** (medido en
+   `top: -220px` a 1366×768). Lo único visible era un globo que no decía qué hacer.
+3. La ayuda contradecía lo que la usuaria veía: decía «esa sección no aparece en
+   tu menú a propósito» sobre una sección que sí estaba en su menú.
+4. Agendar costaba 6 pasos la primera vez y 4 después.
+5. Jerga en rutas de error reales, y el bloque contable del cobro.
+6. Texto de ayuda falso al reprogramar.
+7. Recepción no puede anotar tratamientos — lo marcó ❌ contra el protocolo pero
+   dijo expresamente que **no recomienda** abrirle la escritura clínica.
+
+---
+
+## Ciclo 6 — solo hallazgos bloqueantes
+
+1. **Recepción lleva el dinero de fábrica.** El encargo original y el protocolo
+   se contradecían, así que lo consultó el usuario y decidió: recepción apunta
+   gastos y exporta cobros desde el primer arranque, y la administradora puede
+   cerrárselo en Configuración. La configuración del consultorio no se le abre
+   en ningún caso. Y `--reset` limpia ahora la tabla `ajustes`, así que la app
+   arranca dos veces igual.
+2. **El aviso de choque se desplaza a la vista** (`scrollIntoView`) y deja de
+   salir duplicado: la versión larga del servidor se queda en el globo.
+3. **La ayuda lee el ajuste**, no solo el puesto, y se calcula al abrirla.
+4. **Una hora con cita ya no oculta el botón de agendar**: quedaba sitio en los
+   demás cubículos y la app lo escondía.
+5. **Jerga**: «Error interno del servidor», «servidor», «inmutable», «(cita #26)»,
+   «filtro», «Período», «Fecha de referencia», y el modal de cobro entero
+   («Registrar pago del cargo», «Monto», «Método de pago»).
+6. **El texto de ayuda ya no miente al reprogramar.**
+
+Pruebas: **66 en verde**, una nueva sobre quién puede tocar el dinero y quién no.
+
+### Veredicto del revisor-ux sobre el ciclo 6
+
 _(pendiente)_

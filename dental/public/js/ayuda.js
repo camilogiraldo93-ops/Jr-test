@@ -1,4 +1,5 @@
 import { el, modal } from './ui.js';
+import { sesion } from './api.js';
 
 /**
  * «¿Cómo hago…?»: las tareas de todos los días explicadas en pasos numerados,
@@ -61,9 +62,11 @@ const TAREAS = [
   },
   {
     titulo: 'Apuntar un gasto',
-    roles: ['admin'],
-    deOtros: 'Los gastos y las cuentas los lleva la administradora, en la sección «Dinero». ' +
-      'Esa sección no aparece en tu menú a propósito.',
+    roles: ['admin', 'recepcion'],
+    ajuste: 'recepcion_dinero',
+    deOtros: 'En este consultorio los gastos los lleva la administradora, en la sección «Dinero». ' +
+      'Por eso no la ves en tu menú. Si aquí se trabaja de otra forma, ella puede abrírtela ' +
+      'desde Configuración.',
     pasos: [
       'Entra a «Dinero» y pulsa «🧾 Apuntar gasto».',
       'Escribe en qué se gastó y cuánto. El día ya viene puesto en hoy.',
@@ -72,10 +75,10 @@ const TAREAS = [
   },
   {
     titulo: 'Ver cuánto se cobró hoy',
-    roles: ['admin', 'recepcion'],
+    roles: ['admin', 'doctor', 'recepcion'],
     pasos: [
       'En «El día de hoy», debajo del título dice «cobrado en el día».',
-      'Si necesitas el detalle por paciente, pídeselo a la administradora: está en «Dinero».',
+      'El detalle por paciente y por forma de pago está en «Dinero», si tienes esa sección.',
     ],
   },
   {
@@ -99,25 +102,39 @@ const TAREAS = [
     roles: ['admin', 'doctor', 'recepcion'],
     pasos: [
       'En «Pacientes» pulsa «⬇️ Exportar a Excel»: baja la lista que estés viendo.',
-      'Los cobros y los gastos se exportan igual desde «Dinero» (solo la administradora).',
+      'Los cobros y los gastos se exportan igual desde «Dinero», si tienes esa sección.',
     ],
   },
 ];
 
-export function botonAyuda(rol) {
+export function botonAyuda() {
   return el('button', {
     clase: 'boton-ayuda', type: 'button', texto: '❓ ¿Cómo hago…?',
     title: 'Pasos para las tareas de todos los días',
-    onclick: () => abrirAyuda(rol),
+    onclick: abrirAyuda,
   });
 }
 
-function abrirAyuda(rol) {
+/**
+ * Quién puede hacer qué se decide igual que en el menú: por puesto y, cuando el
+ * consultorio lo ha decidido, por el ajuste. La ayuda se lee en el momento de
+ * abrirla, no al dibujar el marco, para que no se quede con una foto vieja.
+ * Decirle «esa sección no aparece en tu menú» a alguien que sí la tiene es peor
+ * que no dar ayuda.
+ */
+function puedeHacer(t, rol) {
+  if (!t.roles.includes(rol)) return false;
+  if (!t.ajuste || rol === 'admin') return true;
+  return !!sesion.ajustes?.[t.ajuste];
+}
+
+function abrirAyuda() {
+  const rol = sesion.usuario?.rol;
   const m = modal({
     titulo: '¿Cómo hago…?',
     ancho: true,
     cuerpo: el('div', { clase: 'lista-ayuda' }, TAREAS.map((t) => {
-      const puede = t.roles.includes(rol);
+      const puede = puedeHacer(t, rol);
       return el('details', { clase: puede ? '' : 'de-otros' }, [
         el('summary', { texto: puede ? t.titulo : `${t.titulo} — lo hace otra persona` }),
         puede

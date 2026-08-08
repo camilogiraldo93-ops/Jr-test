@@ -158,7 +158,8 @@ put('/api/consentimientos/:id', { roles: ['admin', 'doctor', 'recepcion'] }, ({ 
   const c = obtener(params.id);
   if (!c) throw new ErrorApp(404, 'Consentimiento no encontrado.');
   if (c.estado === 'firmado') {
-    throw new ErrorApp(409, 'Un consentimiento firmado es inmutable. Anúlalo y genera uno nuevo si necesitas cambiarlo.');
+    throw new ErrorApp(409,
+      'Un consentimiento ya firmado no se puede cambiar. Si necesitas corregir algo, anúlalo y haz uno nuevo.');
   }
   if (c.estado === 'anulado') throw new ErrorApp(409, 'Este consentimiento está anulado y no puede editarse.');
 

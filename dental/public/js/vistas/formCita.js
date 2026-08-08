@@ -82,10 +82,13 @@ export async function abrirFormularioCita(opciones = {}) {
   ], inicial.catalogo_id);
   const notaTratamiento = el('div', { clase: 'mini' });
 
-  // Solo se promete el prellenado cuando de verdad hay valores recordados.
-  const ayudaPaciente = (inicial.cubiculo_id && inicial.doctor_id)
-    ? 'Elige a la persona y pulsa Enter: el cubículo y el doctor son los de la última cita que guardaste.'
-    : 'Elige a la persona, el cubículo y el doctor. La próxima vez esos dos vendrán ya puestos.';
+  // El texto solo puede prometer lo que es cierto en cada caso: al reprogramar
+  // vienen los de esa cita, no los de la última guardada.
+  const ayudaPaciente = cita
+    ? 'El cubículo y el doctor son los que ya tenía esta cita; cámbialos si hace falta.'
+    : (inicial.cubiculo_id && inicial.doctor_id)
+      ? 'Elige a la persona y pulsa Enter: el cubículo y el doctor son los de la última cita que guardaste.'
+      : 'Elige a la persona, el cubículo y el doctor. La próxima vez esos dos vendrán ya puestos.';
 
   const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
   const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
@@ -181,7 +184,7 @@ export async function abrirFormularioCita(opciones = {}) {
   });
   [selCubiculo, selDoctor, inFecha, inFin].forEach((c) => c.addEventListener('change', verificar));
 
-  function mostrarConflictos(conflictos, mensaje) {
+  function mostrarConflictos(conflictos) {
     if (!conflictos.length) {
       avisoConflicto.className = 'alerta-caja ok';
       avisoConflicto.textContent = '✅ Esa hora está libre: ni el cubículo ni el doctor tienen otra cita.';
@@ -200,8 +203,12 @@ export async function abrirFormularioCita(opciones = {}) {
           `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}). Prueba después de las ${c.fin.slice(11)}.`,
       });
     })));
-    if (mensaje) avisoConflicto.appendChild(el('div', { clase: 'mini', style: 'margin-top:6px', texto: mensaje }));
+    // El servidor repite lo mismo con otras palabras: mostrar las dos versiones
+    // solo confunde, así que el detalle largo se queda en el aviso emergente.
     avisoConflicto.style.display = 'block';
+    // El aviso vive arriba del formulario y en pantallas bajas queda fuera de la
+    // vista: no sirve de nada un mensaje que hay que ir a buscar.
+    avisoConflicto.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   let ultimaVerificacion = { disponible: false };
@@ -227,7 +234,7 @@ export async function abrirFormularioCita(opciones = {}) {
         excluir_id: cita?.id ?? null,
       });
       ultimaVerificacion = r;
-      mostrarConflictos(r.conflictos, '');
+      mostrarConflictos(r.conflictos);
     } catch (e) {
       ultimaVerificacion = { disponible: false };
       avisoConflicto.className = 'alerta-caja aviso';
@@ -322,7 +329,7 @@ export async function abrirFormularioCita(opciones = {}) {
       if (alGuardar) await alGuardar(guardada);
     } catch (err) {
       if (err instanceof ErrorApi && err.estado === 409 && err.detalle?.conflictos) {
-        mostrarConflictos(err.detalle.conflictos, err.message);
+        mostrarConflictos(err.detalle.conflictos);
         error('La cita no se guardó: hay un choque de horario.');
       } else {
         error(err instanceof ErrorApi ? err.message : 'No se pudo guardar la cita.');

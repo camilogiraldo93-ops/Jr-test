@@ -28,7 +28,7 @@ async function peticion(metodo, ruta, cuerpo) {
   try {
     res = await fetch(ruta, opciones);
   } catch {
-    throw new ErrorApi(0, 'No se pudo conectar con el servidor. Revisa tu conexión.');
+    throw new ErrorApi(0, 'No hay conexión con el consultorio. Revisa el internet y vuelve a intentarlo.');
   }
   let datos = null;
   const texto = await res.text();

@@ -287,9 +287,9 @@ export async function vistaConfiguracion({ refrescar }) {
     el('div', { clase: 'tarjeta' }, [
       el('h3', { texto: '⚖️ Quién lleva el dinero' }),
       el('p', { clase: 'mini', style: 'margin-bottom:10px', texto:
-        'De fábrica, la sección «Dinero» solo la ve la administradora. Si en tu consultorio ' +
-        'es recepción quien apunta los gastos del día y saca los reportes, enciéndelo aquí. ' +
-        'La configuración del consultorio nunca se le abre.' }),
+        'Viene encendido: recepción ve la sección «Dinero» para apuntar los gastos del día y ' +
+        'exportar los cobros. Apágalo si en tu consultorio eso lo lleva solo la administradora. ' +
+        'La configuración del consultorio no se le abre en ningún caso.' }),
       el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
         chkRecepcionDinero,
         el('span', { texto: 'Recepción puede ver y apuntar el dinero' }),

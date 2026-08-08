@@ -77,7 +77,7 @@ function explicarConflictos(conflictos) {
     const verbo = c.motivo === 'cubiculo_y_doctor' ? 'están' : 'está';
     return `Esa hora ya está ocupada: ${quien} ${verbo} con ${c.paciente} ` +
            `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
-           `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
+           `después de las ${c.fin.slice(11)}.`;
   }).join(' ');
 }
 

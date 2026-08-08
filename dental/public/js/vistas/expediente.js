@@ -245,7 +245,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
               ]))),
             ]),
           ])
-        : vacio('Sin consentimientos generados. Se crean solos al registrar un tratamiento que los requiere, o manualmente con el botón de arriba.'),
+        : vacio('Todavía no hay consentimientos. Se preparan solos al anotar un tratamiento que los necesita, o con el botón de arriba.'),
     ]);
   });
 

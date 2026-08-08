@@ -158,6 +158,36 @@ test('Un paciente se crea solo con nombre y teléfono', async () => {
   assert.equal(sinNombre.estado, 400);
 });
 
+test('Recepción lleva el dinero de fábrica, y la administradora puede cerrárselo', async () => {
+  // De fábrica recepción apunta gastos y ve los cobros: es lo normal en un
+  // consultorio pequeño y es lo que decidió el consultorio.
+  const ajustes = exigir(await recepcion.get('/api/ajustes'), 200, 'ajustes');
+  assert.equal(ajustes.recepcion_dinero, true);
+  const gasto = exigir(await recepcion.post('/api/gastos', {
+    consultorio_id: ctx.consultorio.id, concepto: 'Guantes de nitrilo', monto: 50,
+  }), 201, 'recepción apunta un gasto');
+  assert.equal(gasto.monto, 50);
+  exigir(await recepcion.get('/api/contabilidad/balance?periodo=mes'), 200, 'recepción ve el resumen');
+
+  // La configuración del consultorio no se le abre en ningún caso.
+  assert.equal((await recepcion.get('/api/usuarios')).estado, 403);
+  assert.equal((await recepcion.put('/api/ajustes', { recepcion_dinero: false })).estado, 403);
+
+  // La administradora puede cerrárselo, y entonces sí se le niega con explicación.
+  exigir(await admin.put('/api/ajustes', { recepcion_dinero: false }), 200, 'apagar el ajuste');
+  const negado = await recepcion.post('/api/gastos', {
+    consultorio_id: ctx.consultorio.id, concepto: 'Otro gasto', monto: 10,
+  });
+  assert.equal(negado.estado, 403);
+  assert.match(negado.datos.error, /lo lleva la administradora/);
+
+  exigir(await admin.put('/api/ajustes', { recepcion_dinero: true }), 200, 'volver a encenderlo');
+
+  // Este gasto era solo para la comprobación: no debe ensuciar el balance que
+  // revisa el Flujo 7.
+  exigir(await recepcion.del(`/api/gastos/${gasto.id}`), 200, 'borrar el gasto de prueba');
+});
+
 /* ------------------------------- Flujo 3 -------------------------------- */
 test('Flujo 3 · Agendar cita y bloquear conflictos de cubículo y de doctor', async () => {
   const fecha = fechaRelativa(3);
@@ -447,7 +477,7 @@ test('Flujo 5 · Consentimiento: autollenado, doble firma e inmutabilidad', asyn
   })).estado, 409);
   const edicion = await admin.put(`/api/consentimientos/${consent.id}`, { tratamiento: 'Otro' });
   assert.equal(edicion.estado, 409);
-  assert.match(edicion.datos.error, /inmutable/i);
+  assert.match(edicion.datos.error, /no se puede cambiar/i);
 });
 
 test('Consentimiento · anulación con trazabilidad y reemplazo', async () => {
@@ -589,10 +619,11 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   assert.equal(ec.total_pagos, 100);
   assert.equal(ec.saldo, ctx.catalogoItem.precio_base - 100);
 
-  // Gasto del consultorio.
-  assert.equal((await recepcion.post('/api/gastos', {
-    consultorio_id: ctx.consultorio.id, concepto: 'X', monto: 10,
-  })).estado, 403, 'recepción no registra gastos: la contabilidad es del administrador');
+  // Gasto del consultorio. Lo que recepción nunca puede tocar es la
+  // configuración; los gastos sí, salvo que la administradora se lo apague
+  // (comprobado en su propia prueba más arriba).
+  assert.equal((await recepcion.get('/api/usuarios')).estado, 403,
+    'recepción no entra a la configuración del consultorio');
 
   const gasto = exigir(await admin.post('/api/gastos', {
     consultorio_id: ctx.consultorio.id, categoria: 'insumos',
@@ -602,8 +633,8 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   assert.equal(gasto.monto, 260.40);
 
   // Balance del consultorio en el mes: ingresos − gastos.
-  assert.equal((await recepcion.get('/api/contabilidad/balance?periodo=mes')).estado, 403,
-    'recepción no accede al balance');
+  assert.equal((await doctora.get('/api/contabilidad/balance?periodo=mes')).estado, 403,
+    'el dinero del consultorio no es asunto del doctor');
 
   const bal = exigir(await admin.get(
     `/api/contabilidad/balance?periodo=mes&consultorio_id=${ctx.consultorio.id}&fecha=${fechaRelativa(0)}`), 200);

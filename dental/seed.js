@@ -67,7 +67,9 @@ function guardarImagen(nombre, base, ancho = 420, alto = 300) {
 const RESET = process.argv.includes('--reset');
 
 function limpiar() {
-  const tablas = ['sesiones', 'pagos', 'cargos', 'gastos', 'consentimientos', 'recordatorios', 'fotos',
+  // 'ajustes' entra en la lista: si no, lo que decidió una corrida anterior
+  // sobrevive al reinicio y la app no arranca dos veces igual.
+  const tablas = ['sesiones', 'ajustes', 'pagos', 'cargos', 'gastos', 'consentimientos', 'recordatorios', 'fotos',
     'odontograma', 'tratamientos', 'citas', 'doctor_cubiculo', 'doctor_consultorio', 'catalogo_tratamientos',
     'cubiculos', 'consultorios', 'pacientes', 'usuarios', 'doctores'];
   db.exec('PRAGMA foreign_keys = OFF;');

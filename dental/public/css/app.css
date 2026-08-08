@@ -584,3 +584,6 @@ body.modo-tablet .boton-ayuda, body.imprimiendo .boton-ayuda { display: none; }
 .lista-ayuda details.de-otros { background: #fbfdfe; }
 .lista-ayuda details.de-otros summary { color: var(--suave); font-weight: 500; }
 .lista-ayuda details.de-otros p { margin: 10px 0 2px; }
+/* El «＋ Otra cita» de una hora que ya tiene alguien: presente pero discreto. */
+.hora-libre.extra { border-style: dotted; opacity: .75; font-size: .8rem; padding: 5px 12px; }
+.hora-libre.extra:hover { opacity: 1; }

@@ -40,7 +40,7 @@ export function crearServidor() {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       }
-      res.end(JSON.stringify({ error: 'Error interno del servidor.' }));
+      res.end(JSON.stringify({ error: 'Algo falló de nuestro lado. No es culpa tuya y no se perdió nada de lo guardado. Vuelve a intentarlo.' }));
     });
   });
 }

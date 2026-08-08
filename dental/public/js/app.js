@@ -193,7 +193,7 @@ function armarMarco() {
 
   const contenido = el('main', { clase: 'contenido', id: 'contenido' });
   return {
-    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda(sesion.usuario.rol)]),
+    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda()]),
     contenido, nav,
   };
 }

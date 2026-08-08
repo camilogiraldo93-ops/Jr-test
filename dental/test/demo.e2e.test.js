@@ -328,7 +328,9 @@ test('Demo · los roles limitan lo que se ve', async () => {
   await pagina.fill('input[name="password"]', 'recepcion123');
   await pagina.click('button[type="submit"]');
   await pagina.waitForSelector('.marco');
-  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 0, 'recepción no ve Contabilidad');
+  // De fábrica recepción sí lleva el dinero; lo que nunca se le abre es la
+  // configuración del consultorio.
+  assert.equal(await pagina.locator('a[href="#/contabilidad"]').count(), 1, 'recepción ve Dinero');
   assert.equal(await pagina.locator('a[href="#/configuracion"]').count(), 0, 'ni Configuración');
 
   await pagina.click('.usuario-caja button');
