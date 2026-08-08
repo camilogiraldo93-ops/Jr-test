@@ -308,4 +308,35 @@ Pruebas: **66 en verde**, una nueva sobre quién puede tocar el dinero y quién 
 
 ### Veredicto del revisor-ux sobre el ciclo 6
 
+**VEREDICTO GLOBAL: RECHAZADO** — 9 de 10 tareas y 4 de 5 auditorías en ✅.
+
+Bloqueantes:
+1. Agendar cuesta 6 pasos la primera vez en un equipo nuevo (4 después).
+2. **«Registrar pago» cobraba al primer paciente de la lista** sin que nadie lo
+   eligiera: escribió solo el monto, pulsó guardar y quedó un pago a nombre de
+   Rosa. Sus palabras: «Es el mismo defecto que dicen haber corregido para las
+   citas en el ciclo 4, pero con dinero.»
+3. «Error 500» a la cara del usuario, en una pantalla sin reintentar ni volver.
+4. El botón «Agendar cita» quedaba fuera de pantalla en 1366×768.
+
+---
+
+## Ciclo 7 — solo hallazgos bloqueantes
+
+1. **Nadie cobra a quien no eligió.** El desplegable de pagos abre en «— Elige
+   a la persona —», no se guarda sin decidir, la lista de tratamientos espera a
+   que haya persona, y la confirmación dice a quién se le cobró y cuánto.
+2. **Los botones del cuadro no se pierden de vista.** El modal no pasa del alto
+   de la pantalla: el contenido se desplaza por dentro y guardar y cancelar se
+   quedan siempre abajo, a la vista.
+3. **Ningún número de error en pantalla.** Cuando el servidor no deja mensaje,
+   lo pone la app según lo que pasó (sesión cerrada, no te corresponde, ya no
+   está, algo falló de nuestro lado).
+4. **Las pantallas de error tienen salida**: «↻ Volver a intentarlo» y «← Ir al
+   día de hoy».
+
+Pruebas: **66 en verde**.
+
+### Veredicto del revisor-ux sobre el ciclo 7
+
 _(pendiente)_

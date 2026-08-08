@@ -94,8 +94,13 @@ export async function vistaContabilidad({ refrescar }) {
   async function abrirPago() {
     const pacientes = await api.pacientes();
     if (!pacientes.length) { error('No hay pacientes registrados.'); return; }
-    const selPac = selector('paciente_id',
-      pacientes.map((p) => ({ valor: p.id, texto: nombreLista(p.nombre, p.apellidos) })), pacientes[0].id);
+    // Nadie viene elegido: cobrarle al primero de la lista alfabética porque
+    // nadie tocó el desplegable es exactamente el error que ya costó una cita
+    // a nombre de quien no era, y aquí además mueve dinero.
+    const selPac = selector('paciente_id', [
+      { valor: '', texto: '— Elige a la persona —' },
+      ...pacientes.map((p) => ({ valor: p.id, texto: nombreLista(p.nombre, p.apellidos) })),
+    ], '');
     const selCargo = selector('cargo_id', [{ valor: '', texto: 'Un abono suelto, sin tratamiento concreto' }], '');
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), consultorios[0]?.id);
@@ -106,6 +111,12 @@ export async function vistaContabilidad({ refrescar }) {
     const info = el('div', { clase: 'mini' });
 
     async function cargarCargos() {
+      if (!selPac.value) {
+        limpiar(selCargo);
+        selCargo.appendChild(el('option', { value: '', texto: 'Primero elige a la persona' }));
+        info.textContent = '';
+        return;
+      }
       const cargos = await api.cargos({ paciente_id: selPac.value });
       const pendientes = cargos.filter((c) => c.saldo > 0);
       limpiar(selCargo);
@@ -140,7 +151,15 @@ export async function vistaContabilidad({ refrescar }) {
     });
 
     boton.addEventListener('click', async () => {
-      if (!(Number(inMonto.value) > 0)) { error('Indica un monto mayor que cero.'); return; }
+      if (!selPac.value) {
+        error('Falta elegir a quién se le está cobrando.', 'Falta un dato');
+        selPac.focus();
+        return;
+      }
+      if (!(Number(inMonto.value) > 0)) {
+        error('Escribe cuánto pagó. Tiene que ser un número mayor que cero.');
+        return;
+      }
       boton.disabled = true;
       try {
         await api.crearPago({
@@ -150,7 +169,8 @@ export async function vistaContabilidad({ refrescar }) {
           monto: Number(inMonto.value), metodo: selMetodo.value, nota: inNota.value.trim(),
         });
         m.cerrar();
-        exito('Pago registrado.');
+        exito(`Listo, quedó registrado el pago de ${fmtDinero(Number(inMonto.value))} de ` +
+          `${selPac.selectedOptions[0].textContent}.`);
         await cargar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo registrar el pago.');

@@ -1,5 +1,17 @@
 const CLAVE_TOKEN = 'dentalgest_token';
 
+/** Qué decir cuando el servidor falla sin dejar un mensaje propio. */
+function mensajeGenerico(estado) {
+  if (estado === 401) return 'Tu sesión se cerró. Vuelve a entrar.';
+  if (estado === 403) return 'Esta parte no le corresponde a tu puesto.';
+  if (estado === 404) return 'Eso ya no está. Puede que alguien lo haya borrado.';
+  if (estado >= 500) {
+    return 'Algo falló de nuestro lado. No es culpa tuya y no se perdió nada de lo guardado. ' +
+           'Vuelve a intentarlo en un momento.';
+  }
+  return 'No se pudo completar. Revisa los datos y vuelve a intentarlo.';
+}
+
 export const sesion = {
   get token() { return localStorage.getItem(CLAVE_TOKEN); },
   set token(v) { v ? localStorage.setItem(CLAVE_TOKEN, v) : localStorage.removeItem(CLAVE_TOKEN); },
@@ -36,7 +48,9 @@ async function peticion(metodo, ruta, cuerpo) {
     try { datos = JSON.parse(texto); } catch { datos = null; }
   }
   if (!res.ok) {
-    throw new ErrorApi(res.status, datos?.error || `Error ${res.status}`, datos?.detalle);
+    // Si el servidor no explicó nada, lo explicamos nosotros: un número de
+    // estado HTTP no le dice nada a quien está atendiendo a alguien.
+    throw new ErrorApi(res.status, datos?.error || mensajeGenerico(res.status), datos?.detalle);
   }
   return datos;
 }

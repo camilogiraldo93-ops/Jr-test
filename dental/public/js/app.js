@@ -250,9 +250,15 @@ async function renderVista() {
     }
     const mensaje = err instanceof ErrorApi ? err.message
       : 'No se pudo traer la información. Revisa tu conexión y vuelve a intentarlo.';
+    // Un error sin salida deja a la persona atrapada: siempre hay que ofrecerle
+    // volver a intentarlo y una puerta al inicio.
     contenidoRef.appendChild(el('div', { clase: 'alerta-caja' }, [
       el('b', { texto: 'Esta pantalla no se pudo mostrar. ' }),
       el('span', { texto: mensaje }),
+      el('div', { clase: 'acciones', style: 'margin-top:12px' }, [
+        el('button', { clase: 'btn', type: 'button', texto: '↻ Volver a intentarlo', onclick: () => renderVista() }),
+        el('a', { clase: 'btn sec', href: '#/hoy', texto: '← Ir al día de hoy' }),
+      ]),
     ]));
     console.warn('[vista]', mensaje);
   }

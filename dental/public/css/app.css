@@ -287,9 +287,12 @@ table.tabla td.num, table.tabla th.num {
   align-items: flex-start; justify-content: center; padding: 24px 14px; z-index: 200;
   overflow-y: auto;
 }
+/* El cuadro nunca es más alto que la pantalla: el contenido se desplaza por
+   dentro y los botones de guardar y cancelar se quedan siempre a la vista. En
+   1366x768 el botón «Agendar cita» caía por debajo del borde y nada avisaba. */
 .modal {
   background: #fff; border-radius: 16px; width: min(680px, 100%); box-shadow: 0 24px 60px rgba(0,0,0,.3);
-  margin: auto 0;
+  margin: auto 0; display: flex; flex-direction: column; max-height: calc(100vh - 48px);
 }
 .modal.ancho { width: min(940px, 100%); }
 .modal-cab {
@@ -301,8 +304,12 @@ table.tabla td.num, table.tabla th.num {
   background: transparent; border: none; font-size: 1.5rem; line-height: 1;
   cursor: pointer; color: var(--suave); padding: 0 4px;
 }
-.modal-cuerpo { padding: 20px; }
-.modal-pie { padding: 14px 20px; border-top: 1px solid var(--borde); display: flex; gap: 9px; justify-content: flex-end; flex-wrap: wrap; }
+.modal-cuerpo { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
+.modal-pie {
+  padding: 14px 20px; border-top: 1px solid var(--borde); display: flex; gap: 9px;
+  justify-content: flex-end; flex-wrap: wrap; flex-shrink: 0; background: #fff;
+  border-radius: 0 0 16px 16px;
+}
 
 /* -------------------------------- Avisos -------------------------------- */
 /* La columna de avisos no intercepta clics: su caja invisible cubría el botón de
