@@ -249,7 +249,7 @@ export async function vistaContabilidad({ refrescar }) {
       el('button', {
         clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar cobros a Excel',
         onclick: () => descargarExcel(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
-          ['Fecha', 'Paciente', 'Como pago', 'Nota', 'Monto'],
+          ['Fecha', 'Paciente', 'Cómo pagó', 'Nota', 'Monto'],
           pagosP.map((x) => [x.fecha, nombreLista(x.paciente_nombre, x.paciente_apellidos),
             NOMBRE_METODO_PAGO[x.metodo] || x.metodo, x.nota || '', x.monto])),
       }),

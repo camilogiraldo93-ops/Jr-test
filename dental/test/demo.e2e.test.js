@@ -180,6 +180,11 @@ test('Demo · agendar eligiendo el tratamiento previsto', async () => {
   assert.ok(opcion, 'el catálogo ofrece el implante');
   await m.locator('select[name="catalogo_id"]').selectOption(opcion);
 
+  // Nadie viene preseleccionado: hay que decir de quién es la cita.
+  const pacientes = await m.locator('select[name="paciente_id"] option').evaluateAll(
+    (ops) => ops.filter((o) => o.value).map((o) => o.value));
+  await m.locator('select[name="paciente_id"]').selectOption(pacientes[0]);
+
   // 120 min de catálogo → la hora de fin y el motivo se completan solos.
   await pagina.waitForFunction(() =>
     document.querySelector('.modal-fondo input[name="hora_fin"]').value === '21:00');

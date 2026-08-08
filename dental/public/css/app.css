@@ -367,8 +367,9 @@ table.tabla td.num, table.tabla th.num {
   .marca { padding: 6px 8px; font-size: 1rem; white-space: nowrap; }
   .nav { display: flex; gap: 4px; padding: 0; overflow-x: auto; }
   .nav a { margin-bottom: 0; padding: 9px 11px; white-space: nowrap; font-size: .86rem; }
-  .nav a .txt { display: none; }
-  .nav a.activo .txt { display: inline; }
+  /* El nombre de cada sección se queda: en tablet la barra se desplaza de lado,
+     que es mejor que dejar cuatro emoji sin explicación. */
+  .nav a .txt { display: inline; }
   .usuario-caja { border-top: none; border-left: 1px solid rgba(255,255,255,.1); padding: 4px 10px; white-space: nowrap; }
   .usuario-caja button { margin-top: 3px; padding: 5px 8px; font-size: .78rem; }
   .contenido { padding: 16px 14px 50px; }

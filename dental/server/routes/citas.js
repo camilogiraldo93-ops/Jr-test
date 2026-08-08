@@ -270,9 +270,12 @@ patch('/api/citas/:id/estado', { roles: ['admin', 'recepcion', 'doctor'] }, ({ p
   if (nuevo === 'completada') {
     const pendientes = pendientesDeCita(c.id);
     if (pendientes.length) {
+      const cuantos = pendientes.length === 1
+        ? 'un consentimiento informado sin firmar'
+        : `${pendientes.length} consentimientos informados sin firmar`;
       throw new ErrorApp(409,
-        `No se puede completar la cita: hay ${pendientes.length} consentimiento(s) informado(s) sin firmar ` +
-        `(${pendientes.map((p) => p.tratamiento).join(', ')}). Fírmalos antes de cerrar la atención.`,
+        `No se puede cerrar la cita: hay ${cuantos} ` +
+        `(${pendientes.map((p) => p.tratamiento).join(', ')}). Fírmalo antes de cerrar la atención.`,
         { consentimientos_pendientes: pendientes.map((p) => ({ id: p.id, tratamiento: p.tratamiento })) });
     }
   }

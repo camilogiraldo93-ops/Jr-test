@@ -180,4 +180,49 @@ Pruebas: **64 en verde** (2 migración, 23 API, 26 interfaz, 13 demo).
 
 ### Veredicto del revisor-ux sobre el ciclo 3
 
+**VEREDICTO GLOBAL: RECHAZADO** — pero cerca: 8 de 10 tareas y 4 de 5 auditorías en ✅.
+
+Tareas: ❌ 1 (4 pasos) · ✅ 2 · ✅ 3 · ✅ 4 · ✅ 5 · ✅ 6 · ✅ 7 (ya encuentra
+«lucia» sin tilde) · ✅ 8 · ✅ 9 · ✅ 10.
+Auditorías: ❌ Lenguaje · ✅ Botones muertos · ✅ Pantallas rotas · ✅ Consola ·
+✅ Carga (indicador a los 35 ms).
+
+Sus palabras sobre los bloqueantes: «Lo que la rechaza son dos valores por
+defecto peligrosos en desplegables —el mismo error de diseño repetido dos
+veces— y no la arquitectura.»
+
+1. La cita se agendaba **a la persona equivocada sin avisar**: el desplegable
+   venía con el primer paciente alfabético. Pulsó «Agendar cita» sin tocar la
+   lista y quedó una cita a nombre de Ricardo Aguirre León.
+2. Una doctora creaba **citas que ella misma no podía abrir**: el desplegable de
+   doctor arrancaba en otro, y al guardar aterrizaba en un 403.
+3. Cuatro pasos en la tarea 1, no tres.
+4. En tablet el menú quedaba en emoji sin nombre ni `title`.
+5. Fugas de lenguaje: «consentimiento(s)», «cargar la vista», «Detalle técnico»,
+   «Como pago» en el CSV.
+
+---
+
+## Ciclo 4 — solo hallazgos bloqueantes
+
+1. **Nadie viene elegido de antemano.** El desplegable de paciente abre en
+   «— Elige a la persona —» y no se guarda sin decidir. Prueba nueva: pulsar
+   «Agendar cita» sin elegir avisa y deja el formulario abierto.
+2. **Un doctor agenda para sí mismo.** Al abrir el formulario con sesión de
+   doctor, vienen puestos él y una sede donde de verdad atiende.
+3. **La validación la damos nosotros.** El `required` hacía que el navegador
+   bloqueara el envío con su globo en inglés antes de llegar a nuestro aviso;
+   el formulario lleva ahora `novalidate` y usa `formularioCompleto()`.
+4. **El menú conserva su nombre en tablet**: la barra se desplaza de lado en vez
+   de dejar cuatro emoji mudos, y cada enlace lleva `title`.
+5. **Lenguaje**: el «(s)» del servidor, «cargar la vista», el volcado técnico en
+   la pantalla de rescate (ahora va a la consola) y la cabecera del CSV.
+
+Las pruebas pasaban porque se apoyaban en el valor por defecto peligroso: se
+corrigieron para elegir al paciente y se añadió la que faltaba.
+
+Pruebas: **65 en verde** (2 migración, 23 API, 27 interfaz, 13 demo).
+
+### Veredicto del revisor-ux sobre el ciclo 4
+
 _(pendiente)_

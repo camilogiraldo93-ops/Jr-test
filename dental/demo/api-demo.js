@@ -814,8 +814,10 @@ export const api = {
         .filter((x) => Number(x.cita_id) === Number(id) && x.estado === 'pendiente');
       if (pendientes.length) {
         throw new ErrorApi(409,
-          `No se puede completar la cita: hay ${pendientes.length} consentimiento(s) informado(s) sin firmar ` +
-          `(${pendientes.map((p) => p.tratamiento).join(', ')}). Fírmalos antes de cerrar la atención.`,
+          `No se puede cerrar la cita: hay ${pendientes.length === 1
+            ? 'un consentimiento informado sin firmar'
+            : `${pendientes.length} consentimientos informados sin firmar`} ` +
+          `(${pendientes.map((p) => p.tratamiento).join(', ')}). Fírmalo antes de cerrar la atención.`,
           { consentimientos_pendientes: pendientes.map((p) => ({ id: p.id, tratamiento: p.tratamiento })) });
       }
     }

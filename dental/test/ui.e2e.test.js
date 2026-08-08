@@ -266,6 +266,9 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
 
   await abrirModal('button:has-text("📅 Agendar cita")');
   let m = modal();
+  // Nadie viene elegido de antemano: hay que decir para quién es la cita.
+  assert.equal(await m.locator('select[name="paciente_id"]').inputValue(), String(ctx.pacienteId),
+    'abierto desde el expediente, la cita ya sabe de quién es');
   await elegirOpcion('select[name="consultorio_id"]', `Clínica UI ${sufijo}`);
   await elegirOpcion('select[name="cubiculo_id"]', 'Cubículo UI-1');
   await elegirOpcion('select[name="doctor_id"]', `Dra. Prueba UI ${sufijo} — Odontología general`);
@@ -289,6 +292,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await elegirOpcion('select[name="consultorio_id"]', `Clínica UI ${sufijo}`);
   await elegirOpcion('select[name="cubiculo_id"]', 'Cubículo UI-1');
   await elegirOpcion('select[name="doctor_id"]', `Dra. Prueba UI ${sufijo} — Odontología general`);
+  await m.locator('select[name="paciente_id"]').selectOption(String(ctx.pacienteId));
   await m.locator('input[name="fecha"]').fill(iso);
   await m.locator('input[name="hora_inicio"]').fill('10:30');
   await m.locator('input[name="hora_fin"]').fill('11:30');
@@ -309,6 +313,26 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   // La cita creada aparece en la agenda por cubículo.
   await pagina.fill('input[name="fecha"]', iso);
   await pagina.waitForSelector('.bloque-cita:has-text("Beatriz")');
+});
+
+test('UI · No se agenda a nadie sin decir a quién', async () => {
+  await pagina.click('a[href="#/agenda"]');
+  await pagina.waitForSelector('button:has-text("➕ Nueva cita")');
+  await abrirModal('button:has-text("➕ Nueva cita")');
+  const m = modal();
+
+  // El desplegable arranca vacío: el primero de la lista no es «el paciente
+  // por defecto». Antes, pulsar Agendar sin mirar creaba una cita a su nombre.
+  assert.equal(await m.locator('select[name="paciente_id"]').inputValue(), '',
+    'nadie viene elegido de antemano');
+
+  await m.locator('button:has-text("Agendar cita")').click();
+  await pagina.waitForSelector('.aviso.error');
+  assert.match(await pagina.locator('.aviso.error').last().innerText(), /elegir a quién/i);
+  assert.ok(await pagina.locator('.modal-fondo').count(), 'el formulario sigue abierto');
+  await limpiarAvisos();
+  await m.locator('button:has-text("Cancelar")').click();
+  await sinModales();
 });
 
 test('UI · Un paciente que llama: solo nombre y teléfono, sin errores', async () => {
@@ -370,6 +394,7 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
     .evaluateAll((ops) => ops.find((o) => o.textContent.startsWith('Implante dental'))?.value);
   assert.ok(opcionImplante, 'el catálogo debe ofrecer el implante al agendar');
   await m.locator('select[name="catalogo_id"]').selectOption(opcionImplante);
+  await m.locator('select[name="paciente_id"]').selectOption(String(ctx.pacienteId));
 
   // La duración del catálogo (120 min) fija la hora de fin y el motivo se sugiere.
   await pagina.waitForFunction(() =>
@@ -870,7 +895,7 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
   const ruta = await descarga.path();
   const csv = fs.readFileSync(ruta, 'utf8');
   assert.match(descarga.suggestedFilename(), /^pagos_.*\.csv$/);
-  assert.match(csv, /Fecha;Paciente;Como pago;Nota;Monto/);
+  assert.match(csv, /Fecha;Paciente;Cómo pagó;Nota;Monto/);
   assert.match(csv, /Nájera/);
   assert.match(csv, /Tarjeta/);
 

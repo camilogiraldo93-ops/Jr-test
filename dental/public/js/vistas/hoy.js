@@ -44,7 +44,7 @@ export async function vistaHoy({ usuario, navegar }) {
       consultorio_id: h.consultorio_id ?? null,
       cubiculo_id: h.cubiculo_id ?? null,
       doctor_id: h.doctor_id ?? null,
-      titulo: `Nueva cita — ${tituloDia(estado.fecha)} a las ${hora}`,
+      titulo: `Nueva cita — ${tituloDia(estado.fecha)}`,
       alGuardar: (c) => navegar(`#/cita/${c.id}`),
     });
   }

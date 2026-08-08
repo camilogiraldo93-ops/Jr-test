@@ -1,5 +1,6 @@
-import { api, ErrorApi } from '../api.js';
-import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos, fmtFechaHora, fmtDinero, nombreLista } from '../ui.js';
+import { api, ErrorApi, sesion } from '../api.js';
+import { el, modal, campo, entrada, area, selector, exito, error, hoyIso, sumarMinutos,
+  fmtFechaHora, fmtDinero, nombreLista, formularioCompleto } from '../ui.js';
 import { recordarHabituales } from '../preferencias.js';
 
 /**
@@ -27,6 +28,11 @@ export async function abrirFormularioCita(opciones = {}) {
     api.consultorios(), api.doctores(), api.pacientes(), api.catalogo(),
   ]);
 
+  // Un doctor agenda para sí mismo casi siempre; y una cita a nombre de otro
+  // doctor él no puede ni abrirla, así que arrancar en el primero de la lista
+  // le fabricaba citas inaccesibles.
+  const doctorPropio = sesion.usuario?.rol === 'doctor' ? sesion.usuario.doctor_id : null;
+
   if (!consultorios.length) {
     error('Antes hay que crear una sede con al menos un sillón, en Configuración.');
     return;
@@ -36,11 +42,17 @@ export async function abrirFormularioCita(opciones = {}) {
     return;
   }
 
+  const sedeDelDoctor = doctorPropio
+    ? doctores.find((d) => d.id === doctorPropio)?.consultorios?.[0]?.id ?? null
+    : null;
+
   const inicial = {
-    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? consultorios[0].id,
+    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? sedeDelDoctor ?? consultorios[0].id,
     cubiculo_id: cita?.cubiculo_id ?? cubiculo_id ?? null,
-    doctor_id: cita?.doctor_id ?? doctor_id ?? null,
-    paciente_id: cita?.paciente_id ?? paciente_id ?? pacientes[0].id,
+    doctor_id: cita?.doctor_id ?? doctor_id ?? doctorPropio ?? null,
+    // Sin preselección: el primero de la lista alfabética no es «el paciente por
+    // defecto», y pulsar Agendar sin mirar creaba citas a nombre de quien no era.
+    paciente_id: cita?.paciente_id ?? paciente_id ?? '',
     fecha: cita ? cita.inicio.slice(0, 10) : fecha,
     hora_inicio: cita ? cita.inicio.slice(11, 16) : hora,
     hora_fin: cita ? cita.fin.slice(11, 16) : sumarMinutos(hora, duracion),
@@ -53,9 +65,13 @@ export async function abrirFormularioCita(opciones = {}) {
     consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), inicial.consultorio_id);
   const selCubiculo = selector('cubiculo_id', [], null);
   const selDoctor = selector('doctor_id', [], null);
-  const selPaciente = selector('paciente_id',
-    pacientes.map((p) => ({ valor: p.id, texto: `${nombreLista(p.nombre, p.apellidos)}${p.cedula ? ` (${p.cedula})` : ''}` })),
-    inicial.paciente_id);
+  const selPaciente = selector('paciente_id', [
+    { valor: '', texto: '— Elige a la persona —' },
+    ...pacientes.map((p) => ({
+      valor: p.id,
+      texto: `${nombreLista(p.nombre, p.apellidos)}${p.cedula ? ` (${p.cedula})` : ''}`,
+    })),
+  ], inicial.paciente_id, { required: true });
 
   const selTratamiento = selector('catalogo_id', [
     { valor: '', texto: '— Sin definir todavía —' },
@@ -206,7 +222,9 @@ export async function abrirFormularioCita(opciones = {}) {
 
   const botonGuardar = el('button', { clase: 'btn', type: 'submit', texto: cita ? 'Guardar cambios' : 'Agendar cita' });
 
-  const form = el('form', {}, [
+  // `novalidate`: los avisos los damos nosotros, en español y nombrando el
+  // campo que falta, en vez del globo del navegador.
+  const form = el('form', { novalidate: true }, [
     avisoConflicto,
     campo('¿Para quién es la cita?', selPaciente,
       'Elige a la persona y pulsa Enter: el resto ya viene puesto con lo de siempre.'),
@@ -250,8 +268,14 @@ export async function abrirFormularioCita(opciones = {}) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!selCubiculo.value) { error('Selecciona un cubículo válido.'); return; }
-    if (!selDoctor.value) { error('Selecciona un doctor asignado a ese consultorio.'); return; }
+    if (!selPaciente.value) {
+      error('Falta elegir a quién se le agenda la cita.', 'Falta un dato');
+      selPaciente.focus();
+      return;
+    }
+    if (!formularioCompleto(form)) return;
+    if (!selCubiculo.value) { error('Elige un sillón para la cita.'); return; }
+    if (!selDoctor.value) { error('Elige un doctor de los que atienden en esa sede.'); return; }
     botonGuardar.disabled = true;
     botonGuardar.textContent = 'Guardando…';
     const datos = {

@@ -165,7 +165,7 @@ function puedeVerSeccion(m) {
 function armarMarco() {
   const nav = el('nav', { clase: 'nav' },
     MENU.filter(puedeVerSeccion).map((m) =>
-      el('a', { href: `#/${m.ruta}`, datos: { ruta: m.ruta } }, [
+      el('a', { href: `#/${m.ruta}`, title: m.texto, datos: { ruta: m.ruta } }, [
         el('span', { clase: 'icono', texto: m.icono }),
         el('span', { clase: 'txt', texto: m.texto }),
       ])));
@@ -248,7 +248,8 @@ async function renderVista() {
       await dibujar();
       return;
     }
-    const mensaje = err instanceof ErrorApi ? err.message : 'Ocurrió un error al cargar la vista.';
+    const mensaje = err instanceof ErrorApi ? err.message
+      : 'No se pudo traer la información. Revisa tu conexión y vuelve a intentarlo.';
     contenidoRef.appendChild(el('div', { clase: 'alerta-caja' }, [
       el('b', { texto: 'Esta pantalla no se pudo mostrar. ' }),
       el('span', { texto: mensaje }),
@@ -285,6 +286,7 @@ export async function dibujar() {
  * una salida clara, en vez de dejar a la persona mirando un rectángulo vacío.
  */
 function pantallaFallo(detalle) {
+  console.error('[fallo] ', detalle);
   limpiar(app);
   app.classList.remove('cargando');
   app.appendChild(el('div', { clase: 'login-fondo' }, [
@@ -293,7 +295,9 @@ function pantallaFallo(detalle) {
       el('p', { clase: 'sub', texto: 'Algo se interrumpió y esta pantalla no se pudo mostrar.' }),
       el('div', { clase: 'alerta-caja aviso' }, [
         el('div', { texto: 'No se perdió nada de lo que ya estaba guardado. Vuelve al inicio y sigue trabajando; si vuelve a pasar, avísale a quien te da soporte.' }),
-        detalle ? el('div', { clase: 'mini', style: 'margin-top:8px', texto: `Detalle técnico: ${detalle}` }) : null,
+        // El detalle técnico va a la consola, para quien dé soporte; en pantalla no
+        // ayuda a nadie y asusta.
+        null,
       ]),
       el('button', {
         clase: 'btn', type: 'button', texto: '← Volver al inicio', style: 'width:100%',
