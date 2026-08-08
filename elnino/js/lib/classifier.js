@@ -154,12 +154,15 @@ export function classifyDay(d, cfg = DEFAULT_CONFIG) {
 
   // Sequía: sólo tiene sentido donde la normal de 30 días es no trivial.
   if (Number.isFinite(c.pr30Mean) && c.pr30Mean >= cfg.drought.minClimMm) {
-    // Para déficit, un factor <1 endurece el umbral (menos alertas); por eso se
-    // aplica multiplicando el umbral de acumulado mínimo esperado.
+    // La sequía se dispara POR DEBAJO del umbral, así que un factor <1 baja la
+    // barra y produce MENOS alertas. Por eso el factor multiplica (no divide):
+    // en la costa, durante El Niño (ONI>0, sensibilidad negativa) el factor es
+    // <1 y las alertas de sequía se vuelven menos probables, que es el patrón
+    // real; en la Amazonía la sensibilidad es positiva y ocurre lo contrario.
     levels.sequia = levelForDeficit(d.pr30, [
-      c[cfg.drought.pctYellow] / fDry,
-      c[cfg.drought.pctOrange] / fDry,
-      c[cfg.drought.pctRed] / fDry,
+      c[cfg.drought.pctYellow] * fDry,
+      c[cfg.drought.pctOrange] * fDry,
+      c[cfg.drought.pctRed] * fDry,
     ]);
   }
 
