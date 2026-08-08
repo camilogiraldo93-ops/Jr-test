@@ -125,7 +125,7 @@ test('Demo · inicia sesión y carga el panel con los datos de ejemplo', async (
   await pagina.waitForSelector('.kpi');
   const kpis = await pagina.locator('.rejilla.c4').first().innerText();
   assert.match(kpis, /10/, '10 pacientes de ejemplo');
-  assert.match(await pagina.locator('h2').first().innerText(), /Panel general/);
+  assert.match(await pagina.locator('h2').first().innerText(), /Resumen del consultorio/);
 });
 
 test('Demo · la agenda muestra citas y bloquea conflictos', async () => {
@@ -192,8 +192,8 @@ test('Demo · agendar eligiendo el tratamiento previsto', async () => {
 
   await pagina.fill('input[name="fecha"]', iso);
   await pagina.click('.bloque-cita:has-text("Implante dental")');
-  await pagina.waitForSelector('h2:has-text("Cita #")');
-  assert.match(await pagina.locator('.tarjeta:has-text("Estado de la cita")').innerText(),
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
+  assert.match(await pagina.locator('.tarjeta:has-text("¿Cómo va esta cita?")').innerText(),
     /Tratamiento previsto:\s*Implante dental/);
 });
 
@@ -229,13 +229,13 @@ test('Demo · regla clínica, tratamiento, consentimiento y doble firma', async 
 
   // Inmutable
   assert.equal(await pagina.locator('canvas.firma-lienzo').count(), 0);
-  assert.equal(await pagina.locator('.tarjeta:has-text("Datos del documento")').count(), 0);
+  assert.equal(await pagina.locator('.tarjeta:has-text("Lo que hay que llenar")').count(), 0);
 });
 
 test('Demo · la cita se puede completar una vez firmado', async () => {
   await pagina.goto(ctx.consentUrl, { waitUntil: 'networkidle' });
   await pagina.click('a:has-text("🗓️ Cita")');
-  await pagina.waitForSelector('h2:has-text("Cita #")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
   ctx.citaUrl = pagina.url();
 
   assert.equal(await pagina.locator('.alerta-caja:has-text("sin firmar")').count(), 0,
@@ -274,8 +274,8 @@ test('Demo · expediente completo con pestañas, imágenes e impresión', async 
 
 test('Demo · contabilidad con desglose por doctor y exportación CSV', async () => {
   await pagina.goto(`${base}#/contabilidad`, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('.tarjeta:has-text("Ingresos por doctor")');
-  assert.ok(await pagina.locator('.tarjeta:has-text("Ingresos por método de pago")').count());
+  await pagina.waitForSelector('.tarjeta:has-text("Cuánto entró por cada doctor")');
+  assert.ok(await pagina.locator('.tarjeta:has-text("Cómo pagó la gente")').count());
 
   const [descarga] = await Promise.all([
     pagina.waitForEvent('download'),

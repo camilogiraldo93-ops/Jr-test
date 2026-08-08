@@ -2,6 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { usuarioPorToken } from './auth.js';
 
+const NOMBRE_ROL = { admin: 'la administradora', doctor: 'el doctor', recepcion: 'recepción' };
+
+/** «la administradora», «la administradora o el doctor», … */
+function listaPuestos(roles) {
+  const nombres = roles.map((x) => NOMBRE_ROL[x] || x);
+  if (nombres.length === 1) return nombres[0];
+  return `${nombres.slice(0, -1).join(', ')} o ${nombres[nombres.length - 1]}`;
+}
+
 /** Error de aplicación con código HTTP y detalle opcional. */
 export class ErrorApp extends Error {
   constructor(estado, mensaje, detalle = null) {
@@ -123,7 +132,11 @@ export function crearManejador({ dirPublico, dirUploads }) {
           usuario = usuarioPorToken(token);
           if (!usuario) throw new ErrorApp(401, 'Sesión no válida o expirada. Inicia sesión de nuevo.');
           if (r.roles && !r.roles.includes(usuario.rol)) {
-            throw new ErrorApp(403, `Tu rol (${usuario.rol}) no tiene permiso para esta acción.`);
+            // El código interno del puesto no le dice nada a quien lee: se nombra
+            // el puesto como se nombra en el consultorio y se dice de quién es.
+            throw new ErrorApp(403,
+              `Esta parte no le corresponde a ${NOMBRE_ROL[usuario.rol] || 'tu puesto'}. ` +
+              `La maneja ${listaPuestos(r.roles)}. Si necesitas algo de aquí, pídeselo.`);
           }
         }
 
@@ -140,7 +153,13 @@ export function crearManejador({ dirPublico, dirUploads }) {
         return enviarJson(res, e.estado, { error: e.message, detalle: e.detalle });
       }
       console.error('[error no controlado]', e);
-      return enviarJson(res, 500, { error: 'Error interno del servidor.', detalle: String(e.message || e) });
+      // Quien lee esto está atendiendo a alguien: lo que necesita saber es que
+      // no fue culpa suya, que no se perdió nada y qué hacer ahora.
+      return enviarJson(res, 500, {
+        error: 'Algo falló de nuestro lado y no se pudo guardar. No es culpa tuya y no se perdió ' +
+               'lo que ya estaba guardado. Vuelve a intentarlo; si sigue igual, avísale a quien te da soporte.',
+        detalle: String(e.message || e),
+      });
     }
   };
 }

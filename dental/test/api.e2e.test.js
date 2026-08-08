@@ -134,6 +134,30 @@ test('Flujo 2 · Crear paciente nuevo con ficha completa', async () => {
   assert.equal(dup.estado, 409, 'cédula duplicada debe rechazarse');
 });
 
+test('Un paciente se crea solo con nombre y teléfono', async () => {
+  // Lo que hace recepción cuando suena el teléfono y la persona no deja apellido.
+  const p = exigir(await recepcion.post('/api/pacientes', {
+    nombre: 'Rosa', telefono: '099-555-7788',
+  }), 201, 'crear paciente solo con nombre y teléfono');
+  assert.equal(p.nombre, 'Rosa');
+  assert.equal(p.apellidos, null, 'los apellidos quedan vacíos, no inventados');
+
+  // Y aparece en la búsqueda como cualquier otro.
+  const encontrados = exigir(await recepcion.get('/api/pacientes?q=Rosa'), 200);
+  assert.ok(encontrados.some((x) => x.id === p.id), 'se puede volver a encontrar');
+
+  // Se le puede agendar sin completar nada más.
+  const fecha = fechaRelativa(6);
+  exigir(await recepcion.post('/api/citas', {
+    consultorio_id: ctx.consultorio.id, cubiculo_id: ctx.cubiculos[0].id, doctor_id: ctx.doctor.id,
+    paciente_id: p.id, inicio: `${fecha}T08:00`, fin: `${fecha}T08:30`,
+  }), 201, 'agendar a un paciente sin apellidos');
+
+  // El nombre sigue siendo obligatorio: sin él no hay ficha.
+  const sinNombre = await recepcion.post('/api/pacientes', { telefono: '099-000-0000' });
+  assert.equal(sinNombre.estado, 400);
+});
+
 /* ------------------------------- Flujo 3 -------------------------------- */
 test('Flujo 3 · Agendar cita y bloquear conflictos de cubículo y de doctor', async () => {
   const fecha = fechaRelativa(3);
@@ -557,7 +581,7 @@ test('Flujo 7 · Cobro del tratamiento, gasto del consultorio y balance', async 
   // No se puede pagar de más.
   const exceso = await recepcion.post('/api/pagos', { cargo_id: cargo.id, monto: 10000 });
   assert.equal(exceso.estado, 400);
-  assert.match(exceso.datos.error, /supera el saldo/);
+  assert.match(exceso.datos.error, /solo le faltan \$80\.00 por pagar/);
 
   // Estado de cuenta del paciente.
   const ec = exigir(await recepcion.get(`/api/pacientes/${ctx.paciente.id}/estado-cuenta`), 200);

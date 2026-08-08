@@ -184,7 +184,7 @@ test('UI · Inicio de sesión y panel', async () => {
 
   await pagina.click('a[href="#/panel"]');
   await pagina.waitForSelector('.kpi');
-  assert.match(await pagina.locator('h2').first().innerText(), /Panel general/);
+  assert.match(await pagina.locator('h2').first().innerText(), /Resumen del consultorio/);
   assert.ok(await pagina.locator('a[href="#/configuracion"]').count(), 'el admin ve Configuración');
 });
 
@@ -277,7 +277,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await m.locator('button:has-text("Agendar cita")').click();
   await esperarExito(/quedó agendada/);
 
-  await pagina.waitForSelector('h2:has-text("Cita #")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
   ctx.citaUrl = pagina.url();
   ctx.citaId = Number(ctx.citaUrl.split('/').pop());
 
@@ -309,6 +309,49 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   // La cita creada aparece en la agenda por cubículo.
   await pagina.fill('input[name="fecha"]', iso);
   await pagina.waitForSelector('.bloque-cita:has-text("Beatriz")');
+});
+
+test('UI · Un paciente que llama: solo nombre y teléfono, sin errores', async () => {
+  await pagina.goto(`${servidor.base}/#/pacientes`, { waitUntil: 'networkidle' });
+  await abrirModal('button:has-text("➕ Nuevo paciente")');
+  const m = modal();
+
+  // Sin apellidos ni nada más: es lo que la propia pantalla promete.
+  await m.locator('input[name="nombre"]').fill(`Rosa UI${sufijo}`);
+  await m.locator('input[name="telefono"]').fill('099-555-7788');
+  await m.locator('button:has-text("Crear paciente")').click();
+  await esperarExito(/ya está en la lista/);
+
+  await pagina.waitForSelector(`h2:has-text("Rosa UI${sufijo}")`);
+  const titulo = await pagina.locator('h2').first().innerText();
+  assert.ok(!titulo.includes(','), `el nombre no debe llevar una coma suelta: "${titulo}"`);
+
+  // Y se encuentra desde el buscador de la barra lateral, con su teléfono.
+  await pagina.fill('.buscador-global input', `Rosa UI${sufijo}`);
+  await pagina.waitForSelector('.resultados-busqueda .resultado');
+  assert.match(await pagina.locator('.resultados-busqueda .resultado').first().innerText(), /099-555-7788/);
+  await pagina.keyboard.press('Escape');
+});
+
+test('UI · El aviso emergente no se traga los clics', async () => {
+  await pagina.goto(`${servidor.base}/#/hoy`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.hoja-dia');
+
+  // Se provoca un aviso y, mientras sigue en pantalla, se pulsa el botón que
+  // vive justo debajo de él. Antes la caja invisible de avisos lo bloqueaba.
+  await pagina.evaluate(() => {
+    const caja = document.getElementById('avisos');
+    const a = document.createElement('div');
+    a.className = 'aviso exito';
+    a.textContent = 'Aviso de prueba que dura en pantalla';
+    caja.appendChild(a);
+  });
+  await pagina.waitForSelector('#avisos .aviso');
+  await pagina.click('.boton-ayuda', { timeout: 5000 });
+  await pagina.waitForSelector('.modal-fondo .lista-ayuda');
+  await modal().locator('button:has-text("Entendido")').click();
+  await sinModales();
+  await limpiarAvisos();
 });
 
 test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () => {
@@ -343,8 +386,8 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
   await pagina.click('.bloque-cita:has-text("Implante dental")');
 
   // La cita abierta muestra el tratamiento previsto y su advertencia.
-  await pagina.waitForSelector('h2:has-text("Cita #")');
-  const previsto = pagina.locator('.tarjeta:has-text("Estado de la cita")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
+  const previsto = pagina.locator('.tarjeta:has-text("¿Cómo va esta cita?")');
   assert.match(await previsto.innerText(), /Tratamiento previsto:\s*Implante dental/);
   assert.match(await previsto.innerText(), /requiere consentimiento/i);
 
@@ -361,7 +404,7 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
 
 test('UI · Ningún botón muerto: «El paciente llegó» abre la atención y deja anotar', async () => {
   await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('h2:has-text("Cita #")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
   assert.match(await pagina.locator('.eti.agendada').first().innerText(), /Agendada/);
 
   const tarjeta = '.tarjeta:has-text("Lo que se hizo en esta cita")';
@@ -408,7 +451,7 @@ test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio',
   await m.locator('select[name="tipo"]').selectOption('radiografia');
   await m.locator('input[name="descripcion"]').fill('Control posoperatorio');
   await m.locator('button:has-text("Subir imágenes")').click();
-  await esperarExito(/2 imagen\(es\)/);
+  await esperarExito(/2 imágenes quedaron guardadas/);
   await pagina.waitForSelector('.galeria figure');
   assert.equal(await pagina.locator('.galeria figure').count(), 2);
 
@@ -450,7 +493,7 @@ test('UI · Flujo 5: documento autocompletado y doble firma en pantalla', async 
   assert.match(texto, /AUTORIZO/);
   assert.match(texto, /registro fotográfico y radiográfico/);
 
-  const editables = await pagina.locator('.tarjeta:has-text("Datos del documento") input, .tarjeta:has-text("Datos del documento") select, .tarjeta:has-text("Datos del documento") textarea').count();
+  const editables = await pagina.locator('.tarjeta:has-text("Lo que hay que llenar") input, .tarjeta:has-text("Lo que hay que llenar") select, .tarjeta:has-text("Lo que hay que llenar") textarea').count();
   assert.equal(editables, 4, 'catálogo + tratamiento + doctor + observaciones');
 
   // Se completa el tercer campo manual.
@@ -481,7 +524,7 @@ test('UI · Flujo 5: documento autocompletado y doble firma en pantalla', async 
   // Documento firmado: inmutable, con ambas firmas visibles.
   await pagina.waitForSelector('.alerta-caja.ok:has-text("Documento firmado")');
   assert.equal(await pagina.locator('.firmas .firma-img').count(), 2, 'se archivan las dos firmas');
-  assert.equal(await pagina.locator('.tarjeta:has-text("Datos del documento")').count(), 0,
+  assert.equal(await pagina.locator('.tarjeta:has-text("Lo que hay que llenar")').count(), 0,
     'ya no se puede editar');
   assert.equal(await pagina.locator('canvas.firma-lienzo').count(), 0, 'ya no se puede volver a firmar');
   const pie = await pagina.locator('.firmas').innerText();
@@ -525,7 +568,7 @@ test('UI · Modo tablet e impresión del consentimiento', async () => {
 
 test('UI · Flujo 6: agendar la cita de seguimiento desde la misma cita', async () => {
   await pagina.goto(ctx.citaUrl, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('h2:has-text("Cita #")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
   await abrirModal('button:has-text("➕ Agendar seguimiento")');
   const m = modal();
   await pagina.waitForSelector('.modal-cab:has-text("Agendar seguimiento")');
@@ -590,7 +633,7 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
   // El filtro recarga de forma asíncrona: esperamos a que el resumen quede acotado a esa sede.
   await pagina.waitForFunction((nombre) => {
     const tarjeta = [...document.querySelectorAll('.tarjeta')]
-      .find((t) => t.querySelector('h3')?.textContent.includes('Resumen por consultorio'));
+      .find((t) => t.querySelector('h3')?.textContent.includes('Cómo va cada sede'));
     const filas = tarjeta ? [...tarjeta.querySelectorAll('tbody tr')] : [];
     return filas.length === 1 && filas[0].textContent.includes(nombre);
   }, `Clínica UI ${sufijo}`, { timeout: 30000 });
@@ -599,10 +642,10 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
   assert.match(kpis, /\$80\.00/, 'gastos del período');
   assert.match(kpis, /\$40\.00/, 'balance = 120 − 80');
 
-  const porConsultorio = await pagina.locator('.tarjeta:has-text("Resumen por consultorio")').innerText();
+  const porConsultorio = await pagina.locator('.tarjeta:has-text("Cómo va cada sede")').innerText();
   assert.match(porConsultorio, new RegExp(`Clínica UI ${sufijo}`));
 
-  const deudores = await pagina.locator('.tarjeta:has-text("saldo pendiente")').innerText();
+  const deudores = await pagina.locator('.tarjeta:has-text("Pacientes que deben")').innerText();
   assert.match(deudores, /Nájera/);
 });
 
@@ -769,7 +812,7 @@ test('UI · Paciente menor de edad: el documento pide representante legal', asyn
 });
 
 test('UI · Anulación de un consentimiento firmado, con reemplazo', async () => {
-  await pagina.click('button:has-text("⛔ Anular y generar reemplazo")');
+  await pagina.click('button:has-text("⛔ Anular y hacer uno nuevo")');
   await pagina.waitForSelector('.modal-fondo');
   await modal().locator('textarea[name="motivo"]').fill('Se cambió el tratamiento acordado con la madre.');
   await modal().locator('button:has-text("Anular")').click();
@@ -811,13 +854,13 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
   await pagina.goto(`${servidor.base}/#/contabilidad`, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('.kpi');
 
-  await pagina.waitForSelector('.tarjeta:has-text("Ingresos por doctor")');
-  const porDoctor = await pagina.locator('.tarjeta:has-text("Ingresos por doctor")').innerText();
+  await pagina.waitForSelector('.tarjeta:has-text("Cuánto entró por cada doctor")');
+  const porDoctor = await pagina.locator('.tarjeta:has-text("Cuánto entró por cada doctor")').innerText();
   assert.match(porDoctor, new RegExp(`Dra. Prueba UI ${sufijo}`), 'atribuye el cobro a su doctora');
   assert.match(porDoctor, /\$120\.00/);
 
-  const porMetodo = await pagina.locator('.tarjeta:has-text("Ingresos por método de pago")').innerText();
-  assert.match(porMetodo, /tarjeta/);
+  const porMetodo = await pagina.locator('.tarjeta:has-text("Cómo pagó la gente")').innerText();
+  assert.match(porMetodo, /Tarjeta/);
 
   // La descarga del CSV se intercepta para comprobar su contenido real.
   const [descarga] = await Promise.all([
@@ -872,7 +915,7 @@ test('UI · Roles: recepción y doctor ven solo lo que les corresponde', async (
   assert.equal(await pagina.locator('a[href="#/pacientes"]').count(), 1, 'recepción sí ve Pacientes');
 
   await pagina.goto(`${servidor.base}/#/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('h2:has-text("Cita #")');
+  await pagina.waitForSelector('h2:has-text("Cita de ")');
   assert.equal(
     await pagina.locator('.tarjeta:has-text("Lo que se hizo en esta cita") button:has-text("➕ Anotar lo que se hizo")').count(), 0,
     'recepción no puede registrar tratamientos');

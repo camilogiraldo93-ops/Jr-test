@@ -304,8 +304,18 @@ table.tabla td.num, table.tabla th.num {
 .modal-pie { padding: 14px 20px; border-top: 1px solid var(--borde); display: flex; gap: 9px; justify-content: flex-end; flex-wrap: wrap; }
 
 /* -------------------------------- Avisos -------------------------------- */
-.avisos { position: fixed; bottom: 18px; right: 18px; z-index: 400; display: flex; flex-direction: column; gap: 9px; max-width: min(420px, 92vw); }
+/* La columna de avisos no intercepta clics: su caja invisible cubría el botón de
+   ayuda y las acciones de la esquina, y durante los segundos que duraba el aviso
+   los clics no llegaban a nada. Cada aviso concreto sí es pulsable. */
+.avisos {
+  /* Por encima del botón de ayuda, no sobre él: aunque cada aviso sí sea
+     pulsable, ninguno debe caer encima de un botón de la esquina. */
+  position: fixed; bottom: 68px; right: 18px; z-index: 400; display: flex;
+  flex-direction: column; gap: 9px; max-width: min(420px, 92vw);
+  pointer-events: none;
+}
 .aviso {
+  pointer-events: auto;
   background: #fff; border-left: 4px solid var(--azul); border-radius: 10px; padding: 12px 15px;
   box-shadow: 0 8px 26px rgba(0,0,0,.18); font-size: .9rem; animation: entrar .25s ease;
 }
@@ -569,3 +579,6 @@ body.modo-tablet .salir-tablet {
 .lista-ayuda li { color: var(--suave); font-size: .9rem; }
 @media print { .boton-ayuda { display: none !important; } }
 body.modo-tablet .boton-ayuda, body.imprimiendo .boton-ayuda { display: none; }
+.lista-ayuda details.de-otros { background: #fbfdfe; }
+.lista-ayuda details.de-otros summary { color: var(--suave); font-weight: 500; }
+.lista-ayuda details.de-otros p { margin: 10px 0 2px; }

@@ -1,5 +1,5 @@
 import { api, ErrorApi } from '../api.js';
-import { el, modal, campo, entrada, area, selector, exito, error, vacio, fmtDinero } from '../ui.js';
+import { el, modal, campo, entrada, area, selector, exito, error, vacio, fmtDinero , NOMBRE_ROL } from '../ui.js';
 
 function formModal({ titulo, campos, alGuardar, textoBoton = 'Guardar' }) {
   const boton = el('button', { clase: 'btn', type: 'button', texto: textoBoton });
@@ -142,16 +142,16 @@ export async function vistaConfiguracion({ refrescar }) {
       { valor: 'recepcion', texto: 'Recepción' }, { valor: 'doctor', texto: 'Doctor' }, { valor: 'admin', texto: 'Administrador' },
     ], 'recepcion');
     const selDoctor = selector('doctor_id', [
-      { valor: '', texto: '— Sin vincular —' },
+      { valor: '', texto: '— No es doctor —' },
       ...doctores.map((d) => ({ valor: d.id, texto: d.nombre })),
     ], '');
 
     formModal({
-      titulo: 'Nuevo usuario del sistema',
+      titulo: 'Dar acceso a alguien del equipo',
       campos: [
         { nodo: campo('Nombre *', nombre) },
         { nodo: el('div', { clase: 'fila' }, [campo('Correo *', email), campo('Contraseña *', password)]) },
-        { nodo: el('div', { clase: 'fila' }, [campo('Rol', rol), campo('Doctor vinculado', selDoctor)]) },
+        { nodo: el('div', { clase: 'fila' }, [campo('¿Qué hace en el consultorio?', rol), campo('¿Qué doctor es?', selDoctor)]) },
       ],
       alGuardar: async () => {
         await api.crearUsuario({
@@ -268,24 +268,24 @@ export async function vistaConfiguracion({ refrescar }) {
 
     el('div', { clase: 'tarjeta' }, [
       el('h3', {}, [
-        el('span', { texto: '👥 Usuarios y roles' }),
+        el('span', { texto: '👥 Quién puede entrar' }),
         el('button', { clase: 'btn chico', type: 'button', texto: '➕ Nuevo usuario', style: 'margin-left:auto', onclick: nuevoUsuario }),
       ]),
       el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-        el('thead', {}, [el('tr', {}, ['Nombre', 'Correo', 'Rol', 'Doctor vinculado', 'Estado'].map((t) => el('th', { texto: t })))]),
+        el('thead', {}, [el('tr', {}, ['Nombre', 'Correo', 'Qué hace', 'Qué doctor es', 'Puede entrar'].map((t) => el('th', { texto: t })))]),
         el('tbody', {}, usuarios.map((u) => el('tr', {}, [
           el('td', { texto: u.nombre }),
           el('td', { texto: u.email }),
-          el('td', {}, [el('span', { clase: 'eti info', texto: u.rol })]),
+          el('td', {}, [el('span', { clase: 'eti info', texto: NOMBRE_ROL[u.rol] || u.rol })]),
           el('td', { texto: doctores.find((d) => d.id === u.doctor_id)?.nombre || '—' }),
-          el('td', { texto: u.activo ? 'Activo' : 'Inactivo' }),
+          el('td', { texto: u.activo ? 'Sí' : 'No' }),
         ]))),
       ])]),
     ]),
 
     el('div', { clase: 'tarjeta' }, [
       el('h3', {}, [
-        el('span', { texto: '📚 Catálogo de tratamientos' }),
+        el('span', { texto: '📚 Tratamientos y precios' }),
         el('button', { clase: 'btn chico', type: 'button', texto: '➕ Nuevo tratamiento', style: 'margin-left:auto', onclick: nuevoCatalogo }),
       ]),
       el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [

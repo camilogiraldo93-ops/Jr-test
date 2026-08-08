@@ -1,6 +1,7 @@
 import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, selector, area, exito, error, vacio, fmtDinero, fmtFechaCorta,
-  fmtFechaHora, fmtMarca, etiquetaEstado, entrada } from '../ui.js';
+  fmtFechaHora, fmtMarca, etiquetaEstado, entrada, NOMBRE_DIENTE, NOMBRE_PRIORIDAD,
+  nombreCompleto, plural } from '../ui.js';
 import { abrirFormularioPaciente } from './pacientes.js';
 import { abrirFormularioCita } from './formCita.js';
 import { abrirNuevoConsentimiento } from './consentimiento.js';
@@ -9,6 +10,13 @@ import { ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 const DIENTES_SUP = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28'];
 const DIENTES_INF = ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38'];
 const ESTADOS_DIENTE = ['sano','caries','obturado','corona','ausente','endodoncia','implante','fractura','sellante'];
+
+// Una marca corta y reconocible dentro del cuadrito del diente; el nombre
+// completo aparece al pasar el ratón y en el cuadro de edición.
+const MARCA_DIENTE = {
+  caries: 'C', obturado: 'O', corona: 'CO', ausente: '✕',
+  endodoncia: 'E', implante: 'I', fractura: 'F', sellante: 'S',
+};
 
 function dato(etiqueta, valor) {
   return el('div', {}, [
@@ -71,7 +79,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
         dato('Contacto de emergencia', p.contacto_emergencia),
         dato('Teléfono de emergencia', p.telefono_emergencia),
         dato('Registrado', fmtMarca(p.creado_en)),
-        dato('Última actualización', fmtMarca(p.actualizado_en)),
+        dato('Ficha actualizada por última vez', fmtMarca(p.actualizado_en)),
       ]),
     ]),
     el('div', { clase: 'tarjeta' }, [
@@ -141,7 +149,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
             el('td', { texto: fmtFechaCorta(t.fecha) }),
             el('td', {}, [
               el('b', { texto: t.nombre }),
-              t.cita_id ? el('div', {}, [el('a', { clase: 'mini', href: `#/cita/${t.cita_id}`, texto: `Cita #${t.cita_id}` })]) : null,
+              t.cita_id ? el('div', {}, [el('a', { clase: 'mini', href: `#/cita/${t.cita_id}`, texto: 'Ver la cita' })]) : null,
             ]),
             el('td', { texto: t.dientes || '—' }),
             el('td', { texto: t.doctor_nombre }),
@@ -178,7 +186,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
         el('figcaption', {}, [
           el('b', { texto: f.nombre }),
           el('span', { texto: `${f.tipo} · ${fmtFechaCorta(f.creada_en)}` }),
-          f.cita_id ? el('div', {}, [el('a', { clase: 'mini', href: `#/cita/${f.cita_id}`, texto: `Cita #${f.cita_id}` })]) : null,
+          f.cita_id ? el('div', {}, [el('a', { clase: 'mini', href: `#/cita/${f.cita_id}`, texto: 'Ver la cita' })]) : null,
         ]),
       ]))),
     ]);
@@ -198,7 +206,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
       el('h3', {}, [el('span', { texto: 'Consentimientos informados' }), botonNuevo]),
       pendientesConsent
         ? el('div', { clase: 'alerta-caja aviso', texto:
-            `Hay ${pendientesConsent} consentimiento(s) pendiente(s) de firma.` })
+            `Falta firmar ${plural(pendientesConsent, 'consentimiento', 'consentimientos')}.` })
         : null,
       exp.consentimientos.length
         ? el('div', { clase: 'tabla-envoltura' }, [
@@ -252,7 +260,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
         el('div', {}, [
           el('div', { clase: 'tit', texto: r.titulo }),
           el('div', { clase: 'det', texto: r.descripcion || '' }),
-          el('div', { clase: 'mini', texto: `${r.fecha_objetivo ? `Objetivo: ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha objetivo'} · Prioridad ${r.prioridad}${r.cita_id ? ` · Cita #${r.cita_id}` : ''}` }),
+          el('div', { clase: 'mini', texto: `${r.fecha_objetivo ? `Para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha'} · ${NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad}` }),
         ]),
         el('div', { clase: 'acciones' }, [
           el('span', { clase: `eti ${r.estado}`, texto: r.estado }),
@@ -282,16 +290,19 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
       const estadoD = principal?.estado || 'sano';
       return el('button', {
         type: 'button', clase: `diente ${estadoD}`,
-        title: `Pieza ${num}: ${estadoD}${principal?.nota ? ` — ${principal.nota}` : ''}`,
+        title: `Pieza ${num}: ${NOMBRE_DIENTE[estadoD] || estadoD}${principal?.nota ? ` — ${principal.nota}` : ''}`,
         onclick: () => puedeClinico ? editarDiente(num, principal) : null,
       }, [
         el('span', { clase: 'num', texto: num }),
-        el('span', { texto: estadoD === 'sano' ? '' : estadoD.slice(0, 4) }),
+        // El nombre completo va en el título; en el diente cabe una marca corta,
+        // no un código recortado como «ause» u «obtu».
+        el('span', { texto: estadoD === 'sano' ? '' : (MARCA_DIENTE[estadoD] || '•') }),
       ]);
     };
 
     function editarDiente(num, actual) {
-      const sel = selector('estado', ESTADOS_DIENTE.map((e) => ({ valor: e, texto: e })), actual?.estado || 'sano');
+      const sel = selector('estado',
+        ESTADOS_DIENTE.map((e) => ({ valor: e, texto: NOMBRE_DIENTE[e] || e })), actual?.estado || 'sano');
       const nota = area('nota', { value: actual?.nota || '' });
       const m = modal({
         titulo: `Pieza dental ${num}`,
@@ -386,7 +397,8 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
         el('h2', { texto: `${p.nombre} ${p.apellidos}` }),
-        el('div', { clase: 'desc', texto: `${p.cedula ? `CI ${p.cedula} · ` : ''}${p.telefono || 'sin teléfono'} · ${exp.citas.length} cita(s) · ${exp.tratamientos.length} tratamiento(s)` }),
+        el('div', { clase: 'desc', texto: `${p.cedula ? `CI ${p.cedula} · ` : ''}${p.telefono || 'sin teléfono'} · ` +
+          `${plural(exp.citas.length, 'cita', 'citas')} · ${plural(exp.tratamientos.length, 'tratamiento', 'tratamientos')}` }),
       ]),
       el('div', { clase: 'acciones' }, [
         el('a', { clase: 'btn sec', href: '#/pacientes', texto: '← Pacientes' }),

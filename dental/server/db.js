@@ -21,11 +21,40 @@ migrarConsentimientosV2();
 db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
 
 migrarTratamientoPrevisto();
+migrarApellidosOpcionales();
 
 /**
  * La cita pasó a llevar el tratamiento previsto del catálogo. `CREATE TABLE IF
  * NOT EXISTS` no toca las tablas ya creadas, así que la columna se añade aquí.
  */
+/**
+ * Los apellidos dejaron de ser obligatorios. SQLite no sabe quitar un NOT NULL
+ * con ALTER, así que la tabla se reconstruye copiando todas las filas. Se hace
+ * con las claves foráneas apagadas para que las citas y expedientes que apuntan
+ * a cada paciente no se borren en cascada al soltar la tabla vieja.
+ */
+function migrarApellidosOpcionales() {
+  const col = db.prepare('PRAGMA table_info(pacientes)').all().find((c) => c.name === 'apellidos');
+  if (!col || !col.notnull) return;
+
+  const columnas = db.prepare('PRAGMA table_info(pacientes)').all().map((c) => c.name).join(', ');
+  db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('BEGIN');
+  try {
+    db.exec('ALTER TABLE pacientes RENAME TO pacientes_apellidos_obligatorios;');
+    db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+    db.exec(`INSERT INTO pacientes (${columnas}) SELECT ${columnas} FROM pacientes_apellidos_obligatorios;`);
+    db.exec('DROP TABLE pacientes_apellidos_obligatorios;');
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON;');
+  }
+  console.log('Migración aplicada: los apellidos del paciente ya no son obligatorios.');
+}
+
 function migrarTratamientoPrevisto() {
   const columnas = db.prepare('PRAGMA table_info(citas)').all().map((c) => c.name);
   if (columnas.includes('catalogo_id')) return;

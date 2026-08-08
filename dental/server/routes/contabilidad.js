@@ -74,7 +74,8 @@ post('/api/pagos', { roles: ['admin', 'recepcion'] }, ({ cuerpo }) => {
     const saldo = redondear(cargo.monto - pagado);
     if (monto > saldo + 0.001) {
       throw new ErrorApp(400,
-        `El abono (${monto.toFixed(2)}) supera el saldo pendiente del cargo (${saldo.toFixed(2)}).`);
+        `Estás cobrando $${monto.toFixed(2)} pero a este paciente solo le faltan $${saldo.toFixed(2)} ` +
+        `por pagar de "${cargo.concepto}". Escribe $${saldo.toFixed(2)} o menos.`);
     }
   } else {
     requerido(cuerpo, ['paciente_id', 'consultorio_id']);

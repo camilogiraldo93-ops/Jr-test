@@ -1,5 +1,6 @@
 import { api } from '../api.js';
-import { el, limpiar, selector, entrada, campo, etiquetaEstado, fmtHora, nombreDia, hoyIso, sumarDias, vacio, fmtFechaCorta } from '../ui.js';
+import { el, limpiar, selector, entrada, campo, etiquetaEstado, fmtHora, nombreDia, hoyIso,
+  sumarDias, vacio, fmtFechaCorta, plural } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
 
 const estado = {
@@ -163,7 +164,7 @@ export async function vistaAgenda({ navegar, usuario }) {
     zona.appendChild(el('div', { clase: 'cabecera', style: 'margin-bottom:10px' }, [
       el('div', {}, [
         el('h3', { texto: rango }),
-        el('div', { clase: 'desc', texto: `${datos.citas.length} cita(s) · agrupado ${
+        el('div', { clase: 'desc', texto: `${plural(datos.citas.length, 'cita', 'citas')} · agrupado ${
           estado.agrupar === 'cubiculo' ? 'por cubículo' : estado.agrupar === 'doctor' ? 'por doctor' : 'por consultorio'}` }),
       ]),
     ]));

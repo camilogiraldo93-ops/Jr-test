@@ -121,11 +121,75 @@ export function selector(nombre, opciones, valor, props = {}) {
   return s;
 }
 
+/**
+ * Comprueba los campos obligatorios y avisa con nuestras palabras.
+ *
+ * El globo nativo del navegador sale en el idioma del navegador —«Please fill
+ * out this field» en un Chrome en inglés— y desaparece al primer clic. Aquí se
+ * nombra el campo que falta, se lleva el foco hasta él y el aviso se queda.
+ * Devuelve true si el formulario está listo para enviarse.
+ */
+export function formularioCompleto(form) {
+  const faltan = [...form.querySelectorAll('input, select, textarea')].filter((c) => !c.checkValidity());
+  if (!faltan.length) return true;
+
+  const primero = faltan[0];
+  const etiqueta = primero.closest('.campo')?.querySelector('label')?.textContent
+    ?.replace(/\s*\*\s*$/, '').trim();
+  const nombre = etiqueta || primero.name || 'un dato';
+  error(primero.validity.valueMissing
+    ? `Falta llenar «${nombre}». Escríbelo y vuelve a guardar.`
+    : `«${nombre}» no está bien escrito. Revísalo y vuelve a guardar.`, 'Falta un dato');
+  primero.focus({ preventScroll: false });
+  primero.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return false;
+}
+
 /** Lee un formulario como objeto plano. */
 export function datosFormulario(form) {
   const d = {};
   for (const [k, v] of new FormData(form).entries()) d[k] = typeof v === 'string' ? v.trim() : v;
   return d;
+}
+
+/* --------------------------- Palabras del consultorio -------------------- */
+
+// La base de datos guarda códigos ('recepcion', 'nomina', 'ause'). En pantalla
+// nunca se muestra un código: se muestra lo que la gente dice en voz alta.
+
+export const NOMBRE_ROL = {
+  admin: 'Administradora', doctor: 'Doctor/a', recepcion: 'Recepción',
+};
+
+export const NOMBRE_CATEGORIA_GASTO = {
+  insumos: 'Insumos y materiales', nomina: 'Sueldos', alquiler: 'Arriendo del local',
+  servicios: 'Luz, agua, internet', equipos: 'Equipos',
+  mantenimiento: 'Mantenimiento y reparaciones', marketing: 'Publicidad', otro: 'Otro',
+};
+
+export const NOMBRE_METODO_PAGO = {
+  efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
+  seguro: 'Seguro', otro: 'Otro',
+};
+
+export const NOMBRE_PRIORIDAD = { baja: 'Puede esperar', media: 'Normal', alta: 'Urgente' };
+
+export const NOMBRE_ESTADO_PENDIENTE = {
+  pendiente: 'Por hacer', completado: 'Hecho', cancelado: 'Ya no aplica',
+};
+
+export const NOMBRE_DIENTE = {
+  sano: 'Sano', caries: 'Caries', obturado: 'Con calza', corona: 'Con corona',
+  ausente: 'Falta', endodoncia: 'Con tratamiento de conducto', implante: 'Con implante',
+  fractura: 'Fracturado', sellante: 'Con sellante',
+};
+
+/**
+ * «1 cita» / «2 citas», sin el «(s)» de programador.
+ * El plural se pasa entero porque en español no siempre basta con añadir una s.
+ */
+export function plural(n, singular, muchos) {
+  return `${n} ${n === 1 ? singular : muchos}`;
 }
 
 /* ---------------------------- Nombres de personas ------------------------ */

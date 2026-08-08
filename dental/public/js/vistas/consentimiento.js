@@ -135,7 +135,7 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
 
   contenedor.appendChild(el('div', { clase: 'cabecera sin-imprimir' }, [
     el('div', {}, [
-      el('h2', { texto: `Consentimiento informado #${c.id}` }),
+      el('h2', { texto: 'Consentimiento informado' }),
       el('div', { clase: 'desc', texto: `${c.paciente_nombre} · ${c.tratamiento} · ${c.doctor_nombre}` }),
     ]),
     el('div', { clase: 'acciones' }, [
@@ -177,7 +177,7 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
   /* -------------------- Los tres campos que llena la clínica ------------- */
   if (puedeEditar) {
     const selCatalogo = selector('catalogo_id', [
-      { valor: '', texto: '— Texto libre —' },
+      { valor: '', texto: '— Otro que escribo yo —' },
       ...catalogo.map((t) => ({ valor: t.id, texto: t.nombre })),
     ], c.catalogo_id ?? '');
     const inTratamiento = entrada('tratamiento', { value: c.tratamiento, required: true });
@@ -211,11 +211,11 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
     });
 
     contenedor.appendChild(el('div', { clase: 'tarjeta sin-imprimir' }, [
-      el('h3', { texto: '✏️ Datos del documento' }),
+      el('h3', { texto: '✏️ Lo que hay que llenar' }),
       el('p', { clase: 'mini', style: 'margin-bottom:12px', texto:
         'Todo lo demás (paciente, cédula, consultorio, fecha y el texto legal) se completa automáticamente.' }),
       el('div', { clase: 'fila' }, [
-        campo('Tratamiento (catálogo)', selCatalogo),
+        campo('¿Para qué tratamiento?', selCatalogo),
         campo('Tratamiento *', inTratamiento),
         campo('Doctor *', selDoctor),
       ]),
@@ -243,7 +243,7 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
     if (puedeAnular) {
       contenedor.appendChild(el('div', { clase: 'acciones sin-imprimir' }, [
         el('button', {
-          clase: 'btn peligro', type: 'button', texto: '⛔ Anular y generar reemplazo',
+          clase: 'btn peligro', type: 'button', texto: '⛔ Anular y hacer uno nuevo',
           onclick: () => abrirAnulacion(c, navegar),
         }),
       ]));
@@ -369,7 +369,7 @@ export async function abrirNuevoConsentimiento({ paciente_id, cita_id = null, co
   if (!doctores.length) { error('No hay doctores registrados.'); return; }
 
   const selCatalogo = selector('catalogo_id', [
-    { valor: '', texto: '— Texto libre —' },
+    { valor: '', texto: '— Otro que escribo yo —' },
     ...catalogo.map((t) => ({ valor: t.id, texto: t.nombre })),
   ], '');
   const inTratamiento = entrada('tratamiento', { required: true, placeholder: 'Ej.: Extracción de tercer molar' });

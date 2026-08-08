@@ -7,10 +7,25 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Arranca el servidor con una base de datos temporal y aislada. */
+/**
+ * Chromium se niega a navegar a ciertos puertos «inseguros» y devuelve
+ * ERR_UNSAFE_PORT sin llegar a pedir nada. Con un puerto al azar entre 3300 y
+ * 4199 se cae ahí de vez en cuando (3659, 4045, 4190…), lo que hacía fallar la
+ * suite entera sin motivo. Se eligen solo puertos que el navegador acepta.
+ */
+const PUERTOS_BLOQUEADOS = new Set([3659, 4045, 4190, 6000, 6665, 6666, 6667, 6668, 6669, 6697]);
+
+function puertoLibre() {
+  for (;;) {
+    const p = 3300 + Math.floor(Math.random() * 900);
+    if (!PUERTOS_BLOQUEADOS.has(p)) return p;
+  }
+}
+
 export async function arrancarServidor({ sembrar = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dentalgest-'));
   fs.mkdirSync(path.join(dir, 'uploads'), { recursive: true });
-  const puerto = 3300 + Math.floor(Math.random() * 900);
+  const puerto = puertoLibre();
   const env = { ...process.env, DENTAL_DATA_DIR: dir, DENTAL_DB: path.join(dir, 'test.db'), PORT: String(puerto) };
 
   if (sembrar) {

@@ -1,6 +1,6 @@
 import { api, ErrorApi } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, fmtFechaCorta, vacio,
-  datosFormulario, nombreLista, nombreCompleto } from '../ui.js';
+  datosFormulario, formularioCompleto, nombreLista, nombreCompleto, plural } from '../ui.js';
 import { descargarExcel } from '../exportar.js';
 
 export function formularioPaciente(paciente = null) {
@@ -19,7 +19,7 @@ export function formularioPaciente(paciente = null) {
 
   const resto = el('div', { style: 'display:none' }, [
     el('div', { clase: 'fila' }, [
-      campo('Cédula / ID', entrada('cedula', { value: v('cedula') })),
+      campo('Cédula', entrada('cedula', { value: v('cedula') })),
       campo('Correo', entrada('email', { type: 'email', value: v('email') })),
     ]),
     el('div', { clase: 'fila' }, [
@@ -61,7 +61,9 @@ export function formularioPaciente(paciente = null) {
   // Al editar una ficha existente se muestra todo: ahí sí se viene a completar.
   if (paciente) resto.style.display = '';
 
-  return el('form', {}, [esenciales, paciente ? null : verMas, resto]);
+  // `novalidate` apaga el globo nativo del navegador: el aviso lo damos nosotros,
+  // en español y nombrando el campo que falta.
+  return el('form', { novalidate: true }, [esenciales, paciente ? null : verMas, resto]);
 }
 
 export function abrirFormularioPaciente(paciente, alGuardar) {
@@ -81,6 +83,7 @@ export function abrirFormularioPaciente(paciente, alGuardar) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!formularioCompleto(form)) return;
     boton.disabled = true;
     boton.textContent = 'Guardando…';
     try {
@@ -128,7 +131,7 @@ export async function vistaPacientes({ navegar }) {
     }
     zona.appendChild(el('div', { clase: 'tabla-envoltura' }, [
       el('table', { clase: 'tabla' }, [
-        el('thead', {}, [el('tr', {}, ['Paciente', 'Cédula / ID', 'Teléfono', 'Nacimiento', 'Alergias', ''].map(
+        el('thead', {}, [el('tr', {}, ['Paciente', 'Cédula', 'Teléfono', 'Nacimiento', 'Alergias', ''].map(
           (t) => el('th', { texto: t })))]),
         el('tbody', {}, lista.map((p) => el('tr', {}, [
           el('td', {}, [el('a', { href: `#/paciente/${p.id}`, texto: nombreLista(p.nombre, p.apellidos) })]),
@@ -140,7 +143,7 @@ export async function vistaPacientes({ navegar }) {
         ]))),
       ]),
     ]));
-    zona.appendChild(el('div', { clase: 'mini', style: 'margin-top:10px', texto: `${lista.length} paciente(s).` }));
+    zona.appendChild(el('div', { clase: 'mini', style: 'margin-top:10px', texto: `${plural(lista.length, 'paciente', 'pacientes')}.` }));
   }
 
   let temporizador = null;
@@ -153,7 +156,7 @@ export async function vistaPacientes({ navegar }) {
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
         el('h2', { texto: 'Pacientes' }),
-        el('div', { clase: 'desc', texto: 'Base de datos de expedientes con buscador por nombre, cédula o teléfono.' }),
+        el('div', { clase: 'desc', texto: 'Todas las personas que atiende el consultorio. Busca por nombre, cédula o teléfono.' }),
       ]),
       el('div', { clase: 'acciones' }, [
         btnExcel,

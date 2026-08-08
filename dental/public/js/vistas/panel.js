@@ -1,5 +1,6 @@
 import { api } from '../api.js';
-import { el, fmtDinero, fmtHora, fmtFechaCorta, etiquetaEstado, vacio, hoyIso, ETIQUETAS_ESTADO } from '../ui.js';
+import { el, fmtDinero, fmtHora, fmtFechaCorta, etiquetaEstado, vacio, hoyIso,
+  ETIQUETAS_ESTADO, NOMBRE_ROL, NOMBRE_PRIORIDAD, plural } from '../ui.js';
 
 export async function vistaPanel({ usuario }) {
   const puedeContabilidad = ['admin', 'recepcion'].includes(usuario.rol);
@@ -21,14 +22,15 @@ export async function vistaPanel({ usuario }) {
   const balanceMes = resumen.ingresos_mes - resumen.gastos_mes;
 
   const kpis = el('div', { clase: 'rejilla c4', style: 'margin-bottom:18px' }, [
-    kpi('Citas de hoy', String(resumen.citas_hoy), `${resumen.citas_mes} este mes`),
-    kpi('Pacientes', String(resumen.pacientes), `${resumen.doctores} doctores · ${resumen.consultorios} consultorios`),
-    kpi('Recordatorios', String(resumen.recordatorios_pendientes), 'pendientes de seguimiento'),
+    kpi('Citas de hoy', String(resumen.citas_hoy), `${plural(resumen.citas_mes, 'cita', 'citas')} este mes`),
+    kpi('Pacientes', String(resumen.pacientes),
+          `${plural(resumen.doctores, 'doctor', 'doctores')} · ${plural(resumen.consultorios, 'sede', 'sedes')}`),
+    kpi('Cosas por hacer', String(resumen.recordatorios_pendientes), 'anotadas para dar seguimiento'),
     puedeContabilidad
-      ? kpi('Balance del mes', fmtDinero(balanceMes),
+      ? kpi('Lo que quedó este mes', fmtDinero(balanceMes),
           `Ingresos ${fmtDinero(resumen.ingresos_mes)} · Gastos ${fmtDinero(resumen.gastos_mes)}`,
           balanceMes >= 0 ? 'ok' : 'mal')
-      : kpi('Consentimientos', String(resumen.consentimientos_pendientes), 'pendientes de firma'),
+      : kpi('Consentimientos', String(resumen.consentimientos_pendientes), 'esperando firma'),
   ]);
 
   const filasCitas = citasHoy.map((c) => el('tr', {}, [
@@ -58,7 +60,7 @@ export async function vistaPanel({ usuario }) {
           ]),
           el('div', { clase: 'det', texto: `${r.paciente_nombre} ${r.paciente_apellidos} · ${r.fecha_objetivo ? `para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'sin fecha'}` }),
         ]),
-        el('span', { clase: `eti ${r.prioridad}`, texto: r.prioridad }),
+        el('span', { clase: `eti ${r.prioridad}`, texto: NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad }),
       ])))
     : vacio('No hay recordatorios pendientes.');
 
@@ -69,14 +71,14 @@ export async function vistaPanel({ usuario }) {
             el('a', { href: `#/consentimiento/${c.id}`, texto: c.tratamiento }),
           ]),
           el('div', { clase: 'det', texto: `${c.paciente_nombre} · ${c.doctor_nombre}` }),
-          el('div', { clase: 'mini', texto: c.cita_id ? `Cita #${c.cita_id}` : 'Sin cita vinculada' }),
+          el('div', { clase: 'mini', texto: c.cita_id ? 'Ligado a una cita' : 'Sin cita ligada' }),
         ]),
         el('a', { clase: 'btn chico', href: `#/consentimiento/${c.id}`, texto: '✍️ Firmar' }),
       ])))
     : vacio('No hay consentimientos pendientes de firma.');
 
   const porEstado = el('div', { clase: 'tarjeta' }, [
-    el('h3', { texto: '📊 Citas del mes por estado' }),
+    el('h3', { texto: '📊 Cómo van las citas del mes' }),
     resumen.citas_por_estado.length
       ? el('div', { clase: 'acciones' }, resumen.citas_por_estado.map((e) =>
           el('span', { clase: `eti ${e.estado}`, texto: `${ETIQUETAS_ESTADO[e.estado] || e.estado}: ${e.n}` })))
@@ -86,15 +88,15 @@ export async function vistaPanel({ usuario }) {
   return el('div', {}, [
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
-        el('h2', { texto: `Panel general` }),
-        el('div', { clase: 'desc', texto: `${fmtFechaCorta(hoy)} · Sesión de ${usuario.nombre} (${usuario.rol})` }),
+        el('h2', { texto: 'Resumen del consultorio' }),
+        el('div', { clase: 'desc', texto: `${fmtFechaCorta(hoy)} · ${usuario.nombre} · ${NOMBRE_ROL[usuario.rol] || usuario.rol}` }),
       ]),
       el('a', { clase: 'btn', href: '#/agenda', texto: '📅 Ir a la agenda' }),
     ]),
     kpis,
     el('div', { clase: 'tarjeta' }, [el('h3', { texto: '🗓️ Citas de hoy' }), tablaCitas]),
     el('div', { clase: 'rejilla c2' }, [
-      el('div', { clase: 'tarjeta' }, [el('h3', { texto: '🔔 Recordatorios pendientes' }), listaRecordatorios]),
+      el('div', { clase: 'tarjeta' }, [el('h3', { texto: '🔔 Cosas por hacer' }), listaRecordatorios]),
       el('div', { clase: 'tarjeta' }, [el('h3', { texto: '📝 Consentimientos por firmar' }), listaConsent]),
     ]),
     porEstado,

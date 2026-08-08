@@ -1,7 +1,8 @@
 import { api, ErrorApi } from '../api.js';
 import { descargarExcel } from '../exportar.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio,
-  fmtDinero, fmtFechaCorta, hoyIso, nombreLista } from '../ui.js';
+  fmtDinero, fmtFechaCorta, hoyIso, nombreLista, plural,
+  NOMBRE_CATEGORIA_GASTO, NOMBRE_METODO_PAGO } from '../ui.js';
 
 export async function vistaContabilidad({ refrescar }) {
   const consultorios = await api.consultorios();
@@ -95,12 +96,12 @@ export async function vistaContabilidad({ refrescar }) {
     if (!pacientes.length) { error('No hay pacientes registrados.'); return; }
     const selPac = selector('paciente_id',
       pacientes.map((p) => ({ valor: p.id, texto: nombreLista(p.nombre, p.apellidos) })), pacientes[0].id);
-    const selCargo = selector('cargo_id', [{ valor: '', texto: 'Abono general (sin cargo específico)' }], '');
+    const selCargo = selector('cargo_id', [{ valor: '', texto: 'Un abono suelto, sin tratamiento concreto' }], '');
     const selCons = selector('consultorio_id',
       consultorios.map((c) => ({ valor: c.id, texto: c.nombre })), consultorios[0]?.id);
     const inMonto = entrada('monto', { type: 'number', step: '0.01', min: '0.01', required: true });
-    const selMetodo = selector('metodo', ['efectivo', 'tarjeta', 'transferencia', 'seguro', 'otro']
-      .map((v) => ({ valor: v, texto: v })), 'efectivo');
+    const selMetodo = selector('metodo', Object.entries(NOMBRE_METODO_PAGO)
+      .map(([v, t]) => ({ valor: v, texto: t })), 'efectivo');
     const inNota = entrada('nota', {});
     const info = el('div', { clase: 'mini' });
 
@@ -108,7 +109,7 @@ export async function vistaContabilidad({ refrescar }) {
       const cargos = await api.cargos({ paciente_id: selPac.value });
       const pendientes = cargos.filter((c) => c.saldo > 0);
       limpiar(selCargo);
-      selCargo.appendChild(el('option', { value: '', texto: 'Abono general (sin cargo específico)' }));
+      selCargo.appendChild(el('option', { value: '', texto: 'Un abono suelto, sin tratamiento concreto' }));
       for (const c of pendientes) {
         selCargo.appendChild(el('option', {
           value: String(c.id),
@@ -116,7 +117,7 @@ export async function vistaContabilidad({ refrescar }) {
         }));
       }
       const saldo = cargos.reduce((s, c) => s + c.saldo, 0);
-      info.textContent = `Saldo total del paciente: ${fmtDinero(saldo)} en ${pendientes.length} cargo(s) pendiente(s).`;
+      info.textContent = `Este paciente debe ${fmtDinero(saldo)} en ${plural(pendientes.length, 'tratamiento', 'tratamientos')}.`;
     }
     selPac.addEventListener('change', () => { cargarCargos().catch(() => {}); });
     selCargo.addEventListener('change', () => {
@@ -128,11 +129,11 @@ export async function vistaContabilidad({ refrescar }) {
 
     const boton = el('button', { clase: 'btn', type: 'button', texto: 'Registrar pago' });
     const m = modal({
-      titulo: 'Registrar pago de paciente',
+      titulo: 'Registrar un pago',
       cuerpo: el('div', {}, [
         campo('Paciente', selPac), info,
-        campo('Aplicar a', selCargo),
-        el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('Monto *', inMonto), campo('Método', selMetodo)]),
+        campo('¿De qué tratamiento?', selCargo),
+        el('div', { clase: 'fila' }, [campo('Consultorio', selCons), campo('¿Cuánto pagó? *', inMonto), campo('¿Cómo pagó?', selMetodo)]),
         campo('Nota', inNota),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
@@ -190,19 +191,19 @@ export async function vistaContabilidad({ refrescar }) {
 
     limpiar(zona);
     zona.appendChild(el('div', { clase: 'mini', style: 'margin-bottom:10px',
-      texto: `Período: ${fmtFechaCorta(bal.desde)} — ${fmtFechaCorta(bal.hasta)}` }));
+      texto: `Del ${fmtFechaCorta(bal.desde)} al ${fmtFechaCorta(bal.hasta)}` }));
 
     zona.appendChild(el('div', { clase: 'rejilla c4', style: 'margin-bottom:18px' }, [
-      kpi('Ingresos (cobrado)', fmtDinero(bal.ingresos), `${bal.conteos.pagos} pago(s)`, 'ok'),
-      kpi('Gastos', fmtDinero(bal.gastos), `${bal.conteos.gastos} gasto(s)`, 'mal'),
-      kpi('Balance', fmtDinero(bal.balance), 'ingresos − gastos', bal.balance >= 0 ? 'ok' : 'mal'),
-      kpi('Por cobrar (histórico)', fmtDinero(bal.cuentas_por_cobrar_total), 'saldo de pacientes'),
+      kpi('Cobrado', fmtDinero(bal.ingresos), plural(bal.conteos.pagos, 'pago recibido', 'pagos recibidos'), 'ok'),
+      kpi('Gastado', fmtDinero(bal.gastos), plural(bal.conteos.gastos, 'gasto apuntado', 'gastos apuntados'), 'mal'),
+      kpi('Lo que quedó', fmtDinero(bal.balance), 'cobrado menos gastado', bal.balance >= 0 ? 'ok' : 'mal'),
+      kpi('Falta cobrar', fmtDinero(bal.cuentas_por_cobrar_total), 'lo que deben los pacientes'),
     ]));
 
     zona.appendChild(el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: '🏥 Resumen por consultorio' }),
+      el('h3', { texto: '🏥 Cómo va cada sede' }),
       el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-        el('thead', {}, [el('tr', {}, ['Consultorio', 'Facturado', 'Ingresos', 'Gastos', 'Balance'].map((t) => el('th', { texto: t })))]),
+        el('thead', {}, [el('tr', {}, ['Sede', 'Tratamientos hechos', 'Cobrado', 'Gastado', 'Lo que quedó'].map((t) => el('th', { texto: t })))]),
         el('tbody', {}, bal.por_consultorio.map((c) => el('tr', {}, [
           el('td', { texto: c.nombre }),
           el('td', { clase: 'num', texto: fmtDinero(c.facturado) }),
@@ -215,28 +216,28 @@ export async function vistaContabilidad({ refrescar }) {
 
     zona.appendChild(el('div', { clase: 'rejilla c2' }, [
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: '💵 Pagos del período' }),
+        el('h3', { texto: '💵 Pagos recibidos' }),
         pagosP.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
               el('thead', {}, [el('tr', {}, ['Fecha', 'Paciente', 'Método', 'Monto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, pagosP.map((p) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(p.fecha) }),
                 el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: nombreLista(p.paciente_nombre, p.paciente_apellidos) })]),
-                el('td', { texto: p.metodo }),
+                el('td', { texto: NOMBRE_METODO_PAGO[p.metodo] || p.metodo }),
                 el('td', { clase: 'num', texto: fmtDinero(p.monto) }),
               ]))),
             ])])
           : vacio('Sin pagos en el período.'),
       ]),
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: '🧾 Gastos del período' }),
+        el('h3', { texto: '🧾 Gastos apuntados' }),
         gastosP.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
               el('thead', {}, [el('tr', {}, ['Fecha', 'Concepto', 'Categoría', 'Monto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, gastosP.map((g) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(g.fecha) }),
                 el('td', {}, [el('b', { texto: g.concepto }), el('div', { clase: 'mini', texto: g.consultorio_nombre })]),
-                el('td', { texto: g.categoria }),
+                el('td', { texto: NOMBRE_CATEGORIA_GASTO[g.categoria] || g.categoria }),
                 el('td', { clase: 'num', texto: fmtDinero(g.monto) }),
               ]))),
             ])])
@@ -262,10 +263,10 @@ export async function vistaContabilidad({ refrescar }) {
 
     zona.appendChild(el('div', { clase: 'rejilla c2' }, [
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: '🧑‍⚕️ Ingresos por doctor' }),
+        el('h3', { texto: '🧑‍⚕️ Cuánto entró por cada doctor' }),
         bal.ingresos_por_doctor.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-              el('thead', {}, [el('tr', {}, ['Doctor', 'Pagos', 'Cobrado', 'Producción'].map((t) => el('th', { texto: t })))]),
+              el('thead', {}, [el('tr', {}, ['Doctor', 'Pagos', 'Cobrado', 'Tratamientos hechos'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, bal.ingresos_por_doctor.map((d) => {
                 const prod = bal.produccion_por_doctor.find((x) => x.doctor === d.doctor);
                 return el('tr', {}, [
@@ -278,15 +279,15 @@ export async function vistaContabilidad({ refrescar }) {
             ])])
           : vacio('Sin ingresos en el período.'),
         el('p', { clase: 'mini', style: 'margin-top:8px', texto:
-          'Cobrado = pagos recibidos, atribuidos al doctor del tratamiento. Producción = tratamientos facturados en el período.' }),
+          '«Cobrado» es el dinero que ya entró por sus tratamientos. «Tratamientos hechos» es lo que se atendió en estas fechas, esté cobrado o no.' }),
       ]),
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: '💳 Ingresos por método de pago' }),
+        el('h3', { texto: '💳 Cómo pagó la gente' }),
         bal.ingresos_por_metodo.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-              el('thead', {}, [el('tr', {}, ['Método', 'Pagos', 'Total'].map((t) => el('th', { texto: t })))]),
+              el('thead', {}, [el('tr', {}, ['Forma de pago', 'Pagos', 'Total'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, bal.ingresos_por_metodo.map((m2) => el('tr', {}, [
-                el('td', { texto: m2.metodo }),
+                el('td', { texto: NOMBRE_METODO_PAGO[m2.metodo] || m2.metodo }),
                 el('td', { clase: 'num', texto: String(m2.n) }),
                 el('td', { clase: 'num', texto: fmtDinero(m2.total) }),
               ]))),
@@ -296,14 +297,14 @@ export async function vistaContabilidad({ refrescar }) {
     ]));
 
     zona.appendChild(el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: '📌 Pacientes con saldo pendiente' }),
+      el('h3', { texto: '📌 Pacientes que deben' }),
       deudores.size
         ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
             el('thead', {}, [el('tr', {}, ['Paciente', 'Saldo', ''].map((t) => el('th', { texto: t })))]),
             el('tbody', {}, [...deudores.values()].sort((a, b) => b.saldo - a.saldo).map((d) => el('tr', {}, [
               el('td', { texto: d.nombre }),
               el('td', { clase: 'num', texto: fmtDinero(d.saldo) }),
-              el('td', {}, [el('a', { clase: 'btn sec chico', href: `#/paciente/${d.id}`, texto: 'Estado de cuenta' })]),
+              el('td', {}, [el('a', { clase: 'btn sec chico', href: `#/paciente/${d.id}`, texto: 'Ver su cuenta' })]),
             ]))),
           ])])
         : vacio('Ningún paciente tiene saldo pendiente.'),
@@ -317,8 +318,8 @@ export async function vistaContabilidad({ refrescar }) {
   const contenedor = el('div', {}, [
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
-        el('h2', { texto: 'Contabilidad' }),
-        el('div', { clase: 'desc', texto: 'Cobros, gastos, estado de cuenta y balance por consultorio.' }),
+        el('h2', { texto: 'Dinero' }),
+        el('div', { clase: 'desc', texto: 'Lo que se cobró, lo que se gastó y lo que falta por cobrar.' }),
       ]),
       el('div', { clase: 'acciones' }, [
         el('button', { clase: 'btn sec', type: 'button', texto: '💵 Registrar pago', onclick: () => { abrirPago().catch((e) => error(e?.message || 'Error')); } }),

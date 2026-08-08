@@ -1,6 +1,7 @@
 import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, confirmar,
-  fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO } from '../ui.js';
+  fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO,
+  plural, NOMBRE_DIENTE, NOMBRE_METODO_PAGO, nombreCompleto } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
 import { abrirNuevoConsentimiento } from './consentimiento.js';
 
@@ -42,7 +43,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
       onclick: async () => {
         if (['cancelada', 'no_asistio'].includes(e)) {
           const ok = await confirmar(`Marcar como ${ETIQUETAS_ESTADO[e]}`,
-            `¿Confirmas cambiar la cita #${cita.id} a "${ETIQUETAS_ESTADO[e]}"? El horario quedará libre en la agenda.`);
+            `La cita de ${nombreCompleto(cita.paciente_nombre, cita.paciente_apellidos)} pasará a "${ETIQUETAS_ESTADO[e]}" y su hora quedará libre en la agenda.`);
           if (!ok) return;
         }
         try {
@@ -66,15 +67,15 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     // Si la cita se agendó con un tratamiento previsto, se abre ya elegido.
     const previsto = catalogo.some((c) => c.id === cita.catalogo_id) ? String(cita.catalogo_id) : '';
     const selCat = selector('catalogo_id', [
-      { valor: '', texto: '— Tratamiento libre —' },
+      { valor: '', texto: '— Otra cosa que escribo yo —' },
       ...catalogo.map((c) => ({ valor: c.id, texto: `${c.nombre} (${fmtDinero(c.precio_base)})` })),
     ], previsto);
     const inNombre = entrada('nombre', { required: true, placeholder: 'Nombre del tratamiento realizado' });
     const inDientes = entrada('dientes', { placeholder: 'Ej.: 16, 26 (separados por coma)' });
     const selEstadoDiente = selector('estado_diente', [
-      { valor: '', texto: 'No modificar el odontograma' },
+      { valor: '', texto: 'Dejarlos como estaban' },
       ...['sano', 'caries', 'obturado', 'corona', 'ausente', 'endodoncia', 'implante', 'fractura', 'sellante']
-        .map((e) => ({ valor: e, texto: `Marcar como ${e}` })),
+        .map((e) => ({ valor: e, texto: NOMBRE_DIENTE[e] || e })),
     ], '');
     const inNotas = area('notas_clinicas', { placeholder: 'Hallazgos, materiales usados, indicaciones…' });
     const inPrecio = entrada('precio', { type: 'number', step: '0.01', min: '0', value: '0' });
@@ -158,7 +159,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
 
     input.addEventListener('change', () => {
       lista.textContent = input.files.length
-        ? `${input.files.length} archivo(s) seleccionado(s): ${[...input.files].map((f) => f.name).join(', ')}`
+        ? `Elegiste ${plural(input.files.length, 'archivo', 'archivos')}: ${[...input.files].map((f) => f.name).join(', ')}`
         : '';
     });
 
@@ -187,7 +188,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           subidas++;
         }
         m.cerrar();
-        exito(`${subidas} imagen(es) vinculada(s) a la cita y al expediente.`);
+        exito(`Listo, ${plural(subidas, 'imagen quedó guardada', 'imágenes quedaron guardadas')} en el expediente.`);
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : `No se pudieron subir todas las imágenes (${subidas} completadas).`);
@@ -326,6 +327,13 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     puedeClinico && activa && !enAtencion
       ? el('div', { clase: 'alerta-caja aviso', texto:
           'Cuando el paciente llegue, pulsa «El paciente llegó» y podrás anotar el tratamiento aquí mismo.' })
+      : null,
+    // Quien no puede anotar necesita saber por qué y qué sí puede hacer, en vez
+    // de encontrarse una tarjeta vacía sin un solo botón.
+    !puedeClinico
+      ? el('div', { clase: 'alerta-caja aviso', texto:
+          'Esto lo anota el doctor durante la atención. Tú puedes verlo aquí en cuanto lo escriba, ' +
+          'y cobrarle al paciente en «Cobros de esta cita», más abajo.' })
       : null,
     cita.tratamientos.length
       ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
@@ -478,7 +486,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
   return el('div', {}, [
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
-        el('h2', { texto: `Cita #${cita.id} — ${cita.paciente_nombre} ${cita.paciente_apellidos}` }),
+        el('h2', { texto: `Cita de ${nombreCompleto(cita.paciente_nombre, cita.paciente_apellidos)}` }),
         el('div', { clase: 'desc', texto: `${fmtFechaHora(cita.inicio)} – ${cita.fin.slice(11)} · ${cita.doctor_nombre} · ${cita.consultorio_nombre} / ${cita.cubiculo_nombre}` }),
       ]),
       el('div', { clase: 'acciones' }, [
@@ -495,10 +503,10 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     ]),
 
     el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: 'Estado de la cita' }),
+      el('h3', { texto: '¿Cómo va esta cita?' }),
       el('div', { clase: 'acciones', style: 'align-items:center' }, [
         etiquetaEstado(cita.estado),
-        el('span', { clase: 'mini', texto: `Motivo: ${cita.motivo || '—'}` }),
+        el('span', { clase: 'mini', texto: `Viene por: ${cita.motivo || 'sin motivo anotado'}` }),
       ]),
       cita.catalogo_nombre
         ? el('p', { clase: 'mini', style: 'margin-top:10px' }, [
@@ -512,10 +520,10 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
         : null,
       SIGUIENTES[cita.estado].length
         ? el('div', { style: 'margin-top:12px' }, [
-            el('div', { clase: 'mini', style: 'margin-bottom:6px', texto: 'Cambiar a:' }),
+            el('div', { clase: 'mini', style: 'margin-bottom:6px', texto: 'Pasarla a:' }),
             accionesEstado,
           ])
-        : el('p', { clase: 'mini', style: 'margin-top:10px', texto: 'La cita está completada; no admite más cambios de estado.' }),
+        : el('p', { clase: 'mini', style: 'margin-top:10px', texto: 'Esta cita ya se cerró: no se puede cambiar más.' }),
       cita.notas ? el('p', { clase: 'mini', style: 'margin-top:10px', texto: `Notas: ${cita.notas}` }) : null,
       cita.cita_origen_id
         ? el('p', { clase: 'mini', style: 'margin-top:6px' }, [
@@ -532,7 +540,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     consentPendientes.length
       ? el('div', { clase: 'alerta-caja' }, [
           el('b', { texto: '⚠️ Consentimiento informado sin firmar. ' }),
-          el('span', { texto: `La cita no se puede completar hasta firmar ${consentPendientes.length} documento(s).` }),
+          el('span', { texto: `La cita no se puede cerrar hasta firmar ${plural(consentPendientes.length, 'documento', 'documentos')}.` }),
           el('div', { clase: 'acciones', style: 'margin-top:8px' }, consentPendientes.map((c) =>
             el('a', { clase: 'btn chico', href: `#/consentimiento/${c.id}`, texto: `✍️ Firmar: ${c.tratamiento}` }))),
         ])

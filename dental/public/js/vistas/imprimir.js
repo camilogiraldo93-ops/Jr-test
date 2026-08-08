@@ -1,5 +1,6 @@
 import { api, urlFoto } from '../api.js';
-import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia, ETIQUETAS_ESTADO } from '../ui.js';
+import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia,
+  ETIQUETAS_ESTADO, plural } from '../ui.js';
 import { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
 /** Barra superior que no se imprime, con el botón que abre el diálogo de impresión. */
@@ -81,7 +82,7 @@ async function imprimirDia(fecha) {
       ? tabla(['Horario', 'Paciente', 'Motivo', 'Doctor', 'Lugar', 'Estado', 'Observaciones'], filas)
       : vacio('No hay citas anotadas para este día.'),
     el('p', { clase: 'mini', style: 'margin-top:14px',
-      texto: `${citas.length} cita(s) anotada(s) para el día.` }),
+      texto: `${plural(citas.length, 'cita anotada', 'citas anotadas')} para el día.` }),
   ]);
 
   return el('div', {}, [barra(`Agenda del día`, '#/hoy'), hoja]);

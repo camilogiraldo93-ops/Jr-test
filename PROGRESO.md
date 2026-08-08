@@ -67,4 +67,67 @@ para que lo decida el revisor.
 
 ### Veredicto del revisor-ux
 
-_(pendiente: se registra literal cuando el subagente entregue su reporte)_
+**VEREDICTO GLOBAL: RECHAZADO**
+
+Tareas: ✅ 1 (agendar, 3 pasos) · ❌ 2 (paciente nuevo: termina en error 500) ·
+❌ 3 (atender: recepción sin salida) · ✅ 4 (firmar en tablet) ·
+❌ 5 (gasto: recepción no puede) · ✅ 6 (cobrado hoy, 0 clics) ·
+✅ 7 (teléfono, 0 clics) · ✅ 8 (imprimir agenda, 2 clics) ·
+❌ 9 (exportar pagos: recepción no puede) · ❌ 10 (errores que no enseñan).
+
+Auditorías: ❌ Lenguaje · ❌ Botones muertos · ✅ Pantallas rotas ·
+❌ Consola · ✅ Carga (indicador a los 26–31 ms, acceso a los 106–116 ms).
+
+Hallazgos bloqueantes, en su orden:
+1. No se puede dar de alta a un paciente con solo nombre y teléfono: la pantalla
+   lo promete y el servidor devuelve «Error interno del servidor.».
+2. Recepción no puede completar 3 de las 10 tareas, y la ayuda le indica pasos
+   imposibles.
+3. El aviso emergente se traga los clics durante 4–7 s, incluido el botón de ayuda.
+4. Mensajes de error que no enseñan qué hacer.
+5. Jerga de software visible en casi todas las pantallas.
+
+La tarea 1 quedó ✅ con 3 pasos, en contra de lo que yo anticipaba.
+
+---
+
+## Ciclo 2 — solo hallazgos bloqueantes
+
+1. **Paciente con solo nombre y teléfono (bug real, mío).** En el ciclo 1 relajé
+   la ruta pero no el esquema: `apellidos TEXT NOT NULL` seguía ahí. Se hizo
+   opcional en `schema.sql` y se añadió `migrarApellidosOpcionales()`, que
+   reconstruye la tabla (SQLite no sabe quitar un NOT NULL con ALTER) con las
+   claves foráneas apagadas para no perder citas ni expedientes. Verificado:
+   11 pacientes, 41 citas, 0 huérfanas. Prueba de regresión añadida.
+2. **Recepción sin salida.** No se le abren contabilidad ni configuración —es un
+   requisito explícito del encargo—, así que ahora la app dice de quién es cada
+   cosa: la tarjeta de tratamientos le explica que lo anota el doctor y que ella
+   cobra más abajo, y «¿Cómo hago…?» filtra por puesto: lo que no le toca aparece
+   como «lo hace otra persona» con la explicación, en vez de pasos imposibles.
+3. **Avisos que se tragan los clics.** `pointer-events: none` en la columna
+   (cada aviso sigue siendo pulsable) y la columna se subió a 68 px para no caer
+   sobre el botón de ayuda.
+4. **Errores que enseñan.** El 500 genérico ahora dice que no fue culpa de quien
+   lo lee, que no se perdió nada y qué hacer. El 403 nombra los puestos en vez
+   del código (`recepcion`). Los campos obligatorios ya no dependen del globo del
+   navegador: `formularioCompleto()` nombra el campo que falta, en español, y
+   lleva el foco. El sobrepago dice cuánto falta y qué escribir.
+5. **Jerga.** Diccionarios en `ui.js` (`NOMBRE_ROL`, `NOMBRE_CATEGORIA_GASTO`,
+   `NOMBRE_METODO_PAGO`, `NOMBRE_PRIORIDAD`, `NOMBRE_ESTADO_PENDIENTE`,
+   `NOMBRE_DIENTE`) y `plural()` para acabar con el «(s)». «Panel general» →
+   «Resumen del consultorio», «Contabilidad» → «Dinero», «Recordatorios» →
+   «Cosas por hacer», «Base de datos de expedientes» → «Todas las personas que
+   atiende el consultorio», «nomina» → «Sueldos», el diente «ause» → «Falta»
+   (marca corta en el cuadrito, nombre completo en el título), y los números
+   internos («Cita #26», «Consentimiento informado #1») salieron de los títulos.
+
+También se corrigió una flaquez del arranque de pruebas: el puerto al azar caía
+a veces en la lista de puertos que Chromium rechaza (ERR_UNSAFE_PORT), lo que
+tumbaba la suite entera sin motivo.
+
+Pruebas: **62 en verde** (23 API, 26 interfaz, 13 demo), tres nuevas: paciente
+solo con nombre y teléfono, y el aviso que ya no bloquea el botón de ayuda.
+
+### Veredicto del revisor-ux sobre el ciclo 2
+
+_(pendiente)_

@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { el, limpiar, fmtDinero, fmtHora, etiquetaEstado, hoyIso, sumarDias, nombreDia,
-  nombreCompleto } from '../ui.js';
+  nombreCompleto, plural } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
 import { habituales } from '../preferencias.js';
 
@@ -82,8 +82,9 @@ export async function vistaHoy({ usuario, navegar }) {
     const atendidas = citas.filter((c) => c.estado === 'completada').length;
     const cobrado = pagos.reduce((s, p) => s + p.monto, 0);
     resumenDia.textContent = puedeVerDinero
-      ? `${citas.length} cita(s) · ${atendidas} ya atendida(s) · cobrado en el día: ${fmtDinero(cobrado)}`
-      : `${citas.length} cita(s) · ${atendidas} ya atendida(s)`;
+      ? `${plural(citas.length, 'cita', 'citas')} · ${atendidas} ya ${atendidas === 1 ? 'atendida' : 'atendidas'} · ` +
+        `cobrado en el día: ${fmtDinero(cobrado)}`
+      : `${plural(citas.length, 'cita', 'citas')} · ${atendidas} ya ${atendidas === 1 ? 'atendida' : 'atendidas'}`;
 
     limpiar(zona);
     const filas = franjas().map((f) => {

@@ -176,7 +176,8 @@ body { padding-bottom: 42px; }
 /* La barra lateral ocupa el alto completo: se recorta para que la cinta no
    tape el botón de cerrar sesión, que vive al final de la columna. */
 .lateral { height: calc(100vh - 42px); }
-.avisos { bottom: 52px; }
+.avisos { bottom: 110px; }
+.boton-ayuda { bottom: 58px; }
 @media (max-width: 900px) { .lateral { height: auto; } }
 @media print { #cinta-demo { display: none !important; } body { padding-bottom: 0; } }`;
 

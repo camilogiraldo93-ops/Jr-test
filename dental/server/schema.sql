@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS doctor_cubiculo (
 CREATE TABLE IF NOT EXISTS pacientes (
   id                        INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre                    TEXT NOT NULL,
-  apellidos                 TEXT NOT NULL,
+  -- Opcional a propósito: quien llama por teléfono a veces solo deja el nombre.
+  apellidos                 TEXT,
   cedula                    TEXT UNIQUE,
   telefono                  TEXT,
   email                     TEXT,

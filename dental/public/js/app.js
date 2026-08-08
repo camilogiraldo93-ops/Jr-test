@@ -1,5 +1,5 @@
 import { api, sesion, ErrorApi } from './api.js';
-import { el, limpiar, error, campo, entrada, exito, nombreCompleto } from './ui.js';
+import { el, limpiar, error, campo, entrada, exito, nombreCompleto, NOMBRE_ROL } from './ui.js';
 import { botonAyuda } from './ayuda.js';
 import { vistaHoy } from './vistas/hoy.js';
 import { vistaPanel } from './vistas/panel.js';
@@ -82,10 +82,10 @@ function pantallaLogin() {
   return el('div', { clase: 'login-fondo' }, [
     el('div', { clase: 'login-caja' }, [
       el('h1', { texto: '🦷 DentalGest' }),
-      el('p', { clase: 'sub', texto: 'Sistema de gestión para consultorios dentales' }),
+      el('p', { clase: 'sub', texto: 'La agenda y las fichas de tu consultorio' }),
       msg, form,
       el('div', { clase: 'demo-accesos' }, [
-        el('div', { texto: 'Accesos de demostración:' }),
+        el('div', { texto: 'Entrar como:' }),
         rapido('admin@clinica.com', 'admin123', '👑 Administrador — admin@clinica.com'),
         rapido('ana.morales@clinica.com', 'doctor123', '🦷 Doctora — ana.morales@clinica.com'),
         rapido('recepcion@clinica.com', 'recepcion123', '💁 Recepción — recepcion@clinica.com'),
@@ -164,7 +164,7 @@ function armarMarco() {
     nav,
     el('div', { clase: 'usuario-caja' }, [
       el('div', { clase: 'nom', texto: sesion.usuario.nombre }),
-      el('div', { clase: 'rol', texto: sesion.usuario.rol }),
+      el('div', { clase: 'rol', texto: NOMBRE_ROL[sesion.usuario.rol] || sesion.usuario.rol }),
       el('button', {
         type: 'button', texto: 'Cerrar sesión',
         onclick: async () => {
@@ -180,7 +180,7 @@ function armarMarco() {
 
   const contenido = el('main', { clase: 'contenido', id: 'contenido' });
   return {
-    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda()]),
+    marco: el('div', { clase: 'marco' }, [lateral, contenido, botonAyuda(sesion.usuario.rol)]),
     contenido, nav,
   };
 }
@@ -237,7 +237,7 @@ async function renderVista() {
     }
     const mensaje = err instanceof ErrorApi ? err.message : 'Ocurrió un error al cargar la vista.';
     contenidoRef.appendChild(el('div', { clase: 'alerta-caja' }, [
-      el('b', { texto: 'No se pudo cargar esta sección. ' }),
+      el('b', { texto: 'Esta pantalla no se pudo mostrar. ' }),
       el('span', { texto: mensaje }),
     ]));
     console.warn('[vista]', mensaje);
