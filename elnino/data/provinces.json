@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "descripcion": "24 provincias de Ecuador. El punto (lat,lon) es la capital provincial y es el punto de muestreo del pronóstico. sst_lat/sst_lon es el punto oceánico más cercano usado para anomalía de temperatura superficial del mar (solo provincias con costa).",
+    "advertencia": "Un único punto por provincia NO representa la variabilidad interna de provincias grandes o de fuerte gradiente altitudinal. Ver limitaciones en la app."
+  },
+  "provincias": [
+    { "id": "azuay", "nombre": "Azuay", "capital": "Cuenca", "lat": -2.9001, "lon": -79.0059, "region": "sierra" },
+    { "id": "bolivar", "nombre": "Bolívar", "capital": "Guaranda", "lat": -1.5905, "lon": -79.0003, "region": "sierra" },
+    { "id": "canar", "nombre": "Cañar", "capital": "Azogues", "lat": -2.7402, "lon": -78.8484, "region": "sierra" },
+    { "id": "carchi", "nombre": "Carchi", "capital": "Tulcán", "lat": 0.8117, "lon": -77.7181, "region": "sierra" },
+    { "id": "chimborazo", "nombre": "Chimborazo", "capital": "Riobamba", "lat": -1.6635, "lon": -78.6547, "region": "sierra" },
+    { "id": "cotopaxi", "nombre": "Cotopaxi", "capital": "Latacunga", "lat": -0.9333, "lon": -78.6167, "region": "sierra" },
+    { "id": "el-oro", "nombre": "El Oro", "capital": "Machala", "lat": -3.2586, "lon": -79.9606, "region": "costa", "sst_lat": -3.2, "sst_lon": -80.4 },
+    { "id": "esmeraldas", "nombre": "Esmeraldas", "capital": "Esmeraldas", "lat": 0.9592, "lon": -79.6539, "region": "costa", "sst_lat": 1.1, "sst_lon": -80.1 },
+    { "id": "galapagos", "nombre": "Galápagos", "capital": "Puerto Baquerizo Moreno", "lat": -0.9017, "lon": -89.61, "region": "insular", "sst_lat": -0.9, "sst_lon": -89.9 },
+    { "id": "guayas", "nombre": "Guayas", "capital": "Guayaquil", "lat": -2.1709, "lon": -79.9224, "region": "costa", "sst_lat": -2.6, "sst_lon": -80.6 },
+    { "id": "imbabura", "nombre": "Imbabura", "capital": "Ibarra", "lat": 0.3517, "lon": -78.1223, "region": "sierra" },
+    { "id": "loja", "nombre": "Loja", "capital": "Loja", "lat": -3.9931, "lon": -79.2042, "region": "sierra" },
+    { "id": "los-rios", "nombre": "Los Ríos", "capital": "Babahoyo", "lat": -1.8017, "lon": -79.5343, "region": "costa" },
+    { "id": "manabi", "nombre": "Manabí", "capital": "Portoviejo", "lat": -1.0546, "lon": -80.4545, "region": "costa", "sst_lat": -1.0, "sst_lon": -80.9 },
+    { "id": "morona-santiago", "nombre": "Morona Santiago", "capital": "Macas", "lat": -2.3086, "lon": -78.1192, "region": "amazonia" },
+    { "id": "napo", "nombre": "Napo", "capital": "Tena", "lat": -0.9938, "lon": -77.8129, "region": "amazonia" },
+    { "id": "orellana", "nombre": "Orellana", "capital": "Puerto Francisco de Orellana", "lat": -0.4625, "lon": -76.9868, "region": "amazonia" },
+    { "id": "pastaza", "nombre": "Pastaza", "capital": "Puyo", "lat": -1.4869, "lon": -78.0031, "region": "amazonia" },
+    { "id": "pichincha", "nombre": "Pichincha", "capital": "Quito", "lat": -0.1807, "lon": -78.4678, "region": "sierra" },
+    { "id": "santa-elena", "nombre": "Santa Elena", "capital": "Santa Elena", "lat": -2.2267, "lon": -80.8583, "region": "costa", "sst_lat": -2.2, "sst_lon": -81.2 },
+    { "id": "santo-domingo", "nombre": "Santo Domingo de los Tsáchilas", "capital": "Santo Domingo", "lat": -0.2542, "lon": -79.1755, "region": "costa" },
+    { "id": "sucumbios", "nombre": "Sucumbíos", "capital": "Nueva Loja", "lat": 0.0847, "lon": -76.8828, "region": "amazonia" },
+    { "id": "tungurahua", "nombre": "Tungurahua", "capital": "Ambato", "lat": -1.2417, "lon": -78.6197, "region": "sierra" },
+    { "id": "zamora-chinchipe", "nombre": "Zamora Chinchipe", "capital": "Zamora", "lat": -4.0692, "lon": -78.9567, "region": "amazonia" }
+  ]
+}
