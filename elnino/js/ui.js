@@ -48,6 +48,18 @@ const EVIDENCIA = {
   }),
 };
 
+/**
+ * Qué magnitud describe la dispersión entre modelos en cada categoría. Para
+ * inundación y sequía no es la lluvia del día, sino el acumulado que dispara la
+ * alerta, con los días ya transcurridos incluidos.
+ */
+const MAGNITUD = {
+  lluvia_extrema: 'lluvia en 24 h',
+  inundacion: 'acumulado de 3 días (incluye lo ya llovido)',
+  ola_calor: 'temperatura máxima',
+  sequia: 'acumulado de 30 días (incluye lo ya llovido)',
+};
+
 function chip(texto, clase) {
   const s = document.createElement('span');
   s.className = 'chip ' + (clase || '');
@@ -106,7 +118,8 @@ export function tarjetaAlerta(a, backtest) {
   if (a.spread) {
     const p = document.createElement('p');
     p.innerHTML =
-      `<strong>${a.spread.n} modelos independientes</strong> pronostican entre ` +
+      `<strong>${a.spread.n} modelos independientes</strong> implican un valor de ` +
+      `${MAGNITUD[a.categoria]} entre ` +
       `<strong>${n1(a.spread.min)}</strong> y <strong>${n1(a.spread.max)}</strong> ${a.unidad} ` +
       `(mediana ${n1(a.spread.mediana)} ${a.unidad}).`;
     inc.appendChild(p);

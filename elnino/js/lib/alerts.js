@@ -64,7 +64,9 @@ export function umbralDisparo(cat, clim, cfg = DEFAULT_CONFIG) {
 export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats, bias = null, ahora = Date.now(), cfg = DEFAULT_CONFIG }) {
   const alertas = [];
   const porProvinciaDia = {};
-  const hoy = new Date(ahora).toISOString().slice(0, 10);
+  const hoy = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Guayaquil', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(ahora));
 
   for (const p of provincias) {
     const d = det[p.id];
@@ -98,18 +100,49 @@ export function buildAlerts({ provincias, clim, oni, det, ens, dias, spreadStats
       );
       (porProvinciaDia[dia] ||= {})[p.id] = { max: r.max, active: r.active };
 
+      // Antecedentes ya conocidos: se combinan con el valor de cada modelo para
+      // que la comparación contra el umbral use la MISMA magnitud que disparó la
+      // alerta (acumulado de 3 o de 30 días), y no la lluvia de un solo día.
+      const ante2 = suma(prAjustada, i - 2, i - 1);
+      const ante29 = suma(prAjustada, i - 29, i - 1);
+
       const anticipacion = horasDeAnticipacion(dia, ahora);
       for (const cat of CATEGORIES) {
         if (r.levels[cat] === 0) continue;
         const { variable, unidad } = CAT_VAR[cat];
-        const spread = eIdx && spreadStats ? spreadStats(e, eIdx, dia, variable) : null;
+        const crudo = eIdx && spreadStats ? spreadStats(e, eIdx, dia, variable) : null;
         const umbral = umbralDisparo(cat, climDia, cfg);
 
+        // Cada modelo se lleva al mismo espacio que el disparo: se le aplica la
+        // corrección de sesgo ajustada para el modelo de referencia y, cuando la
+        // categoría mira un acumulado, se le suman los días ya conocidos.
+        let spread = null;
         let superan = 0;
-        if (spread) {
-          for (const m of spread.porModelo) {
-            if (cat === 'sequia') { if (m.valor <= umbral) superan++; }
-            else if (m.valor >= umbral) superan++;
+        if (crudo) {
+          const aMagnitud = (v) => {
+            if (cat === 'ola_calor') return corregirTmax(v, delta);
+            const pr = corregirPr(v, rho);
+            if (cat === 'inundacion') return ante2 == null ? null : ante2 + pr;
+            if (cat === 'sequia') return ante29 == null ? null : ante29 + pr;
+            return pr;
+          };
+          const porModelo = crudo.porModelo
+            .map((m) => ({ ...m, valor: aMagnitud(m.valor) }))
+            .filter((m) => m.valor != null && Number.isFinite(m.valor));
+          if (porModelo.length) {
+            const vals = porModelo.map((m) => m.valor).sort((a, b) => a - b);
+            const mid = Math.floor(vals.length / 2);
+            spread = {
+              n: vals.length,
+              min: vals[0],
+              max: vals[vals.length - 1],
+              mediana: vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2,
+              porModelo,
+            };
+            for (const m of porModelo) {
+              if (cat === 'sequia') { if (m.valor <= umbral) superan++; }
+              else if (m.valor >= umbral) superan++;
+            }
           }
         }
 
