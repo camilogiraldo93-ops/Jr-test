@@ -1,4 +1,4 @@
-import { api } from '../api.js';
+import { api, urlFoto } from '../api.js';
 import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtMarca, ETIQUETAS_ESTADO } from '../ui.js';
 import { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
@@ -176,7 +176,7 @@ async function imprimirExpediente(id) {
     exp.fotos.length
       ? seccion(`Imágenes (${exp.fotos.length})`, el('div', { clase: 'galeria-impresion' },
           exp.fotos.map((f) => el('figure', {}, [
-            el('img', { src: `/uploads/${f.archivo}`, alt: f.nombre }),
+            el('img', { src: urlFoto(f), alt: f.nombre }),
             el('figcaption', { texto: `${f.nombre} · ${f.tipo} · ${fmtFechaCorta(f.creada_en)}` }),
           ]))))
       : null,
@@ -262,7 +262,7 @@ async function imprimirCita(id) {
     c.fotos.length
       ? seccion(`Imágenes (${c.fotos.length})`, el('div', { clase: 'galeria-impresion' },
           c.fotos.map((f) => el('figure', {}, [
-            el('img', { src: `/uploads/${f.archivo}`, alt: f.nombre }),
+            el('img', { src: urlFoto(f), alt: f.nombre }),
             el('figcaption', { texto: `${f.nombre} · ${f.tipo}` }),
           ]))))
       : null,

@@ -17,7 +17,9 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; }
+/* El fondo se pinta también en html: si la app se incrusta en una página con
+   tema oscuro, el lienzo bajo el body no se transparenta. */
+html, body { height: 100%; background: var(--fondo); }
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--fondo);
@@ -28,6 +30,22 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--azul); }
+
+/* Foco visible para quien navega con teclado. */
+:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Quien pide menos movimiento no ve animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
 
 /* ------------------------------ Carga ---------------------------------- */
 .pantalla-carga {
@@ -149,7 +167,10 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
 table.tabla th, table.tabla td { padding: 10px 11px; text-align: left; border-bottom: 1px solid var(--borde); }
 table.tabla th { color: var(--suave); font-size: .77rem; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
 table.tabla tbody tr:hover { background: #f7fafb; }
-table.tabla td.num, table.tabla th.num { text-align: right; white-space: nowrap; }
+table.tabla td.num, table.tabla th.num {
+  text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.kpi .val { font-variant-numeric: tabular-nums; }
 
 /* ------------------------------ Etiquetas ------------------------------- */
 .eti {

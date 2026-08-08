@@ -1,4 +1,4 @@
-import { api, ErrorApi } from '../api.js';
+import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, confirmar,
   fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
@@ -352,10 +352,10 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     cita.fotos.length
       ? el('div', { clase: 'galeria' }, cita.fotos.map((f) => el('figure', {}, [
           el('img', {
-            src: `/uploads/${f.archivo}`, alt: f.nombre, loading: 'lazy',
+            src: urlFoto(f), alt: f.nombre, loading: 'lazy',
             onclick: () => modal({
               titulo: f.nombre, ancho: true,
-              cuerpo: el('img', { src: `/uploads/${f.archivo}`, alt: f.nombre, style: 'width:100%;border-radius:10px' }),
+              cuerpo: el('img', { src: urlFoto(f), alt: f.nombre, style: 'width:100%;border-radius:10px' }),
             }),
           }),
           el('figcaption', {}, [el('b', { texto: f.nombre }), el('span', { texto: `${f.tipo} · ${fmtFechaCorta(f.creada_en)}` })]),

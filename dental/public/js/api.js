@@ -48,6 +48,11 @@ const qs = (params = {}) => {
   return s ? `?${s}` : '';
 };
 
+/** URL de una imagen del expediente. Único punto que conoce dónde viven los archivos. */
+export function urlFoto(foto) {
+  return `/uploads/${foto.archivo}`;
+}
+
 export const api = {
   // Autenticación
   login: (email, password) => peticion('POST', '/api/auth/login', { email, password }),

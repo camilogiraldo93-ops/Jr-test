@@ -1,4 +1,4 @@
-import { api, ErrorApi } from '../api.js';
+import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, selector, area, exito, error, vacio, fmtDinero, fmtFechaCorta,
   fmtFechaHora, fmtMarca, etiquetaEstado, entrada } from '../ui.js';
 import { abrirFormularioPaciente } from './pacientes.js';
@@ -166,11 +166,11 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
       el('h3', { texto: 'Radiografías e imágenes intraorales' }),
       el('div', { clase: 'galeria' }, exp.fotos.map((f) => el('figure', {}, [
         el('img', {
-          src: `/uploads/${f.archivo}`, alt: f.nombre, loading: 'lazy',
+          src: urlFoto(f), alt: f.nombre, loading: 'lazy',
           onclick: () => modal({
             titulo: f.nombre, ancho: true,
             cuerpo: el('div', {}, [
-              el('img', { src: `/uploads/${f.archivo}`, alt: f.nombre, style: 'width:100%;border-radius:10px' }),
+              el('img', { src: urlFoto(f), alt: f.nombre, style: 'width:100%;border-radius:10px' }),
               el('p', { clase: 'mini', style: 'margin-top:8px', texto: `${f.tipo} · ${fmtMarca(f.creada_en)}${f.descripcion ? ` · ${f.descripcion}` : ''}` }),
             ]),
           }),
