@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { classifyDay, CATEGORIES, DEFAULT_CONFIG } from '../elnino/js/lib/classifier.js';
 import { doyIndexFromISO } from '../elnino/js/lib/doy.js';
 import { oniForDate } from '../elnino/js/lib/oni.js';
+import { factoresDe, corregirPr, corregirTmax } from '../elnino/js/lib/bias.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = path.join(ROOT, 'backtest', '.cache');
@@ -48,7 +49,7 @@ const climatology = JSON.parse(fs.readFileSync(path.join(ROOT, 'elnino/data/clim
 const oni = JSON.parse(fs.readFileSync(path.join(ROOT, 'elnino/data/oni.json'), 'utf8'));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const addDays = (iso, n) => {
+export const addDays = (iso, n) => {
   const d = new Date(iso + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
@@ -80,7 +81,7 @@ async function getJSON(url, cacheKey) {
 }
 
 /** Último día con reanálisis ERA5 definitivo disponible. */
-async function detectLastEra5Day() {
+export async function detectLastEra5Day() {
   const today = new Date().toISOString().slice(0, 10);
   const p = provinces[0];
   const url =
@@ -95,7 +96,7 @@ async function detectLastEra5Day() {
 }
 
 /** Observado ERA5 diario para todas las provincias. */
-async function fetchObserved(start, end) {
+export async function fetchObserved(start, end) {
   const out = {};
   const CH = 6;
   for (let i = 0; i < provinces.length; i += CH) {
@@ -126,7 +127,7 @@ async function fetchObserved(start, end) {
  * Pronóstico emitido D-1, agregado a valores diarios desde la serie horaria
  * `*_previous_day1` de previous-runs-api.
  */
-async function fetchForecastD1(start, end) {
+export async function fetchForecastD1(start, end) {
   const out = {};
   const CH = 3;
   for (let i = 0; i < provinces.length; i += CH) {
@@ -193,7 +194,7 @@ function scores(c) {
   };
 }
 
-export function runBacktest({ obs, fcst, window, cfg }) {
+export function runBacktest({ obs, fcst, window, cfg, bias = null }) {
   const perCategory = Object.fromEntries(CATEGORIES.map((k) => [k, contingency()]));
   const perProvince = {};
   let exact = 0;
@@ -238,8 +239,14 @@ export function runBacktest({ obs, fcst, window, cfg }) {
       const oniEntry = oniForDate(oni, day);
       const oniVal = oniEntry ? oniEntry.anom : null;
 
+      // Corrección de sesgo modelo→ERA5, ajustada en días anteriores a esta
+      // ventana (ver tools/build-bias.mjs). Sin bias.json, es la identidad.
+      const { rho, delta } = factoresDe(bias, p.id);
+      const prF = corregirPr(f.pr[fi], rho);
+      const tmaxF = corregirTmax(f.tmax[fi], delta);
+
       const pred = classifyDay(
-        { pr: f.pr[fi], pr3: ante2 + f.pr[fi], pr30: ante29 + f.pr[fi], tmax: f.tmax[fi], clim, region: p.region, oni: oniVal },
+        { pr: prF, pr3: ante2 + prF, pr30: ante29 + prF, tmax: tmaxF, clim, region: p.region, oni: oniVal },
         cfg,
       );
       const real = classifyDay(
@@ -360,13 +367,30 @@ async function main() {
   const cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   cfg.enso.enabled = ensoEnabled;
 
-  const r = runBacktest({ obs, fcst, window, cfg });
+  let bias = null;
+  const biasPath = path.join(ROOT, 'elnino/data/bias.json');
+  if (!hasFlag('--no-bias') && fs.existsSync(biasPath)) {
+    bias = JSON.parse(fs.readFileSync(biasPath, 'utf8'));
+    if (bias._meta.entrenamiento_fin >= start) {
+      throw new Error(
+        `La corrección de sesgo se entrenó hasta ${bias._meta.entrenamiento_fin}, que se solapa con ` +
+        `la ventana de verificación que empieza el ${start}. El backtest dejaría de ser fuera de muestra.`,
+      );
+    }
+    console.log(`Corrección de sesgo activa (entrenada ${bias._meta.entrenamiento_inicio} → ${bias._meta.entrenamiento_fin}).`);
+  }
+
+  const r = runBacktest({ obs, fcst, window, cfg, bias });
   const oniEntry = oniForDate(oni, end);
   const meta = {
     start, end, days,
     oniSeason: oniEntry ? `${oniEntry.seas} ${oniEntry.year}` : 'n/d',
     oniValue: oniEntry ? oniEntry.anom : null,
     ensoEnabled,
+    correccionSesgo: bias
+      ? { entrenamiento: `${bias._meta.entrenamiento_inicio} → ${bias._meta.entrenamiento_fin}` }
+      : null,
+    climatologia_periodo: climatology._meta.periodo_referencia,
     generado: new Date().toISOString(),
     fuentes: {
       predicho: 'https://previous-runs-api.open-meteo.com/v1/forecast (variables *_previous_day1)',
