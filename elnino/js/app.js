@@ -5,22 +5,14 @@
  * se verificó en el backtest → pinta mapa y tarjetas. Si una fuente falla, se
  * muestra el error; nunca se rellena con datos inventados ni cacheados.
  */
-import { classifyDay, ensoPhase, CATEGORIES, CATEGORY_LABELS, DEFAULT_CONFIG, SEVERITY_LABELS } from './lib/classifier.js';
-import { doyIndexFromISO } from './lib/doy.js';
+import { ensoPhase, CATEGORIES, CATEGORY_LABELS } from './lib/classifier.js';
 import { oniForDate } from './lib/oni.js';
-import { fetchDeterministic, fetchEnsembleSpread, fetchSST, spreadStats, UNCERTAINTY_MODELS } from './sources.js';
+import { buildAlerts, horasDeAnticipacion } from './lib/alerts.js';
+import { fetchDeterministic, fetchEnsembleSpread, fetchSST, spreadStats } from './sources.js';
 import { renderMap, renderLeyenda } from './map.js';
 import { tarjetaAlerta, panelENSO, panelLimitaciones, fechaLarga } from './ui.js';
 
 const $ = (sel) => document.querySelector(sel);
-
-/** Unidad y variable del ensemble asociada a cada categoría. */
-const CAT_VAR = {
-  lluvia_extrema: { variable: 'pr', unidad: 'mm' },
-  inundacion: { variable: 'pr', unidad: 'mm' },
-  ola_calor: { variable: 'tmax', unidad: '°C' },
-  sequia: { variable: 'pr', unidad: 'mm' },
-};
 
 const estado = {
   provincias: null, clim: null, geo: null, oni: null, backtest: null,
@@ -42,97 +34,17 @@ function hoyEcuador() {
   }).format(new Date());
 }
 
-/** Horas entre ahora y el inicio (00:00) del día indicado en hora de Ecuador. */
-function horasDeAnticipacion(diaISO) {
-  // Ecuador continental es UTC-5 todo el año (sin horario de verano).
-  const inicio = new Date(`${diaISO}T00:00:00-05:00`);
-  return Math.round((inicio - Date.now()) / 3600000);
-}
-
-function climEn(provId, iso) {
-  const c = estado.clim.provincias[provId];
-  const d = doyIndexFromISO(iso);
-  const out = {};
-  for (const k of Object.keys(c)) out[k] = c[k][d];
-  return out;
-}
-
-/** Suma de una ventana de la serie diaria; null si falta algún dato. */
-function suma(serie, desde, hasta) {
-  let s = 0;
-  for (let i = desde; i <= hasta; i++) {
-    if (i < 0 || i >= serie.length || serie[i] == null) return null;
-    s += serie[i];
-  }
-  return s;
-}
-
-/**
- * Clasifica cada provincia para cada día pronosticado y arma la lista de alertas.
- */
+/** Clasifica cada provincia para cada día pronosticado y arma la lista de alertas. */
 function construirAlertas() {
-  const alertas = [];
-  const porProvinciaDia = {};
-
-  for (const p of estado.provincias) {
-    const d = estado.det[p.id];
-    if (!d) continue;
-    const idx = new Map(d.time.map((t, i) => [t, i]));
-    const ens = estado.ens?.[p.id];
-    const ensIdx = ens ? new Map(ens.time.map((t, i) => [t, i])) : null;
-
-    for (const dia of estado.dias) {
-      const i = idx.get(dia);
-      if (i == null || d.pr[i] == null || d.tmax[i] == null) continue;
-
-      const pr3 = suma(d.pr, i - 2, i);
-      const pr30 = suma(d.pr, i - 29, i);
-      const clim = climEn(p.id, dia);
-      const entrada = oniForDate(estado.oni, dia);
-      const oniVal = entrada ? entrada.anom : null;
-
-      const r = classifyDay(
-        { pr: d.pr[i], pr3, pr30, tmax: d.tmax[i], clim, region: p.region, oni: oniVal },
-        DEFAULT_CONFIG,
-      );
-      (porProvinciaDia[dia] ||= {})[p.id] = { max: r.max, active: r.active };
-
-      const anticipacion = horasDeAnticipacion(dia);
-      for (const cat of CATEGORIES) {
-        if (r.levels[cat] === 0) continue;
-        const { variable, unidad } = CAT_VAR[cat];
-        const spread = ensIdx ? spreadStats(ens, ensIdx, dia, variable) : null;
-
-        // Umbral efectivo mostrado en la tarjeta (el del nivel amarillo, que es
-        // el que define "hay alerta o no").
-        const cfg = DEFAULT_CONFIG;
-        const umbral =
-          cat === 'lluvia_extrema' ? clim[cfg.rain.pctYellow]
-          : cat === 'inundacion' ? clim[cfg.flood.pctYellow]
-          : cat === 'ola_calor' ? clim[cfg.heat.pctYellow]
-          : clim[cfg.drought.pctYellow];
-
-        let superan = 0;
-        if (spread) {
-          for (const m of spread.porModelo) {
-            if (cat === 'sequia') { if (m.valor <= umbral) superan++; }
-            else if (m.valor >= umbral) superan++;
-          }
-        }
-
-        alertas.push({
-          provinciaId: p.id, provincia: p.nombre, region: p.region,
-          categoria: cat, nivel: r.levels[cat], dia,
-          anticipacionHoras: anticipacion,
-          unidad,
-          spread,
-          modelosQueSuperan: superan,
-          evidencia: { pr: d.pr[i], pr3, pr30, tmax: d.tmax[i], umbral, pr30Mean: clim.pr30Mean },
-        });
-      }
-    }
-  }
-
+  const { alertas, porProvinciaDia } = buildAlerts({
+    provincias: estado.provincias,
+    clim: estado.clim,
+    oni: estado.oni,
+    det: estado.det,
+    ens: estado.ens,
+    dias: estado.dias,
+    spreadStats,
+  });
   estado.alertas = alertas;
   estado.porProvincia = porProvinciaDia;
 }
