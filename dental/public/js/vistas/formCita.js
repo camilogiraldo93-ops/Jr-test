@@ -34,7 +34,7 @@ export async function abrirFormularioCita(opciones = {}) {
   const doctorPropio = sesion.usuario?.rol === 'doctor' ? sesion.usuario.doctor_id : null;
 
   if (!consultorios.length) {
-    error('Antes hay que crear una sede con al menos un sillón, en Configuración.');
+    error('Antes hay que crear un consultorio con al menos un cubículo, en Configuración.');
     return;
   }
   if (!pacientes.length) {
@@ -42,12 +42,12 @@ export async function abrirFormularioCita(opciones = {}) {
     return;
   }
 
-  const sedeDelDoctor = doctorPropio
+  const consultorioDelDoctor = doctorPropio
     ? doctores.find((d) => d.id === doctorPropio)?.consultorios?.[0]?.id ?? null
     : null;
 
   const inicial = {
-    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? sedeDelDoctor ?? consultorios[0].id,
+    consultorio_id: cita?.consultorio_id ?? consultorio_id ?? consultorioDelDoctor ?? consultorios[0].id,
     cubiculo_id: cita?.cubiculo_id ?? cubiculo_id ?? null,
     doctor_id: cita?.doctor_id ?? doctor_id ?? doctorPropio ?? null,
     // Sin preselección: el primero de la lista alfabética no es «el paciente por
@@ -82,6 +82,11 @@ export async function abrirFormularioCita(opciones = {}) {
   ], inicial.catalogo_id);
   const notaTratamiento = el('div', { clase: 'mini' });
 
+  // Solo se promete el prellenado cuando de verdad hay valores recordados.
+  const ayudaPaciente = (inicial.cubiculo_id && inicial.doctor_id)
+    ? 'Elige a la persona y pulsa Enter: el cubículo y el doctor son los de la última cita que guardaste.'
+    : 'Elige a la persona, el cubículo y el doctor. La próxima vez esos dos vendrán ya puestos.';
+
   const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
   const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
   const inFin = entrada('hora_fin', { type: 'time', value: inicial.hora_fin, required: true, step: 300 });
@@ -90,13 +95,22 @@ export async function abrirFormularioCita(opciones = {}) {
 
   const avisoConflicto = el('div', { clase: 'alerta-caja', style: 'display:none' });
 
+  /**
+   * El cubículo y el doctor se rellenan solos, pero únicamente cuando de verdad
+   * hay un valor conocido: el de esta cita, el que venga por contexto o el de la
+   * última que se guardó. Si no hay ninguno, el desplegable abre vacío y hay que
+   * elegir. Dejarlo caer en el primero por orden alfabético agendaba con un
+   * doctor que nadie escogió, y la cita ni siquiera aparecía en su agenda.
+   */
   function refrescarCubiculos() {
     const cid = Number(selConsultorio.value);
     const cons = consultorios.find((c) => c.id === cid);
     const lista = (cons?.cubiculos || []).filter((c) => c.activo);
     selCubiculo.innerHTML = '';
     if (!lista.length) {
-      selCubiculo.appendChild(el('option', { value: '', texto: 'Sin cubículos disponibles' }));
+      selCubiculo.appendChild(el('option', { value: '', texto: 'Este consultorio no tiene cubículos activos' }));
+    } else if (!lista.some((c) => Number(inicial.cubiculo_id) === c.id)) {
+      selCubiculo.appendChild(el('option', { value: '', texto: '— Elige el cubículo —' }));
     }
     for (const c of lista) {
       const op = el('option', { value: String(c.id), texto: c.nombre });
@@ -111,7 +125,9 @@ export async function abrirFormularioCita(opciones = {}) {
     const lista = doctores.filter((d) => d.activo && d.consultorios.some((c) => c.id === cid));
     selDoctor.innerHTML = '';
     if (!lista.length) {
-      selDoctor.appendChild(el('option', { value: '', texto: 'Ningún doctor asignado a este consultorio' }));
+      selDoctor.appendChild(el('option', { value: '', texto: 'Ningún doctor atiende en este consultorio' }));
+    } else if (!lista.some((d) => Number(inicial.doctor_id) === d.id)) {
+      selDoctor.appendChild(el('option', { value: '', texto: '— Elige el doctor —' }));
     }
     for (const d of lista) {
       const op = el('option', { value: String(d.id), texto: `${d.nombre} — ${d.especialidad || 'General'}` });
@@ -168,7 +184,7 @@ export async function abrirFormularioCita(opciones = {}) {
   function mostrarConflictos(conflictos, mensaje) {
     if (!conflictos.length) {
       avisoConflicto.className = 'alerta-caja ok';
-      avisoConflicto.textContent = '✅ Esa hora está libre: ni el sillón ni el doctor tienen otra cita.';
+      avisoConflicto.textContent = '✅ Esa hora está libre: ni el cubículo ni el doctor tienen otra cita.';
       avisoConflicto.style.display = 'block';
       return;
     }
@@ -226,10 +242,9 @@ export async function abrirFormularioCita(opciones = {}) {
   // campo que falta, en vez del globo del navegador.
   const form = el('form', { novalidate: true }, [
     avisoConflicto,
-    campo('¿Para quién es la cita?', selPaciente,
-      'Elige a la persona y pulsa Enter: el resto ya viene puesto con lo de siempre.'),
+    campo('¿Para quién es la cita?', selPaciente, ayudaPaciente),
     el('div', { clase: 'fila' }, [
-      campo('Consultorio (sede)', selConsultorio),
+      campo('Consultorio', selConsultorio),
       campo('Cubículo', selCubiculo),
     ]),
     campo('Doctor', selDoctor, 'Solo se listan los doctores asignados al consultorio seleccionado.'),
@@ -274,8 +289,8 @@ export async function abrirFormularioCita(opciones = {}) {
       return;
     }
     if (!formularioCompleto(form)) return;
-    if (!selCubiculo.value) { error('Elige un sillón para la cita.'); return; }
-    if (!selDoctor.value) { error('Elige un doctor de los que atienden en esa sede.'); return; }
+    if (!selCubiculo.value) { error('Falta elegir el cubículo donde se atiende.', 'Falta un dato'); selCubiculo.focus(); return; }
+    if (!selDoctor.value) { error('Falta elegir el doctor que va a atender.', 'Falta un dato'); selDoctor.focus(); return; }
     botonGuardar.disabled = true;
     botonGuardar.textContent = 'Guardando…';
     const datos = {

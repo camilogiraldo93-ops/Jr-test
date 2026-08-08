@@ -89,7 +89,7 @@ post('/api/pagos', { roles: ['admin', 'recepcion'] }, ({ cuerpo }) => {
 
   const metodos = ['efectivo', 'tarjeta', 'transferencia', 'seguro', 'otro'];
   const metodo = texto(cuerpo.metodo, 'efectivo');
-  if (!metodos.includes(metodo)) throw new ErrorApp(400, `Método de pago inválido. Opciones: ${metodos.join(', ')}.`);
+  if (!metodos.includes(metodo)) throw new ErrorApp(400, 'Elige de la lista cómo pagó: efectivo, tarjeta, transferencia, seguro u otro.');
 
   const { ultimoId } = correr(
     `INSERT INTO pagos (cargo_id, paciente_id, consultorio_id, monto, metodo, fecha, nota, creado_en)
@@ -129,7 +129,7 @@ post('/api/gastos', { roles: ['admin', 'recepcion'] }, ({ cuerpo, usuario }) => 
   const categorias = ['insumos', 'nomina', 'alquiler', 'servicios', 'equipos', 'mantenimiento', 'marketing', 'otro'];
   const categoria = texto(cuerpo.categoria, 'insumos');
   if (!categorias.includes(categoria)) {
-    throw new ErrorApp(400, `Categoría de gasto inválida. Opciones: ${categorias.join(', ')}.`);
+    throw new ErrorApp(400, 'Elige de la lista el tipo de gasto.');
   }
   const { ultimoId } = correr(
     `INSERT INTO gastos (consultorio_id, categoria, concepto, proveedor, monto, fecha, creado_en)

@@ -118,7 +118,7 @@ post('/api/pacientes/:id/odontograma', { roles: ['admin', 'doctor'] }, ({ params
   const estados = ['sano', 'caries', 'obturado', 'corona', 'ausente', 'endodoncia', 'implante', 'fractura', 'sellante'];
   const estado = texto(cuerpo.estado);
   if (!estados.includes(estado)) {
-    throw new ErrorApp(400, `Estado de diente inválido. Opciones: ${estados.join(', ')}.`);
+    throw new ErrorApp(400, 'Elige de la lista cómo está la pieza dental.');
   }
   correr(
     `INSERT INTO odontograma (paciente_id, diente, cara, estado, nota, tratamiento_id, actualizado_en)

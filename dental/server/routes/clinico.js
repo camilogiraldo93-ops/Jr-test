@@ -118,12 +118,14 @@ const MIMES = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp'
 
 function guardarArchivo(datos) {
   const m = String(datos).match(/^data:([\w/+.-]+);base64,(.+)$/s);
-  if (!m) throw new ErrorApp(400, 'La imagen debe enviarse como data URL base64 (data:image/...;base64,...).');
+  if (!m) throw new ErrorApp(400, 'Ese archivo no se pudo leer como imagen. Vuelve a elegirlo desde el botón de subir.');
   const mime = m[1];
-  if (!MIMES[mime]) throw new ErrorApp(400, `Formato de imagen no soportado: ${mime}. Usa PNG, JPG, WEBP o GIF.`);
+  if (!MIMES[mime]) throw new ErrorApp(400,
+    'Ese archivo no es una imagen. Sube una foto o una radiografía en PNG, JPG, WEBP o GIF.');
   const buffer = Buffer.from(m[2], 'base64');
-  if (!buffer.length) throw new ErrorApp(400, 'La imagen está vacía.');
-  if (buffer.length > 12 * 1024 * 1024) throw new ErrorApp(413, 'La imagen supera el límite de 12 MB.');
+  if (!buffer.length) throw new ErrorApp(400, 'Esa imagen llegó vacía. Vuelve a intentarlo con otro archivo.');
+  if (buffer.length > 12 * 1024 * 1024) throw new ErrorApp(413,
+    'Esa imagen pesa más de 12 MB. Súbela más pequeña o sácala de nuevo con menos calidad.');
   const nombre = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${MIMES[mime]}`;
   fs.writeFileSync(path.join(DIR_UPLOADS, nombre), buffer);
   return { archivo: nombre, mime };
@@ -137,7 +139,7 @@ post('/api/citas/:id/fotos', { roles: ['admin', 'doctor', 'recepcion'] }, ({ par
   requerido(cuerpo, ['nombre', 'datos']);
   const tipos = ['radiografia', 'intraoral', 'extraoral', 'documento', 'otro'];
   const tipo = texto(cuerpo.tipo, 'intraoral');
-  if (!tipos.includes(tipo)) throw new ErrorApp(400, `Tipo de imagen inválido. Opciones: ${tipos.join(', ')}.`);
+  if (!tipos.includes(tipo)) throw new ErrorApp(400, 'Elige de la lista qué clase de imagen es (radiografía, foto intraoral, foto extraoral, documento u otro).');
   const { archivo, mime } = guardarArchivo(cuerpo.datos);
   const { ultimoId } = correr(
     `INSERT INTO fotos (paciente_id, cita_id, tratamiento_id, tipo, nombre, archivo, mime, descripcion, creada_en)
@@ -181,7 +183,7 @@ post('/api/citas/:id/recordatorios', { roles: ['admin', 'doctor', 'recepcion'] }
   requerido(cuerpo, ['titulo']);
   const prioridad = texto(cuerpo.prioridad, 'media');
   if (!['baja', 'media', 'alta'].includes(prioridad)) {
-    throw new ErrorApp(400, 'Prioridad inválida. Opciones: baja, media, alta.');
+    throw new ErrorApp(400, 'Elige la urgencia de la lista: puede esperar, normal o urgente.');
   }
   const t = ahora();
   const { ultimoId } = correr(
@@ -198,7 +200,7 @@ patch('/api/recordatorios/:id', { roles: ['admin', 'doctor', 'recepcion'] }, ({ 
   if (!r) throw new ErrorApp(404, 'Recordatorio no encontrado.');
   const estado = texto(cuerpo.estado, r.estado);
   if (!['pendiente', 'completado', 'cancelado'].includes(estado)) {
-    throw new ErrorApp(400, 'Estado inválido. Opciones: pendiente, completado, cancelado.');
+    throw new ErrorApp(400, 'Elige de la lista cómo va: por hacer, hecha o ya no aplica.');
   }
   correr('UPDATE recordatorios SET titulo=?, descripcion=?, fecha_objetivo=?, prioridad=?, estado=?, actualizado_en=? WHERE id=?',
     [texto(cuerpo.titulo, r.titulo), texto(cuerpo.descripcion, r.descripcion),

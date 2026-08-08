@@ -192,7 +192,7 @@ function validarFirma(valor, quien) {
 post('/api/consentimientos/:id/firmar', { roles: ['admin', 'doctor', 'recepcion'] }, ({ params, cuerpo }) => {
   const c = obtener(params.id);
   if (!c) throw new ErrorApp(404, 'Consentimiento no encontrado.');
-  if (c.estado === 'firmado') throw new ErrorApp(409, 'Este consentimiento ya está firmado y es inmutable.');
+  if (c.estado === 'firmado') throw new ErrorApp(409, 'Este consentimiento ya está firmado y no se puede cambiar. Si hay que corregir algo, anúlalo y haz uno nuevo.');
   if (c.estado === 'anulado') throw new ErrorApp(409, 'Este consentimiento está anulado; genera uno nuevo.');
 
   const firmaPaciente = validarFirma(cuerpo.firma_paciente, 'del paciente');

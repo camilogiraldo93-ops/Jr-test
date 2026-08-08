@@ -54,7 +54,7 @@ export async function vistaConfiguracion({ refrescar }) {
     const telefono = entrada('telefono', {});
     const ciudad = entrada('ciudad', {});
     formModal({
-      titulo: 'Nuevo consultorio (sede)',
+      titulo: 'Nuevo consultorio',
       campos: [
         { nodo: campo('Nombre *', nombre) },
         { nodo: campo('Dirección', direccion) },
@@ -223,7 +223,7 @@ export async function vistaConfiguracion({ refrescar }) {
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
         el('h2', { texto: 'Configuración' }),
-        el('div', { clase: 'desc', texto: 'Las sedes, los sillones, los doctores, quién puede entrar y la lista de tratamientos con sus precios.' }),
+        el('div', { clase: 'desc', texto: 'Los consultorios, los cubículos, los doctores, quién puede entrar y la lista de tratamientos con sus precios.' }),
       ]),
     ]),
 

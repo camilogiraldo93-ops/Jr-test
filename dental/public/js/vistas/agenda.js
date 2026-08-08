@@ -196,7 +196,7 @@ export async function vistaAgenda({ navegar, usuario }) {
   contenedor.appendChild(el('div', { clase: 'cabecera' }, [
     el('div', {}, [
       el('h2', { texto: 'Agenda' }),
-      el('div', { clase: 'desc', texto: 'La semana o el día completos, por sede, por sillón o por doctor. Si dos citas chocan, la app lo avisa.' }),
+      el('div', { clase: 'desc', texto: 'La semana o el día completos, por consultorio, por cubículo o por doctor. Si dos citas chocan, la app lo avisa.' }),
     ]),
     puedeAgendar
       ? el('button', {

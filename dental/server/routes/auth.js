@@ -25,7 +25,7 @@ post('/api/usuarios', { roles: ['admin'] }, ({ cuerpo }) => {
   requerido(cuerpo, ['nombre', 'email', 'password', 'rol']);
   const rol = texto(cuerpo.rol);
   if (!['admin', 'doctor', 'recepcion'].includes(rol)) {
-    throw new ErrorApp(400, 'Rol inválido. Debe ser admin, doctor o recepcion.');
+    throw new ErrorApp(400, 'Elige de la lista qué hace esta persona: administradora, doctor o recepción.');
   }
   if (uno('SELECT id FROM usuarios WHERE email = ?', [String(cuerpo.email).toLowerCase().trim()])) {
     throw new ErrorApp(409, 'Ya existe un usuario con ese correo.');

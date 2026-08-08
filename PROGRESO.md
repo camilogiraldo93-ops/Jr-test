@@ -225,4 +225,46 @@ Pruebas: **65 en verde** (2 migración, 23 API, 27 interfaz, 13 demo).
 
 ### Veredicto del revisor-ux sobre el ciclo 4
 
+**VEREDICTO GLOBAL: RECHAZADO** — 9 de 10 tareas y 4 de 5 auditorías en ✅.
+
+Bloqueantes:
+1. «La cita se agenda con un doctor y un cubículo que la recepcionista nunca
+   eligió.» El arreglo del ciclo 4 se aplicó **solo al paciente**: cubículo y
+   doctor seguían cayendo en el primero por orden alfabético, y la validación
+   que escribí para ellos no podía dispararse nunca porque el valor jamás
+   estaba vacío. Además el texto de ayuda prometía «el resto ya viene puesto
+   con lo de siempre», que no era cierto. Señaló, con razón, que esto
+   contradice el mensaje de mi propio commit.
+2. Cuatro pasos en la tarea 1.
+3. Dos palabras para la misma cosa: «cubículo»/«sillón», «consultorio»/«sede».
+
+---
+
+## Ciclo 5 — solo hallazgos bloqueantes
+
+1. **Cubículo y doctor ya no se eligen solos.** Se rellenan cuando hay un valor
+   de verdad conocido —el de la cita, el que llega por contexto o el de la
+   última cita guardada— y, si no lo hay, el desplegable abre en «— Elige el
+   cubículo —» / «— Elige el doctor —» y no se guarda sin decidir. El texto de
+   ayuda ahora solo promete el prellenado cuando efectivamente lo hay.
+2. **Una sola palabra por cosa.** «Consultorio» y «cubículo» en toda la app,
+   que además son las palabras del encargo original; «sede» y «sillón» salieron
+   de la interfaz.
+3. **Mensajes del servidor sin jerga**: el tipo MIME crudo en pantalla
+   («text/plain»), «data URL base64», «el cuerpo de la petición no es JSON
+   válido», «inmutable», y las listas de códigos internos (`admin, doctor,
+   recepcion`; `pendiente, completado, cancelado`). Y `Categoria` con tilde en
+   el CSV.
+
+Sobre la tarea 1: el camino de tres pasos existe (Mañana → hueco → elegir a la
+persona y pulsar Enter) y el propio revisor lo aceptó como ✅ de 3 pasos en el
+ciclo 2. Con el botón son 4. No veo forma honesta de bajar de eso sin quitarle
+a alguien la confirmación explícita, que es justo lo que evita agendar a quien
+no era. Queda anotado para que lo decida él.
+
+Pruebas: **65 en verde**. Las de la demo se apoyaban otra vez en la
+preselección; se corrigieron para elegir cubículo y doctor.
+
+### Veredicto del revisor-ux sobre el ciclo 5
+
 _(pendiente)_

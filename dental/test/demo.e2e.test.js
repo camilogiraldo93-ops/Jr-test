@@ -66,6 +66,13 @@ async function esperarExito(patron) {
 
 const modal = () => pagina.locator('.modal-fondo').last();
 
+/** Elige la primera opción real (saltándose el «— Elige … —») de un desplegable. */
+async function elegirPrimero(m, nombre) {
+  const valores = await m.locator(`select[name="${nombre}"] option`)
+    .evaluateAll((ops) => ops.filter((o) => o.value).map((o) => o.value));
+  if (valores.length) await m.locator(`select[name="${nombre}"]`).selectOption(valores[0]);
+}
+
 async function abrirModal(selector) {
   await pagina.waitForFunction(() => document.querySelectorAll('.modal-fondo').length === 0);
   await pagina.click(selector);
@@ -156,10 +163,14 @@ test('Demo · la agenda muestra citas y bloquea conflictos', async () => {
   await pagina.selectOption('select[name="vista"]', 'dia');
   await abrirModal('button:has-text("➕ Nueva cita")');
   const m = modal();
+  // Cubículo y doctor abren vacíos la primera vez: hay que elegirlos para que
+  // la app pueda comprobar si esa hora choca con algo.
+  await elegirPrimero(m, 'cubiculo_id');
+  await elegirPrimero(m, 'doctor_id');
   await m.locator('input[name="fecha"]').fill(iso(hoy));
   await m.locator('input[name="hora_inicio"]').fill('09:00');
   await m.locator('input[name="hora_fin"]').fill('10:00');
-  await pagina.waitForSelector('.modal-fondo .alerta-caja', { timeout: 20000 });
+  await pagina.waitForSelector('.modal-fondo .alerta-caja:visible', { timeout: 20000 });
   await m.locator('button:has-text("Cancelar")').click();
 });
 
@@ -179,6 +190,8 @@ test('Demo · agendar eligiendo el tratamiento previsto', async () => {
     .evaluateAll((ops) => ops.find((o) => o.textContent.startsWith('Implante dental'))?.value);
   assert.ok(opcion, 'el catálogo ofrece el implante');
   await m.locator('select[name="catalogo_id"]').selectOption(opcion);
+  await elegirPrimero(m, 'cubiculo_id');
+  await elegirPrimero(m, 'doctor_id');
 
   // Nadie viene preseleccionado: hay que decir de quién es la cita.
   const pacientes = await m.locator('select[name="paciente_id"] option').evaluateAll(
@@ -287,7 +300,7 @@ test('Demo · contabilidad con desglose por doctor y exportación CSV', async ()
     pagina.click('button:has-text("Exportar gastos a Excel")'),
   ]);
   const csv = fs.readFileSync(await descarga.path(), 'utf8');
-  assert.match(csv, /Fecha;Consultorio;Categoria;Concepto;Proveedor;Monto/);
+  assert.match(csv, /Fecha;Consultorio;Categoría;Concepto;Proveedor;Monto/);
 });
 
 test('Demo · los cambios sobreviven a recargar la página', async () => {

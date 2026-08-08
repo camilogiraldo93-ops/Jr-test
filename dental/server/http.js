@@ -67,7 +67,7 @@ async function leerCuerpo(req) {
   let total = 0;
   for await (const t of req) {
     total += t.length;
-    if (total > 25 * 1024 * 1024) throw new ErrorApp(413, 'El contenido enviado es demasiado grande (máx. 25 MB).');
+    if (total > 25 * 1024 * 1024) throw new ErrorApp(413, 'Eso pesa demasiado (el máximo son 25 MB). Prueba con un archivo más pequeño.');
     trozos.push(t);
   }
   if (!trozos.length) return {};
@@ -75,7 +75,7 @@ async function leerCuerpo(req) {
   try {
     return JSON.parse(texto);
   } catch {
-    throw new ErrorApp(400, 'El cuerpo de la petición no es JSON válido.');
+    throw new ErrorApp(400, 'Los datos llegaron incompletos o dañados. Vuelve a intentarlo.');
   }
 }
 

@@ -24,7 +24,7 @@ export async function vistaPanel({ usuario }) {
   const kpis = el('div', { clase: 'rejilla c4', style: 'margin-bottom:18px' }, [
     kpi('Citas de hoy', String(resumen.citas_hoy), `${plural(resumen.citas_mes, 'cita', 'citas')} este mes`),
     kpi('Pacientes', String(resumen.pacientes),
-          `${plural(resumen.doctores, 'doctor', 'doctores')} · ${plural(resumen.consultorios, 'sede', 'sedes')}`),
+          `${plural(resumen.doctores, 'doctor', 'doctores')} · ${plural(resumen.consultorios, 'consultorio', 'consultorios')}`),
     kpi('Cosas por hacer', String(resumen.recordatorios_pendientes), 'anotadas para dar seguimiento'),
     puedeContabilidad
       ? kpi('Lo que quedó este mes', fmtDinero(balanceMes),

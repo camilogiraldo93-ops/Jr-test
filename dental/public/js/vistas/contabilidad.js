@@ -201,9 +201,9 @@ export async function vistaContabilidad({ refrescar }) {
     ]));
 
     zona.appendChild(el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: '🏥 Cómo va cada sede' }),
+      el('h3', { texto: '🏥 Cómo va cada consultorio' }),
       el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-        el('thead', {}, [el('tr', {}, ['Sede', 'Tratamientos hechos', 'Cobrado', 'Gastado', 'Lo que quedó'].map((t) => el('th', { texto: t })))]),
+        el('thead', {}, [el('tr', {}, ['Consultorio', 'Tratamientos hechos', 'Cobrado', 'Gastado', 'Lo que quedó'].map((t) => el('th', { texto: t })))]),
         el('tbody', {}, bal.por_consultorio.map((c) => el('tr', {}, [
           el('td', { texto: c.nombre }),
           el('td', { clase: 'num', texto: fmtDinero(c.facturado) }),
@@ -256,7 +256,7 @@ export async function vistaContabilidad({ refrescar }) {
       el('button', {
         clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos a Excel',
         onclick: () => descargarExcel(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
-          ['Fecha', 'Consultorio', 'Categoria', 'Concepto', 'Proveedor', 'Monto'],
+          ['Fecha', 'Consultorio', 'Categoría', 'Concepto', 'Proveedor', 'Monto'],
           gastosP.map((g) => [g.fecha, g.consultorio_nombre,
             NOMBRE_CATEGORIA_GASTO[g.categoria] || g.categoria, g.concepto, g.proveedor || '', g.monto])),
       }),

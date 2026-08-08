@@ -655,10 +655,10 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
 
   // Balance del consultorio nuevo: ingresos 120, gastos 80, balance 40.
   await pagina.selectOption('select[name="consultorio_id"]', { label: `Clínica UI ${sufijo}` });
-  // El filtro recarga de forma asíncrona: esperamos a que el resumen quede acotado a esa sede.
+  // El filtro recarga de forma asíncrona: esperamos a que el resumen quede acotado a ese consultorio.
   await pagina.waitForFunction((nombre) => {
     const tarjeta = [...document.querySelectorAll('.tarjeta')]
-      .find((t) => t.querySelector('h3')?.textContent.includes('Cómo va cada sede'));
+      .find((t) => t.querySelector('h3')?.textContent.includes('Cómo va cada consultorio'));
     const filas = tarjeta ? [...tarjeta.querySelectorAll('tbody tr')] : [];
     return filas.length === 1 && filas[0].textContent.includes(nombre);
   }, `Clínica UI ${sufijo}`, { timeout: 30000 });
@@ -667,7 +667,7 @@ test('UI · Flujo 7: cobro del tratamiento, gasto y balance', async () => {
   assert.match(kpis, /\$80\.00/, 'gastos del período');
   assert.match(kpis, /\$40\.00/, 'balance = 120 − 80');
 
-  const porConsultorio = await pagina.locator('.tarjeta:has-text("Cómo va cada sede")').innerText();
+  const porConsultorio = await pagina.locator('.tarjeta:has-text("Cómo va cada consultorio")').innerText();
   assert.match(porConsultorio, new RegExp(`Clínica UI ${sufijo}`));
 
   const deudores = await pagina.locator('.tarjeta:has-text("Pacientes que deben")').innerText();
@@ -904,7 +904,7 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
     pagina.click('button:has-text("Exportar gastos a Excel")'),
   ]);
   const csvGastos = fs.readFileSync(await descargaGastos.path(), 'utf8');
-  assert.match(csvGastos, /Fecha;Consultorio;Categoria;Concepto;Proveedor;Monto/);
+  assert.match(csvGastos, /Fecha;Consultorio;Categoría;Concepto;Proveedor;Monto/);
   assert.match(csvGastos, /Limas rotatorias/);
 });
 

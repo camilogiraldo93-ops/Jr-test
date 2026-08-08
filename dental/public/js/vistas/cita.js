@@ -164,7 +164,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     });
 
     const m = modal({
-      titulo: 'Cargar radiografías y fotos intraorales',
+      titulo: 'Subir radiografías y fotos',
       cuerpo: el('div', {}, [
         campo('Archivos de imagen', input, 'Puedes seleccionar varias imágenes a la vez (PNG, JPG, WEBP o GIF).'),
         lista,

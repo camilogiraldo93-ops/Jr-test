@@ -198,7 +198,7 @@ post('/api/citas', { roles: ['admin', 'recepcion', 'doctor'] }, ({ cuerpo }) => 
   }
 
   const estado = texto(cuerpo.estado, 'agendada');
-  if (!ESTADOS.includes(estado)) throw new ErrorApp(400, `Estado inválido. Opciones: ${ESTADOS.join(', ')}.`);
+  if (!ESTADOS.includes(estado)) throw new ErrorApp(400, 'Ese no es un estado de cita válido.');
 
   if (cuerpo.cita_origen_id && !uno('SELECT id FROM citas WHERE id = ?', [cuerpo.cita_origen_id])) {
     throw new ErrorApp(404, 'La cita de origen indicada no existe.');
@@ -260,7 +260,7 @@ patch('/api/citas/:id/estado', { roles: ['admin', 'recepcion', 'doctor'] }, ({ p
   if (!c) throw new ErrorApp(404, 'Cita no encontrada.');
   requerido(cuerpo, ['estado']);
   const nuevo = texto(cuerpo.estado);
-  if (!ESTADOS.includes(nuevo)) throw new ErrorApp(400, `Estado inválido. Opciones: ${ESTADOS.join(', ')}.`);
+  if (!ESTADOS.includes(nuevo)) throw new ErrorApp(400, 'Ese no es un estado de cita válido.');
   if (nuevo === c.estado) return obtenerCita(params.id);
   if (!TRANSICIONES[c.estado].includes(nuevo)) {
     throw new ErrorApp(409,

@@ -2,7 +2,7 @@
  * Recuerda los valores con los que se trabaja todos los días (consultorio,
  * cubículo y doctor habituales) para que agendar no obligue a repetirlos.
  *
- * Vive en el navegador de cada persona: la recepcionista de una sede no hereda
+ * Vive en el navegador de cada persona: la recepcionista de un consultorio no hereda
  * las preferencias de otra. Si el almacenamiento no está disponible (modo
  * privado, permisos), la app sigue funcionando sin recordar nada.
  */
