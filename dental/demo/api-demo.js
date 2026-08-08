@@ -202,6 +202,18 @@ function verificarDoctorPropio(u, doctorId) {
 
 /* --------------------------- Enriquecido de filas ------------------------- */
 
+const ACENTOS = [['á','a'],['é','e'],['í','i'],['ó','o'],['ú','u'],['ü','u'],['ñ','n']];
+
+/** Quita las tildes: quien busca al teléfono escribe «lucia», no «Lucía». */
+function sinTildes(t) {
+  return ACENTOS.reduce((s2, [con, sin]) => s2.split(con).join(sin), String(t || '').toLowerCase());
+}
+
+/** «María González» / «Rosa» cuando no hay apellidos, sin dejar «Rosa null». */
+function nombreCompleto(nombre, apellidos) {
+  return [nombre, apellidos].filter(Boolean).join(' ');
+}
+
 function conNombres(c) {
   const p = buscar('pacientes', c.paciente_id) || {};
   const d = buscar('doctores', c.doctor_id) || {};
@@ -265,9 +277,10 @@ function buscarConflictos({ cubiculo_id, doctor_id, inicio, fin, excluir_id = nu
 function explicarConflictos(conflictos) {
   return conflictos.map((c) => {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
-      : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
-      : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    return `Esa hora ya está ocupada: ${quien} está con ${c.paciente} ` +
+      : c.motivo === 'doctor' ? c.doctor
+      : `el cubículo "${c.cubiculo}" y ${c.doctor}`;
+    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'están' : 'está';
+    return `Esa hora ya está ocupada: ${quien} ${verbo} con ${c.paciente} ` +
            `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
            `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
   }).join(' ');
@@ -316,7 +329,7 @@ function crearConsentimientoInterno({
   return insertar('consentimientos', {
     paciente_id, doctor_id, consultorio_id, cita_id, tratamiento_id, catalogo_id,
     tratamiento: texto(tratamiento), observaciones: texto(observaciones),
-    paciente_nombre: `${pac.nombre} ${pac.apellidos}`,
+    paciente_nombre: nombreCompleto(pac.nombre, pac.apellidos),
     paciente_cedula: pac.cedula, paciente_fecha_nacimiento: pac.fecha_nacimiento,
     es_menor: a !== null && a < 18 ? 1 : 0,
     doctor_nombre: doc.nombre, doctor_especialidad: doc.especialidad,
@@ -541,14 +554,15 @@ export const api = {
     }
     const busqueda = texto(q);
     if (busqueda) {
-      const b = busqueda.toLowerCase();
+      const b = sinTildes(busqueda);
       lista = lista.filter((p) =>
-        `${p.nombre} ${p.apellidos}`.toLowerCase().includes(b) ||
-        (p.cedula || '').toLowerCase().includes(b) ||
+        sinTildes(nombreCompleto(p.nombre, p.apellidos)).includes(b) ||
+        sinTildes(p.cedula || '').includes(b) ||
         (p.telefono || '').includes(busqueda));
     }
     return clonar(lista.slice().sort((a, b) =>
-      a.apellidos.localeCompare(b.apellidos) || a.nombre.localeCompare(b.nombre)));
+      String(a.apellidos || '').localeCompare(String(b.apellidos || '')) ||
+      a.nombre.localeCompare(b.nombre)));
   },
   async paciente(id) {
     const u = usuarioActual();
@@ -1287,6 +1301,25 @@ export const api = {
       }),
     });
   },
+  /* --------------------------- Ajustes del consultorio -------------------- */
+  async ajustes() {
+    usuarioActual();
+    const guardados = tabla('ajustes');
+    const fila = guardados.find((a) => a.clave === 'recepcion_dinero');
+    return { recepcion_dinero: (fila?.valor ?? '0') === '1' };
+  },
+  async guardarAjustes(d) {
+    exigirRol('admin');
+    for (const [clave, valor] of Object.entries(d || {})) {
+      if (clave !== 'recepcion_dinero') throw new ErrorApi(400, `Ajuste desconocido: ${clave}.`);
+      const fila = tabla('ajustes').find((a) => a.clave === clave);
+      if (fila) fila.valor = valor ? '1' : '0';
+      else insertar('ajustes', { clave, valor: valor ? '1' : '0' });
+    }
+    guardar();
+    return this.ajustes();
+  },
+
   async resumen() {
     usuarioActual();
     const fecha = hoyIso();
