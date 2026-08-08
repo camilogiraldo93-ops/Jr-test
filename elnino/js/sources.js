@@ -30,7 +30,41 @@ export const UNCERTAINTY_MODELS = [
 const TZ = 'America/Guayaquil';
 const PAST_DAYS = 31;      // necesario para el acumulado móvil de 30 días
 const FORECAST_DAYS = 7;
-const CHUNK = 8;           // provincias por petición
+export const CHUNK = 8;    // provincias por petición
+
+/**
+ * Constructores de URL exportados para que las herramientas de captura de
+ * fixtures pidan exactamente las mismas URLs que pide el navegador, sin
+ * reimplementar la construcción de la consulta.
+ */
+export function urlDeterministic(chunk) {
+  return `${OPEN_METEO_FORECAST}?latitude=${chunk.map((p) => p.lat).join(',')}` +
+    `&longitude=${chunk.map((p) => p.lon).join(',')}` +
+    '&daily=precipitation_sum,temperature_2m_max,temperature_2m_min' +
+    `&past_days=${PAST_DAYS}&forecast_days=${FORECAST_DAYS}&timezone=${TZ}`;
+}
+
+export function urlEnsemble(chunk) {
+  const models = UNCERTAINTY_MODELS.map((m) => m.id).join(',');
+  return `${OPEN_METEO_FORECAST}?latitude=${chunk.map((p) => p.lat).join(',')}` +
+    `&longitude=${chunk.map((p) => p.lon).join(',')}` +
+    '&daily=precipitation_sum,temperature_2m_max' +
+    `&forecast_days=${FORECAST_DAYS}&timezone=${TZ}&models=${models}`;
+}
+
+export function urlMarine(costeras) {
+  return `${OPEN_METEO_MARINE}?latitude=${costeras.map((p) => p.sst_lat).join(',')}` +
+    `&longitude=${costeras.map((p) => p.sst_lon).join(',')}` +
+    '&daily=sea_surface_temperature_max,sea_surface_temperature_min' +
+    `&forecast_days=3&timezone=${TZ}`;
+}
+
+/** Trocea la lista de provincias igual que lo hacen las funciones de descarga. */
+export function trozos(provincias) {
+  const out = [];
+  for (let i = 0; i < provincias.length; i += CHUNK) out.push(provincias.slice(i, i + CHUNK));
+  return out;
+}
 
 async function getJSON(url, { retries = 3 } = {}) {
   let lastErr;
@@ -57,14 +91,8 @@ const asArray = (d) => (Array.isArray(d) ? d : [d]);
  */
 export async function fetchDeterministic(provincias) {
   const out = {};
-  for (let i = 0; i < provincias.length; i += CHUNK) {
-    const chunk = provincias.slice(i, i + CHUNK);
-    const url =
-      `${OPEN_METEO_FORECAST}?latitude=${chunk.map((p) => p.lat).join(',')}` +
-      `&longitude=${chunk.map((p) => p.lon).join(',')}` +
-      '&daily=precipitation_sum,temperature_2m_max,temperature_2m_min' +
-      `&past_days=${PAST_DAYS}&forecast_days=${FORECAST_DAYS}&timezone=${TZ}`;
-    const data = await getJSON(url);
+  for (const chunk of trozos(provincias)) {
+    const data = await getJSON(urlDeterministic(chunk));
     asArray(data).forEach((loc, j) => {
       out[chunk[j].id] = {
         time: loc.daily.time,
@@ -84,16 +112,9 @@ export async function fetchDeterministic(provincias) {
  * es un dato observable, no una probabilidad inventada por esta aplicación.
  */
 export async function fetchEnsembleSpread(provincias) {
-  const models = UNCERTAINTY_MODELS.map((m) => m.id).join(',');
   const out = {};
-  for (let i = 0; i < provincias.length; i += CHUNK) {
-    const chunk = provincias.slice(i, i + CHUNK);
-    const url =
-      `${OPEN_METEO_FORECAST}?latitude=${chunk.map((p) => p.lat).join(',')}` +
-      `&longitude=${chunk.map((p) => p.lon).join(',')}` +
-      '&daily=precipitation_sum,temperature_2m_max' +
-      `&forecast_days=${FORECAST_DAYS}&timezone=${TZ}&models=${models}`;
-    const data = await getJSON(url);
+  for (const chunk of trozos(provincias)) {
+    const data = await getJSON(urlEnsemble(chunk));
     asArray(data).forEach((loc, j) => {
       const d = loc.daily;
       const perModel = {};
@@ -114,14 +135,9 @@ export async function fetchEnsembleSpread(provincias) {
 export async function fetchSST(provincias) {
   const costeras = provincias.filter((p) => p.sst_lat != null);
   if (!costeras.length) return {};
-  const url =
-    `${OPEN_METEO_MARINE}?latitude=${costeras.map((p) => p.sst_lat).join(',')}` +
-    `&longitude=${costeras.map((p) => p.sst_lon).join(',')}` +
-    '&daily=sea_surface_temperature_max,sea_surface_temperature_min' +
-    `&forecast_days=3&timezone=${TZ}`;
   const out = {};
   try {
-    const data = await getJSON(url, { retries: 1 });
+    const data = await getJSON(urlMarine(costeras), { retries: 1 });
     asArray(data).forEach((loc, j) => {
       out[costeras[j].id] = {
         time: loc.daily.time,
