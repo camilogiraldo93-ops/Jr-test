@@ -17,10 +17,21 @@ import { doyIndexFromISO, DOY_SLOTS } from '../elnino/js/lib/doy.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = path.join(ROOT, 'tools', '.cache');
-const START = '1991-01-01';
-const END = '2020-12-31';
+const argv = process.argv.slice(2);
+const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
+
+/**
+ * Período de referencia. Por defecto la normal móvil de 30 años más reciente
+ * disponible (1996-2025), no 1991-2020: con la primera, el percentil 95 de
+ * temperatura máxima describe el clima actual; con la segunda, el calentamiento
+ * observado hace que un día normal de 2026 supere el p95 de los años noventa y
+ * la categoría "ola de calor" se dispare más de la mitad de los días.
+ */
+const START = arg('--start', '1996-01-01');
+const END = arg('--end', '2025-12-31');
 const WINDOW = 10; // ±10 días
 const CHUNK = 3;   // provincias por petición (compromiso peso/rate-limit)
+const TAG = `${START.slice(0, 4)}_${END.slice(0, 4)}`;
 
 const provinces = JSON.parse(
   fs.readFileSync(path.join(ROOT, 'elnino/data/provinces.json'), 'utf8'),
@@ -30,7 +41,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchChunk(chunk, i) {
   fs.mkdirSync(CACHE, { recursive: true });
-  const file = path.join(CACHE, `clim_${String(i).padStart(2, '0')}.json`);
+  const file = path.join(CACHE, `clim_${TAG}_${String(i).padStart(2, '0')}.json`);
   if (fs.existsSync(file) && fs.statSync(file).size > 10000) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   }
@@ -170,6 +181,7 @@ async function main() {
       fuente: 'ERA5 reanálisis (ECMWF) vía Open-Meteo Archive API',
       url: 'https://archive-api.open-meteo.com/v1/archive',
       periodo_referencia: `${START} a ${END}`,
+      motivo_periodo: 'Normal móvil de 30 años más reciente. Se descartó 1991-2020 porque, con el calentamiento observado, su percentil 95 de temperatura máxima ya no representa un extremo en 2026 y la categoría "ola de calor" se disparaba en el 53 % de los días.',
       ventana_dia_del_anio: `±${WINDOW} días`,
       muestras_por_ranura: (2 * WINDOW + 1) * 30,
       generado: new Date().toISOString().slice(0, 10),
