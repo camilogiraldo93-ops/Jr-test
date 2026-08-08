@@ -1,6 +1,6 @@
 import { get, post, put, ErrorApp, conEstado } from '../http.js';
 import { todos, uno, correr, ahora, transaccion } from '../db.js';
-import { requerido, texto, entero, soloFecha, verificarDoctorPropio } from '../util.js';
+import { requerido, texto, entero, soloFecha, verificarDoctorPropio, nombreCompleto } from '../util.js';
 
 /** Edad cumplida a partir de la fecha de nacimiento. Devuelve null si no hay dato. */
 export function edad(fechaNacimiento) {
@@ -63,7 +63,7 @@ export function crearConsentimiento({
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pendiente', ?,?,?)`,
     [paciente_id, doctor_id, consultorio_id, cita_id, tratamiento_id, catalogo_id,
      texto(tratamiento), texto(observaciones),
-     `${pac.nombre} ${pac.apellidos}`, pac.cedula, pac.fecha_nacimiento, a !== null && a < 18 ? 1 : 0,
+     nombreCompleto(pac.nombre, pac.apellidos), pac.cedula, pac.fecha_nacimiento, a !== null && a < 18 ? 1 : 0,
      doc.nombre, doc.especialidad,
      con?.nombre ?? null, con?.direccion ?? null, con?.telefono ?? null, con?.ciudad ?? null,
      fecha, hora, reemplaza_a, creado_por, ahora()]

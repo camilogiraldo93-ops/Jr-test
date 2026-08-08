@@ -1,6 +1,6 @@
 import { get, post, put, patch, del, ErrorApp, conEstado } from '../http.js';
 import { todos, uno, correr, ahora } from '../db.js';
-import { requerido, texto, entero, fechaHora, soloFecha } from '../util.js';
+import { requerido, texto, entero, fechaHora, soloFecha, nombreCompleto } from '../util.js';
 import { pendientesDeCita } from './consentimientos.js';
 
 export const ESTADOS = ['agendada', 'confirmada', 'en_curso', 'completada', 'cancelada', 'no_asistio'];
@@ -59,7 +59,7 @@ export function buscarConflictos({ cubiculo_id, doctor_id, inicio, fin, excluir_
     doctor: c.doctor_nombre,
     cubiculo: c.cubiculo_nombre,
     consultorio: c.consultorio_nombre,
-    paciente: `${c.paciente_nombre} ${c.paciente_apellidos}`,
+    paciente: nombreCompleto(c.paciente_nombre, c.paciente_apellidos),
     estado: c.estado,
   }));
 }
@@ -72,9 +72,10 @@ export function buscarConflictos({ cubiculo_id, doctor_id, inicio, fin, excluir_
 function explicarConflictos(conflictos) {
   return conflictos.map((c) => {
     const quien = c.motivo === 'cubiculo' ? `el cubículo "${c.cubiculo}"`
-      : c.motivo === 'doctor' ? `el/la Dr(a). ${c.doctor}`
-      : `el cubículo "${c.cubiculo}" y el/la Dr(a). ${c.doctor}`;
-    return `Esa hora ya está ocupada: ${quien} está con ${c.paciente} ` +
+      : c.motivo === 'doctor' ? c.doctor
+      : `el cubículo "${c.cubiculo}" y ${c.doctor}`;
+    const verbo = c.motivo === 'cubiculo_y_doctor' ? 'están' : 'está';
+    return `Esa hora ya está ocupada: ${quien} ${verbo} con ${c.paciente} ` +
            `de ${c.inicio.slice(11)} a ${c.fin.slice(11)}. Elige otra hora o el primer hueco libre ` +
            `después de las ${c.fin.slice(11)} (cita #${c.cita_id}).`;
   }).join(' ');

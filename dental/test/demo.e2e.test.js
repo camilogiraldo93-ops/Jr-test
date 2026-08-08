@@ -186,7 +186,7 @@ test('Demo · agendar eligiendo el tratamiento previsto', async () => {
   assert.equal(await m.locator('input[name="motivo"]').inputValue(), 'Implante dental');
   assert.match(await m.locator('.alerta-caja.aviso').innerText(), /consentimiento informado/i);
 
-  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")', { timeout: 20000 });
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Esa hora está libre")', { timeout: 20000 });
   await m.locator('button:has-text("Agendar cita")').click();
   await esperarExito(/quedó agendada/);
 

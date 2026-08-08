@@ -36,7 +36,7 @@ export function fechaHora(v, campo = 'fecha') {
   const s = texto(v);
   if (!s) throw new ErrorApp(400, `El campo ${campo} es obligatorio.`);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-  if (!m) throw new ErrorApp(400, `El campo ${campo} debe tener formato AAAA-MM-DDTHH:MM (recibido: "${s}").`);
+  if (!m) throw new ErrorApp(400, `No se entendió la fecha y hora de ${campo} ("${s}"). Revisa el día y la hora.`);
   return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`;
 }
 
@@ -45,7 +45,7 @@ export function soloFecha(v, porDefecto = null) {
   const s = texto(v);
   if (!s) return porDefecto;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) throw new ErrorApp(400, `Fecha inválida: "${s}". Usa formato AAAA-MM-DD.`);
+  if (!m) throw new ErrorApp(400, `"${s}" no parece una fecha. Escríbela como día, mes y año (por ejemplo 2026-08-31).`);
   return `${m[1]}-${m[2]}-${m[3]}`;
 }
 
@@ -64,4 +64,12 @@ export function verificarDoctorPropio(usuario, doctorId) {
   if (usuario.rol === 'doctor' && usuario.doctor_id && Number(doctorId) !== Number(usuario.doctor_id)) {
     throw new ErrorApp(403, 'Un doctor solo puede registrar información clínica de sus propias citas.');
   }
+}
+
+/**
+ * «María González» / «Rosa» cuando no hay apellidos.
+ * Los apellidos son opcionales: concatenar a pelo produce «Rosa null».
+ */
+export function nombreCompleto(nombre, apellidos) {
+  return [nombre, apellidos].filter(Boolean).join(' ');
 }

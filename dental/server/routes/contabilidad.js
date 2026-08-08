@@ -1,6 +1,7 @@
 import { get, post, del, ErrorApp } from '../http.js';
 import { todos, uno, correr, ahora } from '../db.js';
 import { requerido, texto, numero, entero, soloFecha, hoy, redondear } from '../util.js';
+import { exigirDinero } from './ajustes.js';
 
 /* -------------------------------- Cargos ------------------------------- */
 
@@ -101,7 +102,8 @@ post('/api/pagos', { roles: ['admin', 'recepcion'] }, ({ cuerpo }) => {
 
 /* -------------------------------- Gastos ------------------------------- */
 
-get('/api/gastos', { roles: ['admin'] }, ({ consulta }) => {
+get('/api/gastos', { roles: ['admin', 'recepcion'] }, ({ consulta, usuario }) => {
+  exigirDinero(usuario);
   const filtros = [];
   const params = [];
   const cid = consulta.get('consultorio_id');
@@ -116,7 +118,8 @@ get('/api/gastos', { roles: ['admin'] }, ({ consulta }) => {
      ${where} ORDER BY g.fecha DESC, g.id DESC`, params);
 });
 
-post('/api/gastos', { roles: ['admin'] }, ({ cuerpo }) => {
+post('/api/gastos', { roles: ['admin', 'recepcion'] }, ({ cuerpo, usuario }) => {
+  exigirDinero(usuario);
   requerido(cuerpo, ['consultorio_id', 'concepto', 'monto']);
   if (!uno('SELECT id FROM consultorios WHERE id = ?', [cuerpo.consultorio_id])) {
     throw new ErrorApp(404, 'Consultorio no encontrado.');
@@ -137,7 +140,8 @@ post('/api/gastos', { roles: ['admin'] }, ({ cuerpo }) => {
   return uno('SELECT * FROM gastos WHERE id = ?', [ultimoId]);
 });
 
-del('/api/gastos/:id', { roles: ['admin'] }, ({ params }) => {
+del('/api/gastos/:id', { roles: ['admin', 'recepcion'] }, ({ params, usuario }) => {
+  exigirDinero(usuario);
   if (!uno('SELECT id FROM gastos WHERE id = ?', [params.id])) throw new ErrorApp(404, 'Gasto no encontrado.');
   correr('DELETE FROM gastos WHERE id = ?', [params.id]);
   return { ok: true };
@@ -166,7 +170,8 @@ get('/api/pacientes/:id/estado-cuenta', ({ params }) => {
 
 /* ------------------------------- Balance ------------------------------- */
 
-get('/api/contabilidad/balance', { roles: ['admin'] }, ({ consulta }) => {
+get('/api/contabilidad/balance', { roles: ['admin', 'recepcion'] }, ({ consulta, usuario }) => {
+  exigirDinero(usuario);
   const cid = consulta.get('consultorio_id') || null;
   const periodo = texto(consulta.get('periodo'), 'mes'); // dia | mes | rango
   const fecha = soloFecha(consulta.get('fecha')) || hoy();

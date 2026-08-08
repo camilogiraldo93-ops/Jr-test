@@ -423,7 +423,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
         ? el('button', {
             clase: 'btn chico', type: 'button', texto: '➕ Agendar seguimiento', style: 'margin-left:auto',
             onclick: () => abrirFormularioCita({
-              titulo: `Agendar seguimiento de la cita #${cita.id}`,
+              titulo: `Próxima cita de ${nombreCompleto(cita.paciente_nombre, cita.paciente_apellidos)}`,
               paciente_id: cita.paciente_id,
               consultorio_id: cita.consultorio_id,
               cubiculo_id: cita.cubiculo_id,
@@ -464,22 +464,26 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     cargosConSaldo.length
       ? el('div', {}, [
           el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-            el('thead', {}, [el('tr', {}, ['Concepto', 'Monto', 'Pagado', 'Saldo', ''].map((t) => el('th', { texto: t })))]),
+            el('thead', {}, [el('tr', {}, ['Por qué', 'Cuánto', 'Ya pagó', 'Le falta', ''].map((t) => el('th', { texto: t })))]),
             el('tbody', {}, cargosConSaldo.map((c) => el('tr', {}, [
               el('td', { texto: c.concepto }),
               el('td', { clase: 'num', texto: fmtDinero(c.monto) }),
               el('td', { clase: 'num', texto: fmtDinero(c.pagado) }),
               el('td', { clase: 'num', texto: fmtDinero(c.saldo) }),
+              // Deber dinero y no poder cobrarlo son cosas distintas: mostrar
+              // «pagado» a quien no cobra hacía que una deuda pareciera saldada.
               el('td', {}, [
-                c.saldo > 0 && puedeCobrar
-                  ? el('button', { clase: 'btn chico', type: 'button', texto: 'Cobrar', onclick: () => abrirCobro(c) })
-                  : el('span', { clase: 'eti firmado', texto: 'pagado' }),
+                c.saldo <= 0
+                  ? el('span', { clase: 'eti firmado', texto: 'Pagado' })
+                  : puedeCobrar
+                    ? el('button', { clase: 'btn chico', type: 'button', texto: 'Cobrar', onclick: () => abrirCobro(c) })
+                    : el('span', { clase: 'eti pendiente', texto: `Debe ${fmtDinero(c.saldo)}` }),
               ]),
             ]))),
           ])]),
-          el('div', { clase: 'mini', style: 'margin-top:8px', texto: `Total ${fmtDinero(totalCargos)} · Pagado ${fmtDinero(totalPagado)} · Saldo ${fmtDinero(totalCargos - totalPagado)}` }),
+          el('div', { clase: 'mini', style: 'margin-top:8px', texto: `En total ${fmtDinero(totalCargos)} · ya pagó ${fmtDinero(totalPagado)} · le falta ${fmtDinero(totalCargos - totalPagado)}` }),
         ])
-      : vacio('Sin cargos generados en esta cita.'),
+      : vacio('Todavía no hay nada que cobrar en esta cita.'),
   ]);
 
   /* -------------------------------- Marco -------------------------------- */
@@ -512,7 +516,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
         ? el('p', { clase: 'mini', style: 'margin-top:10px' }, [
             document.createTextNode('Tratamiento previsto: '),
             el('b', { texto: cita.catalogo_nombre }),
-            document.createTextNode(` · ${cita.catalogo_duracion_min} min · ${fmtDinero(cita.catalogo_precio)}`),
+            document.createTextNode(` · ${cita.catalogo_duracion_min} min · ${fmtDinero(cita.catalogo_precio)} · `),
             cita.catalogo_requiere_consentimiento
               ? el('span', { clase: 'eti pendiente', style: 'margin-left:8px', texto: 'requiere consentimiento' })
               : null,

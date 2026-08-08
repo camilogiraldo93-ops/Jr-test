@@ -273,7 +273,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await m.locator('input[name="hora_inicio"]').fill('10:00');
   await m.locator('input[name="hora_fin"]').fill('11:00');
   await m.locator('input[name="motivo"]').fill('Evaluación y diagnóstico inicial');
-  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Esa hora está libre")');
   await m.locator('button:has-text("Agendar cita")').click();
   await esperarExito(/quedó agendada/);
 
@@ -296,7 +296,7 @@ test('UI · Flujo 3: agendar cita y bloqueo de conflicto', async () => {
   await pagina.waitForSelector('.alerta-caja:has-text("ya está ocupada")');
   const textoConflicto = await m.locator('.alerta-caja').innerText();
   assert.match(textoConflicto, /ya está ocupada/);
-  assert.match(textoConflicto, /ya tienen? la cita #/);
+  assert.match(textoConflicto, /ya tienen? cita con /);
 
   await m.locator('button:has-text("Agendar cita")').click();
   await pagina.waitForSelector('.aviso.error');
@@ -377,7 +377,7 @@ test('UI · Agendar eligiendo el tratamiento previsto del catálogo', async () =
   assert.equal(await m.locator('input[name="motivo"]').inputValue(), 'Implante dental');
   assert.match(await m.locator('.alerta-caja.aviso').innerText(), /consentimiento informado/i);
 
-  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Esa hora está libre")');
   await m.locator('button:has-text("Agendar cita")').click();
   await esperarExito(/quedó agendada/);
 
@@ -571,7 +571,7 @@ test('UI · Flujo 6: agendar la cita de seguimiento desde la misma cita', async 
   await pagina.waitForSelector('h2:has-text("Cita de ")');
   await abrirModal('button:has-text("➕ Agendar seguimiento")');
   const m = modal();
-  await pagina.waitForSelector('.modal-cab:has-text("Agendar seguimiento")');
+  await pagina.waitForSelector('.modal-cab:has-text("Próxima cita de")');
 
   const f = new Date();
   f.setDate(f.getDate() + 35);
@@ -579,7 +579,7 @@ test('UI · Flujo 6: agendar la cita de seguimiento desde la misma cita', async 
   await m.locator('input[name="fecha"]').fill(iso);
   await m.locator('input[name="hora_inicio"]').fill('09:00');
   await m.locator('input[name="hora_fin"]').fill('09:45');
-  await pagina.waitForSelector('.alerta-caja.ok:has-text("Horario disponible")');
+  await pagina.waitForSelector('.alerta-caja.ok:has-text("Esa hora está libre")');
   await m.locator('button:has-text("Agendar cita")').click();
   await esperarExito(/quedó agendada/);
 
@@ -679,7 +679,7 @@ async function verificarExpediente() {
   const items = await pagina.locator('.linea .item').count();
   assert.ok(items >= 6, `la cronología debe tener varias entradas (tiene ${items})`);
   const historial = await pagina.locator('.linea').innerText();
-  for (const esperado of [/tratamiento/, /consentimiento/, /foto/, /cita/]) {
+  for (const esperado of [/Tratamiento/, /Consentimiento/, /Imagen/, /Cita/]) {
     assert.match(historial, esperado);
   }
 
@@ -706,7 +706,7 @@ async function verificarExpediente() {
   assert.match(await pagina.locator('.diente.endodoncia').first().getAttribute('title'), /36/);
 
   // Estado de cuenta
-  await pagina.click('button:has-text("💰 Estado de cuenta")');
+  await pagina.click('button:has-text("💰 Su cuenta")');
   await pagina.waitForSelector('.kpi');
   const cuenta = await pagina.locator('.contenido').innerText();
   assert.match(cuenta, /\$220\.00/, 'total facturado');
@@ -870,9 +870,9 @@ test('UI · Contabilidad: ingresos por doctor, por método y exportación CSV', 
   const ruta = await descarga.path();
   const csv = fs.readFileSync(ruta, 'utf8');
   assert.match(descarga.suggestedFilename(), /^pagos_.*\.csv$/);
-  assert.match(csv, /Fecha;Paciente;Metodo;Nota;Monto/);
+  assert.match(csv, /Fecha;Paciente;Como pago;Nota;Monto/);
   assert.match(csv, /Nájera/);
-  assert.match(csv, /tarjeta/);
+  assert.match(csv, /Tarjeta/);
 
   const [descargaGastos] = await Promise.all([
     pagina.waitForEvent('download'),

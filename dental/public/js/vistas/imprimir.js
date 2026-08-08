@@ -1,6 +1,6 @@
 import { api, urlFoto } from '../api.js';
 import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia,
-  ETIQUETAS_ESTADO, plural } from '../ui.js';
+  ETIQUETAS_ESTADO, plural, nombreCompleto } from '../ui.js';
 import { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
 /** Barra superior que no se imprime, con el botón que abre el diálogo de impresión. */
@@ -66,7 +66,7 @@ async function imprimirDia(fecha) {
   const filas = citas.map((c) => el('tr', {}, [
     el('td', { texto: `${fmtHora(c.inicio)} – ${fmtHora(c.fin)}` }),
     el('td', {}, [
-      el('b', { texto: `${c.paciente_nombre} ${c.paciente_apellidos}` }),
+      el('b', { texto: nombreCompleto(c.paciente_nombre, c.paciente_apellidos) }),
       c.paciente_telefono ? el('div', { clase: 'mini', texto: c.paciente_telefono }) : null,
     ]),
     el('td', { texto: c.catalogo_nombre || c.motivo || '—' }),
@@ -120,11 +120,11 @@ async function imprimirExpediente(id) {
   ]);
 
   const hoja = el('div', { clase: 'hoja' }, [
-    membrete('Expediente clínico', `${p.nombre} ${p.apellidos}`,
+    membrete('Expediente clínico', nombreCompleto(p.nombre, p.apellidos),
       `${p.cedula ? `CI ${p.cedula} · ` : ''}${p.telefono || 'sin teléfono'}`),
 
     seccion('Datos personales', el('div', { clase: 'rejilla-impresion' }, [
-      dato('Nombre', `${p.nombre} ${p.apellidos}`),
+      dato('Nombre', nombreCompleto(p.nombre, p.apellidos)),
       dato('Cédula', p.cedula),
       dato('Nacimiento', p.fecha_nacimiento ? fmtFechaCorta(p.fecha_nacimiento) : null),
       dato('Sexo', p.sexo),
@@ -218,7 +218,7 @@ async function imprimirExpediente(id) {
   ]);
 
   return el('div', { clase: 'vista-impresion' }, [
-    barra(`Expediente de ${p.nombre} ${p.apellidos}`, `#/paciente/${p.id}`),
+    barra(`Expediente de ${nombreCompleto(p.nombre, p.apellidos)}`, `#/paciente/${p.id}`),
     hoja,
   ]);
 }
@@ -238,7 +238,7 @@ async function imprimirCita(id) {
     seccion('Datos de la atención', el('div', { clase: 'rejilla-impresion' }, [
       el('div', { clase: 'dato-impreso' }, [
         el('span', { clase: 'dato-etq', texto: 'Paciente: ' }),
-        el('span', { texto: `${c.paciente_nombre} ${c.paciente_apellidos}${c.paciente_cedula ? ` (CI ${c.paciente_cedula})` : ''}` }),
+        el('span', { texto: `${nombreCompleto(c.paciente_nombre, c.paciente_apellidos)}${c.paciente_cedula ? ` (CI ${c.paciente_cedula})` : ''}` }),
       ]),
       el('div', { clase: 'dato-impreso' }, [
         el('span', { clase: 'dato-etq', texto: 'Motivo: ' }), el('span', { texto: c.motivo || '—' }),
@@ -314,7 +314,7 @@ async function imprimirCita(id) {
   ]);
 
   return el('div', { clase: 'vista-impresion' }, [
-    barra(`Cita #${c.id} — ${c.paciente_nombre} ${c.paciente_apellidos}`, `#/cita/${c.id}`),
+    barra(`Cita de ${nombreCompleto(c.paciente_nombre, c.paciente_apellidos)}`, `#/cita/${c.id}`),
     hoja,
   ]);
 }

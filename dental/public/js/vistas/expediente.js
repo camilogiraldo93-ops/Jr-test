@@ -1,7 +1,7 @@
 import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, selector, area, exito, error, vacio, fmtDinero, fmtFechaCorta,
   fmtFechaHora, fmtMarca, etiquetaEstado, entrada, NOMBRE_DIENTE, NOMBRE_PRIORIDAD,
-  nombreCompleto, plural } from '../ui.js';
+  nombreCompleto, plural, NOMBRE_METODO_PAGO } from '../ui.js';
 import { abrirFormularioPaciente } from './pacientes.js';
 import { abrirFormularioCita } from './formCita.js';
 import { abrirNuevoConsentimiento } from './consentimiento.js';
@@ -68,7 +68,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
     el('div', { clase: 'tarjeta' }, [
       el('h3', { texto: 'Datos personales' }),
       el('div', { clase: 'rejilla c4' }, [
-        dato('Nombre completo', `${p.nombre} ${p.apellidos}`),
+        dato('Nombre completo', nombreCompleto(p.nombre, p.apellidos)),
         dato('Cédula / ID', p.cedula),
         dato('Teléfono', p.telefono),
         dato('Correo', p.email),
@@ -112,15 +112,18 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
   agregarPestana('historial', '🕒 Historial', () => {
     if (!exp.cronologia.length) {
       return el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: 'Historial cronológico completo' }),
+        el('h3', { texto: 'Todo lo que ha pasado, de lo más nuevo a lo más viejo' }),
         vacio('Sin actividad registrada todavía.'),
       ]);
     }
     const iconos = { cita: '📅', tratamiento: '🦷', consentimiento: '📝', foto: '🖼️' };
+    const NOMBRE_TIPO_HISTORIAL = {
+      cita: 'Cita', tratamiento: 'Tratamiento', consentimiento: 'Consentimiento', foto: 'Imagen',
+    };
     return el('div', { clase: 'tarjeta' }, [
-      el('h3', { texto: 'Historial cronológico completo' }),
+      el('h3', { texto: 'Todo lo que ha pasado, de lo más nuevo a lo más viejo' }),
       el('div', { clase: 'linea' }, exp.cronologia.map((i) => el('div', { clase: `item ${i.tipo}` }, [
-        el('div', { clase: 'fecha', texto: `${fmtFechaHora(i.fecha)} · ${iconos[i.tipo] || ''} ${i.tipo}` }),
+        el('div', { clase: 'fecha', texto: `${fmtFechaHora(i.fecha)} · ${iconos[i.tipo] || ''} ${NOMBRE_TIPO_HISTORIAL[i.tipo] || i.tipo}` }),
         el('div', { clase: 'tit', texto: i.titulo }),
         i.detalle ? el('div', { clase: 'det', texto: i.detalle }) : null,
         (i.doctor || i.lugar)
@@ -221,7 +224,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
                 ]),
                 el('td', { texto: c.doctor_nombre }),
                 el('td', {}, [c.cita_id
-                  ? el('a', { href: `#/cita/${c.cita_id}`, texto: `#${c.cita_id}` })
+                  ? el('a', { href: `#/cita/${c.cita_id}`, texto: 'Ver' })
                   : document.createTextNode('Sin cita')]),
                 el('td', {}, [
                   el('span', {
@@ -343,7 +346,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
   });
 
   /* --------------------------- Estado de cuenta -------------------------- */
-  agregarPestana('cuenta', '💰 Estado de cuenta', () => {
+  agregarPestana('cuenta', '💰 Su cuenta', () => {
     const ec = exp.estado_cuenta;
     const kpi = (etq, val, clase = '') => el('div', { clase: 'kpi' }, [
       el('div', { clase: 'etq', texto: etq }),
@@ -351,37 +354,37 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
     ]);
     return el('div', {}, [
       el('div', { clase: 'rejilla c3', style: 'margin-bottom:16px' }, [
-        kpi('Total facturado', fmtDinero(ec.total_cargos)),
-        kpi('Total abonado', fmtDinero(ec.total_pagos), 'ok'),
-        kpi('Saldo pendiente', fmtDinero(ec.saldo), ec.saldo > 0 ? 'mal' : 'ok'),
+        kpi('Se le ha cobrado', fmtDinero(ec.total_cargos)),
+        kpi('Ya pagó', fmtDinero(ec.total_pagos), 'ok'),
+        kpi('Le falta pagar', fmtDinero(ec.saldo), ec.saldo > 0 ? 'mal' : 'ok'),
       ]),
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: 'Cargos' }),
+        el('h3', { texto: 'Lo que se le ha cobrado' }),
         ec.cargos.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-              el('thead', {}, [el('tr', {}, ['Fecha', 'Concepto', 'Cita', 'Monto'].map((t) => el('th', { texto: t })))]),
+              el('thead', {}, [el('tr', {}, ['Fecha', 'Por qué', 'Cita', 'Cuánto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, ec.cargos.map((c) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(c.fecha) }),
                 el('td', { texto: c.concepto }),
-                el('td', {}, [c.cita_id ? el('a', { href: `#/cita/${c.cita_id}`, texto: `#${c.cita_id}` }) : document.createTextNode('—')]),
+                el('td', {}, [c.cita_id ? el('a', { href: `#/cita/${c.cita_id}`, texto: 'Ver' }) : document.createTextNode('—')]),
                 el('td', { clase: 'num', texto: fmtDinero(c.monto) }),
               ]))),
             ])])
-          : vacio('Sin cargos.'),
+          : vacio('Todavía no se le ha cobrado nada.'),
       ]),
       el('div', { clase: 'tarjeta' }, [
-        el('h3', { texto: 'Pagos / abonos' }),
+        el('h3', { texto: 'Lo que ha pagado' }),
         ec.pagos.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-              el('thead', {}, [el('tr', {}, ['Fecha', 'Método', 'Nota', 'Monto'].map((t) => el('th', { texto: t })))]),
+              el('thead', {}, [el('tr', {}, ['Fecha', 'Cómo pagó', 'Nota', 'Cuánto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, ec.pagos.map((c) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(c.fecha) }),
-                el('td', { texto: c.metodo }),
+                el('td', { texto: NOMBRE_METODO_PAGO[c.metodo] || c.metodo }),
                 el('td', { texto: c.nota || '—' }),
                 el('td', { clase: 'num', texto: fmtDinero(c.monto) }),
               ]))),
             ])])
-          : vacio('Sin pagos registrados.'),
+          : vacio('Todavía no ha pagado nada.'),
       ]),
     ]);
   });
@@ -396,7 +399,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
   const contenedor = el('div', {}, [
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
-        el('h2', { texto: `${p.nombre} ${p.apellidos}` }),
+        el('h2', { texto: nombreCompleto(p.nombre, p.apellidos) }),
         el('div', { clase: 'desc', texto: `${p.cedula ? `CI ${p.cedula} · ` : ''}${p.telefono || 'sin teléfono'} · ` +
           `${plural(exp.citas.length, 'cita', 'citas')} · ${plural(exp.tratamientos.length, 'tratamiento', 'tratamientos')}` }),
       ]),

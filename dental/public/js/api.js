@@ -4,6 +4,8 @@ export const sesion = {
   get token() { return localStorage.getItem(CLAVE_TOKEN); },
   set token(v) { v ? localStorage.setItem(CLAVE_TOKEN, v) : localStorage.removeItem(CLAVE_TOKEN); },
   usuario: null,
+  // Ajustes del consultorio; se cargan al abrir la sesión.
+  ajustes: null,
 };
 
 /** Error del API con el mensaje en español que devuelve el servidor. */
@@ -115,4 +117,8 @@ export const api = {
   estadoCuenta: (id) => peticion('GET', `/api/pacientes/${id}/estado-cuenta`),
   balance: (p) => peticion('GET', `/api/contabilidad/balance${qs(p)}`),
   resumen: () => peticion('GET', '/api/resumen'),
+
+  // Ajustes del consultorio
+  ajustes: () => peticion('GET', '/api/ajustes'),
+  guardarAjustes: (d) => peticion('PUT', '/api/ajustes', d),
 };

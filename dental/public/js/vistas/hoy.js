@@ -78,7 +78,9 @@ export async function vistaHoy({ usuario, navegar }) {
     peticiones.push(puedeVerDinero ? api.pagos({ desde: fecha, hasta: fecha }) : Promise.resolve([]));
     const [citas, pagos] = await Promise.all(peticiones);
 
-    tituloFecha.textContent = `${tituloDia(fecha)}${fecha === hoyIso() ? ' (hoy)' : ''}`;
+    const manana = sumarDias(hoyIso(), 1);
+    const cuando = fecha === hoyIso() ? ' (hoy)' : fecha === manana ? ' (mañana)' : '';
+    tituloFecha.textContent = `${tituloDia(fecha)}${cuando}`;
     const atendidas = citas.filter((c) => c.estado === 'completada').length;
     const cobrado = pagos.reduce((s, p) => s + p.monto, 0);
     resumenDia.textContent = puedeVerDinero
@@ -122,10 +124,16 @@ export async function vistaHoy({ usuario, navegar }) {
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [tituloFecha, resumenDia]),
       el('div', { clase: 'acciones' }, [
-        el('button', { clase: 'btn sec', type: 'button', texto: '‹ Día anterior', onclick: () => mover(-1) }),
+        el('button', { clase: 'btn sec', type: 'button', texto: '‹ Ayer', onclick: () => mover(-1) }),
         el('button', {
           clase: 'btn sec', type: 'button', texto: 'Hoy',
           onclick: () => { estado.fecha = hoyIso(); cargar().catch(mostrarFallo); },
+        }),
+        // «Mañana» de un solo toque: la mitad de las llamadas piden cita para
+        // el día siguiente y saltar de uno en uno costaba un paso de más.
+        el('button', {
+          clase: 'btn sec', type: 'button', texto: 'Mañana',
+          onclick: () => { estado.fecha = sumarDias(hoyIso(), 1); cargar().catch(mostrarFallo); },
         }),
         el('button', { clase: 'btn sec', type: 'button', texto: 'Día siguiente ›', onclick: () => mover(1) }),
         el('button', {

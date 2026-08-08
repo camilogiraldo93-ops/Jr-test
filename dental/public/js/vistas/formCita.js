@@ -28,11 +28,11 @@ export async function abrirFormularioCita(opciones = {}) {
   ]);
 
   if (!consultorios.length) {
-    error('Primero debes crear al menos un consultorio con un cubículo en Configuración.');
+    error('Antes hay que crear una sede con al menos un sillón, en Configuración.');
     return;
   }
   if (!pacientes.length) {
-    error('No hay pacientes registrados. Crea primero el paciente.');
+    error('Todavía no hay pacientes. Crea primero al paciente en la sección Pacientes.');
     return;
   }
 
@@ -152,7 +152,7 @@ export async function abrirFormularioCita(opciones = {}) {
   function mostrarConflictos(conflictos, mensaje) {
     if (!conflictos.length) {
       avisoConflicto.className = 'alerta-caja ok';
-      avisoConflicto.textContent = '✅ Horario disponible: ni el cubículo ni el doctor tienen otra cita en ese rango.';
+      avisoConflicto.textContent = '✅ Esa hora está libre: ni el sillón ni el doctor tienen otra cita.';
       avisoConflicto.style.display = 'block';
       return;
     }
@@ -164,7 +164,7 @@ export async function abrirFormularioCita(opciones = {}) {
         : c.motivo === 'cubiculo' ? 'El cubículo' : 'El cubículo y el doctor';
       const verbo = c.motivo === 'cubiculo_y_doctor' ? 'ya tienen' : 'ya tiene';
       return el('li', {
-        texto: `${quien} ${verbo} la cita #${c.cita_id} de ${c.paciente} ` +
+        texto: `${quien} ${verbo} cita con ${c.paciente} ` +
           `(${fmtFechaHora(c.inicio)} – ${c.fin.slice(11)}). Prueba después de las ${c.fin.slice(11)}.`,
       });
     })));
@@ -228,7 +228,7 @@ export async function abrirFormularioCita(opciones = {}) {
   ]);
 
   const m = modal({
-    titulo: titulo || (cita ? `Reprogramar cita #${cita.id}` : 'Nueva cita'),
+    titulo: titulo || (cita ? 'Cambiar la cita de hora o de día' : 'Nueva cita'),
     cuerpo: form,
     pie: [
       el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }),

@@ -282,3 +282,10 @@ CREATE TABLE IF NOT EXISTS gastos (
   creado_en      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_gastos_consultorio ON gastos(consultorio_id, fecha);
+
+-- Ajustes que el consultorio decide por su cuenta. Se guardan como texto para
+-- que añadir uno nuevo no obligue a migrar la base.
+CREATE TABLE IF NOT EXISTS ajustes (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL
+);

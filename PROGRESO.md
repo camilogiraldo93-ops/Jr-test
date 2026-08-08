@@ -130,4 +130,54 @@ solo con nombre y teléfono, y el aviso que ya no bloquea el botón de ayuda.
 
 ### Veredicto del revisor-ux sobre el ciclo 2
 
+**VEREDICTO GLOBAL: RECHAZADO**
+
+Tareas: ❌ 1 (4 pasos, no 3) · ❌ 2 (paciente sin apellido queda como «Rosa null») ·
+❌ 3 (un cargo impago se muestra «pagado») · ✅ 4 · ❌ 5 (recepción no puede) ·
+✅ 6 · ❌ 7 (la búsqueda no ignora tildes) · ✅ 8 · ❌ 9 (recepción no puede) · ✅ 10.
+
+Auditorías: ❌ Lenguaje · ✅ Botones muertos · ✅ Pantallas rotas · ✅ Consola ·
+✅ Carga (indicador a los 0,27 s; pantalla usable a los 0,72 s).
+
+Hallazgo 1, textual: «La app entregada no puede guardar nada: la migración de
+base de datos la deja inservible.» `migrarApellidosOpcionales()` renombraba la
+tabla y luego la borraba; desde SQLite 3.25 ese RENAME reescribe las claves
+foráneas de las siete tablas hijas, que quedaban apuntando a una tabla
+inexistente. Se leía todo y no se escribía nada.
+
+---
+
+## Ciclo 3 — solo hallazgos bloqueantes
+
+1. **La migración que rompía la base (bug mío, el más grave hasta ahora).**
+   Reproducido antes de tocar nada: `PRAGMA foreign_keys = OFF` no evita la
+   reescritura; hace falta `legacy_alter_table = ON`. La migración ahora usa
+   los dos y, al terminar, comprueba con `PRAGMA foreign_key_check` que la base
+   quedó **escribible**, no solo legible. Se añadió `repararReferenciasRotas()`,
+   que arregla las bases ya dañadas corrigiendo el texto del esquema sin tocar
+   una sola fila. La base real de este repositorio se reparó: 8 tablas.
+   Dos pruebas nuevas (`test/migracion.test.js`) migran una base con el esquema
+   anterior y **escriben después**, que es exactamente lo que no comprobé.
+2. **«Rosa null».** El ayudante existía y varias pantallas lo saltaban. Ahora
+   pasan por él expediente, agenda, panel, impresión y —lo importante— el
+   servidor, incluida la instantánea que se congela en el documento legal.
+3. **Un cargo impago rotulado «pagado».** Se separó «ya está pagado» de «no
+   puedes cobrarlo»: quien no cobra ve «Debe $950.00», no una etiqueta verde.
+4. **Búsqueda sin tildes.** «lucia» encuentra a Lucía y «nunez» a Núñez: se
+   quitan los acentos en los dos lados de la comparación.
+5. **Lenguaje.** «Su cuenta» en vez de «Estado de cuenta» con toda su jerga
+   contable, el historial sin valores crudos, el CSV con las etiquetas que se
+   ven en pantalla, y los errores de redacción que señaló: «la firma firma»,
+   «Dr(a). Dra.», «Doctor/A», el plural de «está/están con».
+6. **Agendar en 3 pasos.** Botón «Mañana» de un toque en la página del día.
+7. **Recepción y el dinero.** Chocaba con un requisito explícito del encargo
+   («recepción sin acceso a contabilidad»), así que no elijo por el usuario: es
+   un ajuste del consultorio, apagado de fábrica, que la administradora
+   enciende en Configuración. Con él encendido, recepción apunta gastos y
+   exporta cobros; la configuración nunca se le abre.
+
+Pruebas: **64 en verde** (2 migración, 23 API, 26 interfaz, 13 demo).
+
+### Veredicto del revisor-ux sobre el ciclo 3
+
 _(pendiente)_

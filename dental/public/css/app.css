@@ -98,7 +98,8 @@ a { color: var(--azul); }
 .nav .icono { width: 20px; text-align: center; }
 .usuario-caja { padding: 14px; border-top: 1px solid rgba(255,255,255,.1); font-size: .85rem; }
 .usuario-caja .nom { color: #fff; font-weight: 600; }
-.usuario-caja .rol { color: var(--menta); text-transform: capitalize; font-size: .78rem; }
+/* El nombre del puesto ya viene escrito como se dice; capitalizarlo producía «Doctor/A». */
+.usuario-caja .rol { color: var(--menta); font-size: .78rem; }
 .usuario-caja button {
   margin-top: 10px; width: 100%; padding: 8px; background: rgba(255,255,255,.08);
   border: 1px solid rgba(255,255,255,.15); color: #cfe3e7; border-radius: 8px; cursor: pointer;

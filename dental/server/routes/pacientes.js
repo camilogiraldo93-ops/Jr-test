@@ -2,6 +2,12 @@ import { get, post, put, ErrorApp } from '../http.js';
 import { todos, uno, correr, ahora } from '../db.js';
 import { requerido, texto, soloFecha, redondear } from '../util.js';
 
+// Las etiquetas que ve la gente, no los códigos que guarda la base.
+const ETIQUETA_ESTADO_CITA = {
+  agendada: 'agendada', confirmada: 'confirmada', en_curso: 'en curso',
+  completada: 'atendida', cancelada: 'cancelada', no_asistio: 'a la que no vino',
+};
+
 const CAMPOS = ['nombre', 'apellidos', 'cedula', 'telefono', 'email', 'fecha_nacimiento', 'sexo',
   'direccion', 'ocupacion', 'contacto_emergencia', 'telefono_emergencia', 'alergias', 'medicamentos',
   'antecedentes_medicos', 'antecedentes_odontologicos', 'motivo_consulta', 'notas'];
@@ -24,6 +30,18 @@ export function puedeVerPaciente(usuario, pacienteId) {
     [usuario.doctor_id, pacienteId, usuario.doctor_id, pacienteId]);
 }
 
+const ACENTOS = [['á','a'],['é','e'],['í','i'],['ó','o'],['ú','u'],['ü','u'],['ñ','n']];
+
+/** Quita las tildes de lo que escribe la persona. */
+function sinTildes(t) {
+  return ACENTOS.reduce((s2, [con, sin]) => s2.split(con).join(sin), String(t).toLowerCase());
+}
+
+/** El mismo reemplazo, pero escrito en SQL para aplicarlo a la columna. */
+function sinTildesSql(expresion) {
+  return ACENTOS.reduce((sql, [con, sin]) => `replace(${sql},'${con}','${sin}')`, expresion);
+}
+
 /** Buscador por nombre, apellidos, cédula o teléfono. */
 get('/api/pacientes', ({ consulta, usuario }) => {
   const ambito = ambitoDoctor(usuario);
@@ -32,11 +50,15 @@ get('/api/pacientes', ({ consulta, usuario }) => {
     return todos(
       `SELECT * FROM pacientes WHERE 1=1${ambito.sql} ORDER BY apellidos, nombre LIMIT 200`, ambito.params);
   }
-  const like = `%${q.toLowerCase()}%`;
+  // Nadie escribe tildes cuando busca al teléfono: «lucia» tiene que encontrar
+  // a Lucía. SQLite no sabe comparar sin acentos, así que se quitan a mano en
+  // los dos lados de la comparación.
+  const like = `%${sinTildes(q)}%`;
+  const columna = (c) => sinTildesSql(`lower(${c})`);
   return todos(
     `SELECT * FROM pacientes
-     WHERE (lower(nombre) LIKE ? OR lower(apellidos) LIKE ?
-        OR lower(nombre || ' ' || apellidos) LIKE ?
+     WHERE (${columna('nombre')} LIKE ? OR ${columna("ifnull(apellidos,'')")} LIKE ?
+        OR ${columna("nombre || ' ' || ifnull(apellidos,'')")} LIKE ?
         OR lower(ifnull(cedula,'')) LIKE ? OR ifnull(telefono,'') LIKE ?)${ambito.sql}
      ORDER BY apellidos, nombre LIMIT 200`,
     [like, like, like, like, like, ...ambito.params]
@@ -153,7 +175,7 @@ get('/api/pacientes/:id/expediente', ({ params, usuario }) => {
   const cronologia = [
     ...citas.map((c) => ({
       tipo: 'cita', fecha: c.inicio, titulo: c.motivo || 'Cita odontológica',
-      detalle: `Estado: ${c.estado}`, doctor: c.doctor_nombre,
+      detalle: `Cita ${ETIQUETA_ESTADO_CITA[c.estado] || c.estado}`, doctor: c.doctor_nombre,
       lugar: `${c.consultorio_nombre} · ${c.cubiculo_nombre}`, ref_id: c.id,
     })),
     ...tratamientos.map((t) => ({

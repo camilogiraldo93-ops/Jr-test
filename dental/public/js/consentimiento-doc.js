@@ -1,6 +1,16 @@
 import { el, fmtFechaCorta, fmtMarca } from './ui.js';
 
 /**
+ * Antepone el tratamiento solo si el nombre no lo trae ya. Muchos doctores se
+ * registran como «Dra. Sofía Herrera», y el documento legal salía diciendo
+ * «al/a la Dr(a). Dra. Sofía Herrera».
+ */
+function tratamiento(nombre) {
+  const n = String(nombre || '').trim();
+  return /^(dr|dra|doctor|doctora)\b\.?/i.test(n) ? n : `Dr(a). ${n}`;
+}
+
+/**
  * Plantilla única del consentimiento informado.
  * Todo se autocompleta desde la base de datos salvo tres campos que llena la clínica:
  * tratamiento, doctor y observaciones.
@@ -41,7 +51,7 @@ export function documentoConsentimiento(c, { compacto = false } = {}) {
 
     el('ol', { clase: 'doc-lista' }, [
       punto(1,
-        document.createTextNode('El/La Dr(a). '), fuerte(c.doctor_nombre),
+        document.createTextNode('El/La profesional '), fuerte(tratamiento(c.doctor_nombre)),
         document.createTextNode(menor
           ? ' me ha explicado en lenguaje claro y comprensible que mi representado/a requiere el siguiente tratamiento: '
           : ' me ha explicado en lenguaje claro y comprensible que requiero el siguiente tratamiento: '),
@@ -73,7 +83,7 @@ export function documentoConsentimiento(c, { compacto = false } = {}) {
     el('p', { clase: 'doc-parrafo' }, [
       document.createTextNode('Por lo tanto, '),
       fuerte('AUTORIZO'),
-      document.createTextNode(` voluntariamente al/a la Dr(a). ${c.doctor_nombre} y al equipo de ` +
+      document.createTextNode(` voluntariamente a ${tratamiento(c.doctor_nombre)} y al equipo de ` +
         `${c.consultorio_nombre || 'la clínica'} a realizar el tratamiento descrito. Puedo revocar este ` +
         'consentimiento en cualquier momento antes del procedimiento.'),
     ]),

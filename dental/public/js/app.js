@@ -20,7 +20,7 @@ const MENU = [
   { ruta: 'agenda', texto: 'Agenda completa', icono: '📅', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'pacientes', texto: 'Pacientes', icono: '🧑‍⚕️', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'recordatorios', texto: 'Pendientes', icono: '🔔', roles: ['admin', 'doctor', 'recepcion'] },
-  { ruta: 'contabilidad', texto: 'Dinero', icono: '💰', roles: ['admin'] },
+  { ruta: 'contabilidad', texto: 'Dinero', icono: '💰', roles: ['admin', 'recepcion'], ajuste: 'recepcion_dinero' },
   { ruta: 'panel', texto: 'Resumen', icono: '📊', roles: ['admin', 'doctor', 'recepcion'] },
   { ruta: 'configuracion', texto: 'Configuración', icono: '⚙️', roles: ['admin'] },
 ];
@@ -57,6 +57,7 @@ function pantallaLogin() {
         const r = await api.login(email.value, pass.value);
         sesion.token = r.token;
         sesion.usuario = r.usuario;
+        sesion.ajustes = null;
         location.hash = '#/hoy';
         await dibujar();
         exito(`Bienvenido/a, ${r.usuario.nombre}.`);
@@ -150,9 +151,20 @@ function buscadorGlobal() {
   return el('div', { clase: 'buscador-global' }, [caja, resultados]);
 }
 
+/**
+ * Una sección se ve si el puesto la tiene y, cuando el consultorio lo decide,
+ * si además está encendido el ajuste correspondiente. Recepción solo ve
+ * «Dinero» si la administradora se lo abrió.
+ */
+function puedeVerSeccion(m) {
+  if (!m.roles.includes(sesion.usuario.rol)) return false;
+  if (!m.ajuste || sesion.usuario.rol === 'admin') return true;
+  return !!sesion.ajustes?.[m.ajuste];
+}
+
 function armarMarco() {
   const nav = el('nav', { clase: 'nav' },
-    MENU.filter((m) => m.roles.includes(sesion.usuario.rol)).map((m) =>
+    MENU.filter(puedeVerSeccion).map((m) =>
       el('a', { href: `#/${m.ruta}`, datos: { ruta: m.ruta } }, [
         el('span', { clase: 'icono', texto: m.icono }),
         el('span', { clase: 'txt', texto: m.texto }),
@@ -171,6 +183,7 @@ function armarMarco() {
           try { await api.logout(); } catch { /* la sesión local se limpia igual */ }
           sesion.token = null;
           sesion.usuario = null;
+          sesion.ajustes = null;
           location.hash = '';
           await dibujar();
         },
@@ -245,6 +258,9 @@ async function renderVista() {
 }
 
 export async function dibujar() {
+  if (sesion.usuario && !sesion.ajustes) {
+    try { sesion.ajustes = await api.ajustes(); } catch { sesion.ajustes = {}; }
+  }
   limpiar(app);
   app.classList.remove('cargando');
   if (!sesion.usuario) {

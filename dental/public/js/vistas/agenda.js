@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { el, limpiar, selector, entrada, campo, etiquetaEstado, fmtHora, nombreDia, hoyIso,
-  sumarDias, vacio, fmtFechaCorta, plural } from '../ui.js';
+  sumarDias, vacio, fmtFechaCorta, plural, nombreCompleto, ETIQUETAS_ESTADO } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
 
 const estado = {
@@ -29,10 +29,10 @@ function bloqueCita(c, navegar) {
   return el('div', {
     clase: `bloque-cita estado-${c.estado}`,
     style: `border-left-color:${c.doctor_color || '#0d7d8f'}`,
-    title: `${fmtHora(c.inicio)}–${fmtHora(c.fin)} · ${c.paciente_nombre} ${c.paciente_apellidos} · ${c.doctor_nombre} · ${c.consultorio_nombre}/${c.cubiculo_nombre} · ${c.estado}`,
+    title: `${fmtHora(c.inicio)}–${fmtHora(c.fin)} · ${nombreCompleto(c.paciente_nombre, c.paciente_apellidos)} · ${c.doctor_nombre} · ${c.consultorio_nombre}/${c.cubiculo_nombre} · ${ETIQUETAS_ESTADO[c.estado] || c.estado}`,
     onclick: () => navegar(`#/cita/${c.id}`),
   }, [
-    el('b', { clase: 'pac', texto: `${c.paciente_nombre} ${c.paciente_apellidos}` }),
+    el('b', { clase: 'pac', texto: nombreCompleto(c.paciente_nombre, c.paciente_apellidos) }),
     el('span', { clase: 'det', texto: `${fmtHora(c.inicio)}–${fmtHora(c.fin)} · ${c.doctor_nombre}` }),
     el('span', { clase: 'det', texto: `${c.cubiculo_nombre} · ${c.motivo || 'Sin motivo'}` }),
   ]);
@@ -196,7 +196,7 @@ export async function vistaAgenda({ navegar, usuario }) {
   contenedor.appendChild(el('div', { clase: 'cabecera' }, [
     el('div', {}, [
       el('h2', { texto: 'Agenda' }),
-      el('div', { clase: 'desc', texto: 'Vistas por consultorio, cubículo y doctor con validación de conflictos.' }),
+      el('div', { clase: 'desc', texto: 'La semana o el día completos, por sede, por sillón o por doctor. Si dos citas chocan, la app lo avisa.' }),
     ]),
     puedeAgendar
       ? el('button', {

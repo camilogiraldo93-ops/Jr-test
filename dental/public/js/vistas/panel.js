@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { el, fmtDinero, fmtHora, fmtFechaCorta, etiquetaEstado, vacio, hoyIso,
-  ETIQUETAS_ESTADO, NOMBRE_ROL, NOMBRE_PRIORIDAD, plural } from '../ui.js';
+  ETIQUETAS_ESTADO, NOMBRE_ROL, NOMBRE_PRIORIDAD, plural, nombreCompleto } from '../ui.js';
 
 export async function vistaPanel({ usuario }) {
   const puedeContabilidad = ['admin', 'recepcion'].includes(usuario.rol);
@@ -35,7 +35,7 @@ export async function vistaPanel({ usuario }) {
 
   const filasCitas = citasHoy.map((c) => el('tr', {}, [
     el('td', { texto: `${fmtHora(c.inicio)} – ${fmtHora(c.fin)}` }),
-    el('td', {}, [el('a', { href: `#/paciente/${c.paciente_id}`, texto: `${c.paciente_nombre} ${c.paciente_apellidos}` })]),
+    el('td', {}, [el('a', { href: `#/paciente/${c.paciente_id}`, texto: nombreCompleto(c.paciente_nombre, c.paciente_apellidos) })]),
     el('td', { texto: c.doctor_nombre }),
     el('td', { texto: `${c.consultorio_nombre} · ${c.cubiculo_nombre}` }),
     el('td', {}, [etiquetaEstado(c.estado)]),
@@ -58,7 +58,7 @@ export async function vistaPanel({ usuario }) {
           el('div', { clase: 'tit' }, [
             el('a', { href: `#/paciente/${r.paciente_id}`, texto: r.titulo }),
           ]),
-          el('div', { clase: 'det', texto: `${r.paciente_nombre} ${r.paciente_apellidos} · ${r.fecha_objetivo ? `para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'sin fecha'}` }),
+          el('div', { clase: 'det', texto: `${nombreCompleto(r.paciente_nombre, r.paciente_apellidos)} · ${r.fecha_objetivo ? `para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'sin fecha'}` }),
         ]),
         el('span', { clase: `eti ${r.prioridad}`, texto: NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad }),
       ])))

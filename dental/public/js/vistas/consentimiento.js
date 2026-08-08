@@ -77,7 +77,7 @@ export function lienzoFirma(etiqueta) {
   const botonConfirmar = el('button', {
     clase: 'btn chico', type: 'button', texto: 'Confirmar firma',
     onclick: () => {
-      if (!hayTrazo) { error(`Traza la firma ${etiqueta.toLowerCase()} antes de confirmarla.`); return; }
+      if (!hayTrazo) { error(`Falta trazar la ${etiqueta.toLowerCase()} antes de confirmarla.`); return; }
       confirmada = true;
       aviso.textContent = '✅ Firma confirmada';
       aviso.classList.add('ok');
@@ -238,7 +238,7 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
     if (c.estado === 'firmado') {
       contenedor.appendChild(el('div', { clase: 'alerta-caja ok sin-imprimir', texto:
         `✅ Documento firmado el ${fmtMarca(c.firmado_en)} por ${c.firma_paciente_nombre} y ${c.doctor_nombre}. ` +
-        'Es inmutable: para modificarlo hay que anularlo y generar uno nuevo.' }));
+        'Ya no se puede cambiar. Si hay que corregir algo, se anula este y se hace uno nuevo, y queda constancia de los dos.' }));
     }
     if (puedeAnular) {
       contenedor.appendChild(el('div', { clase: 'acciones sin-imprimir' }, [

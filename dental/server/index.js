@@ -13,6 +13,7 @@ import './routes/citas.js';
 import './routes/consentimientos.js';
 import './routes/clinico.js';
 import './routes/contabilidad.js';
+import './routes/ajustes.js';
 
 /** Crea el usuario administrador inicial si la base está vacía. */
 export function asegurarAdmin() {

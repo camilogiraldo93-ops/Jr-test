@@ -249,14 +249,16 @@ export async function vistaContabilidad({ refrescar }) {
       el('button', {
         clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar cobros a Excel',
         onclick: () => descargarExcel(`pagos_${bal.desde}_a_${bal.hasta}.csv`,
-          ['Fecha', 'Paciente', 'Metodo', 'Nota', 'Monto'],
-          pagosP.map((x) => [x.fecha, `${x.paciente_apellidos}, ${x.paciente_nombre}`, x.metodo, x.nota || '', x.monto])),
+          ['Fecha', 'Paciente', 'Como pago', 'Nota', 'Monto'],
+          pagosP.map((x) => [x.fecha, nombreLista(x.paciente_nombre, x.paciente_apellidos),
+            NOMBRE_METODO_PAGO[x.metodo] || x.metodo, x.nota || '', x.monto])),
       }),
       el('button', {
         clase: 'btn sec chico', type: 'button', texto: '⬇️ Exportar gastos a Excel',
         onclick: () => descargarExcel(`gastos_${bal.desde}_a_${bal.hasta}.csv`,
           ['Fecha', 'Consultorio', 'Categoria', 'Concepto', 'Proveedor', 'Monto'],
-          gastosP.map((g) => [g.fecha, g.consultorio_nombre, g.categoria, g.concepto, g.proveedor || '', g.monto])),
+          gastosP.map((g) => [g.fecha, g.consultorio_nombre,
+            NOMBRE_CATEGORIA_GASTO[g.categoria] || g.categoria, g.concepto, g.proveedor || '', g.monto])),
       }),
     ]);
     zona.appendChild(filaCsv);

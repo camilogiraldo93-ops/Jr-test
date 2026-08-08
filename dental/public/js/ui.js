@@ -158,7 +158,7 @@ export function datosFormulario(form) {
 // nunca se muestra un código: se muestra lo que la gente dice en voz alta.
 
 export const NOMBRE_ROL = {
-  admin: 'Administradora', doctor: 'Doctor/a', recepcion: 'Recepción',
+  admin: 'Administradora', doctor: 'Doctor o doctora', recepcion: 'Recepción',
 };
 
 export const NOMBRE_CATEGORIA_GASTO = {

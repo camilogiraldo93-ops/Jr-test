@@ -1,4 +1,4 @@
-import { api, ErrorApi } from '../api.js';
+import { api, ErrorApi, sesion } from '../api.js';
 import { el, modal, campo, entrada, area, selector, exito, error, vacio, fmtDinero , NOMBRE_ROL } from '../ui.js';
 
 function formModal({ titulo, campos, alGuardar, textoBoton = 'Guardar' }) {
@@ -25,9 +25,27 @@ function formModal({ titulo, campos, alGuardar, textoBoton = 'Guardar' }) {
 }
 
 export async function vistaConfiguracion({ refrescar }) {
-  const [consultorios, doctores, catalogo, usuarios] = await Promise.all([
-    api.consultorios(), api.doctores(), api.catalogo(), api.usuarios(),
+  const [consultorios, doctores, catalogo, usuarios, ajustes] = await Promise.all([
+    api.consultorios(), api.doctores(), api.catalogo(), api.usuarios(), api.ajustes(),
   ]);
+
+  // El interruptor guarda al momento: no hay un «Guardar» que se pueda olvidar.
+  const chkRecepcionDinero = el('input', { type: 'checkbox', checked: !!ajustes.recepcion_dinero });
+  chkRecepcionDinero.addEventListener('change', async () => {
+    chkRecepcionDinero.disabled = true;
+    try {
+      await api.guardarAjustes({ recepcion_dinero: chkRecepcionDinero.checked });
+      sesion.ajustes = null;   // se vuelve a leer al redibujar
+      exito(chkRecepcionDinero.checked
+        ? 'Listo, recepción ya puede ver y apuntar el dinero.'
+        : 'Listo, el dinero vuelve a verlo solo la administradora.');
+    } catch (e) {
+      chkRecepcionDinero.checked = !chkRecepcionDinero.checked;
+      error(e instanceof ErrorApi ? e.message : 'No se pudo guardar el ajuste.');
+    } finally {
+      chkRecepcionDinero.disabled = false;
+    }
+  });
 
   /* ----------------------------- Consultorios ---------------------------- */
   function nuevoConsultorio() {
@@ -205,7 +223,7 @@ export async function vistaConfiguracion({ refrescar }) {
     el('div', { clase: 'cabecera' }, [
       el('div', {}, [
         el('h2', { texto: 'Configuración' }),
-        el('div', { clase: 'desc', texto: 'Consultorios, cubículos, doctores, usuarios y catálogo de tratamientos.' }),
+        el('div', { clase: 'desc', texto: 'Las sedes, los sillones, los doctores, quién puede entrar y la lista de tratamientos con sus precios.' }),
       ]),
     ]),
 
@@ -267,9 +285,21 @@ export async function vistaConfiguracion({ refrescar }) {
     ]),
 
     el('div', { clase: 'tarjeta' }, [
+      el('h3', { texto: '⚖️ Quién lleva el dinero' }),
+      el('p', { clase: 'mini', style: 'margin-bottom:10px', texto:
+        'De fábrica, la sección «Dinero» solo la ve la administradora. Si en tu consultorio ' +
+        'es recepción quien apunta los gastos del día y saca los reportes, enciéndelo aquí. ' +
+        'La configuración del consultorio nunca se le abre.' }),
+      el('label', { clase: 'campo', style: 'display:flex;gap:9px;align-items:center' }, [
+        chkRecepcionDinero,
+        el('span', { texto: 'Recepción puede ver y apuntar el dinero' }),
+      ]),
+    ]),
+
+    el('div', { clase: 'tarjeta' }, [
       el('h3', {}, [
         el('span', { texto: '👥 Quién puede entrar' }),
-        el('button', { clase: 'btn chico', type: 'button', texto: '➕ Nuevo usuario', style: 'margin-left:auto', onclick: nuevoUsuario }),
+        el('button', { clase: 'btn chico', type: 'button', texto: '➕ Dar acceso a alguien', style: 'margin-left:auto', onclick: nuevoUsuario }),
       ]),
       el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
         el('thead', {}, [el('tr', {}, ['Nombre', 'Correo', 'Qué hace', 'Qué doctor es', 'Puede entrar'].map((t) => el('th', { texto: t })))]),
