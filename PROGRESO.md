@@ -423,4 +423,54 @@ Pruebas: **66 en verde**.
 
 ### Veredicto del revisor-ux sobre el ciclo 9
 
-_(pendiente)_
+# ✅ VEREDICTO GLOBAL: APROBADO
+
+**Las 10 tareas y las 5 auditorías en ✅. Hallazgos bloqueantes: ninguno.**
+
+| # | Tarea | Resultado |
+|---|-------|-----------|
+| 1 | Agendar cita mañana 10:00 | ✅ 3 pasos |
+| 2 | Registrar paciente nuevo | ✅ 2 campos obligatorios |
+| 3 | Atender, anotar y cobrar | ✅ flujo guiado, sin pasos ocultos |
+| 4 | Firmar consentimiento en tablet | ✅ sin pantalla negra ni caída |
+| 5 | Anotar gasto de $50 | ✅ 3 campos, fecha puesta |
+| 6 | Cuánto se cobró hoy | ✅ 0 clics |
+| 7 | Buscar el teléfono de un paciente | ✅ 0 clics extra |
+| 8 | Imprimir la agenda de hoy | ✅ 2 clics |
+| 9 | Exportar los pagos a Excel | ✅ suma de verdad |
+| 10 | Equivocarse a propósito | ✅ nada se rompe |
+
+Auditorías: **Lenguaje ✅** (barrió 519 textos distintos, cero jerga de software) ·
+**Botones muertos ✅** (cero controles deshabilitados en toda la app) ·
+**Pantallas rotas ✅** · **Consola ✅** (0 mensajes en una sesión completa) ·
+**Carga ✅** (primer contenido 0,14 s, app usable 0,58 s).
+
+De su reporte: «la app habla como una recepcionista: «El día de hoy», «Cosas por
+hacer», «Lo que se hizo en esta cita», «¿Cuánto pagó?», «Le falta», «Pacientes
+que deben», «cobrado menos gastado», «Prueba después de las 17:00»».
+
+---
+
+# El loop cerrado
+
+Nueve ciclos, nueve auditorías independientes. Lo que costó cada rechazo:
+
+| Ciclo | Lo que lo rechazó |
+|---|---|
+| 1 | Un 500 al crear paciente; recepción sin salida; el aviso se tragaba los clics |
+| 2 | **La migración dejaba la base sin poder escribir** |
+| 3 | Pacientes «Rosa null»; un cargo impago rotulado «pagado»; la búsqueda no ignoraba tildes |
+| 4 | El desplegable agendaba a la persona equivocada sin avisar |
+| 5 | El mismo defecto seguía vivo en cubículo y doctor |
+| 6 | El aviso de choque se dibujaba fuera de la pantalla; la ayuda mentía |
+| 7 | «Registrar pago» cobraba a quien no era |
+| 8 | Agendar costaba 6 pasos; la ayuda enseñaba un camino que fallaba |
+| 9 | El Excel no sumaba; valores crudos en el papel del paciente |
+
+Los dos hallazgos que ninguna prueba mía habría encontrado sola —la migración
+que rompía la base y los desplegables que elegían por su cuenta— son la razón
+de ser del revisor independiente. Ambos pasaban mis comprobaciones: la primera
+porque yo verificaba lecturas y no escrituras; los segundos porque mis pruebas
+se apoyaban en la preselección peligrosa para pasar.
+
+Pruebas finales: **66 en verde** (2 migración, 24 API, 27 interfaz, 13 demo).
