@@ -490,13 +490,13 @@ test('UI · Flujo 4: registrar tratamiento, subir 2 fotos y crear recordatorio',
   });
 
   // Recordatorio
-  await abrirModal('.tarjeta:has-text("Recordatorios creados en la cita") button:has-text("➕ Nuevo")');
+  await abrirModal('.tarjeta:has-text("Cosas por hacer anotadas en esta cita") button:has-text("➕ Nuevo")');
   m = modal();
   await m.locator('input[name="titulo"]').fill('Control de endodoncia a los 30 días');
   await m.locator('textarea[name="descripcion"]').fill('Revisar sintomatología y programar corona.');
   await m.locator('select[name="prioridad"]').selectOption('alta');
-  await m.locator('button:has-text("Crear recordatorio")').click();
-  await esperarExito(/Recordatorio creado/);
+  await m.locator('button:has-text("Anotar")').click();
+  await esperarExito(/quedó anotado en las cosas por hacer/);
   await pagina.waitForSelector('li:has-text("Control de endodoncia")');
 });
 

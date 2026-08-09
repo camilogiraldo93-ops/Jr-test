@@ -1,7 +1,8 @@
 import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, selector, area, exito, error, vacio, fmtDinero, fmtFechaCorta,
   fmtFechaHora, fmtMarca, etiquetaEstado, entrada, NOMBRE_DIENTE, NOMBRE_PRIORIDAD,
-  nombreCompleto, plural, NOMBRE_METODO_PAGO } from '../ui.js';
+  nombreCompleto, plural, NOMBRE_METODO_PAGO, NOMBRE_ESTADO_PENDIENTE, NOMBRE_TIPO_IMAGEN,
+  NOMBRE_SEXO } from '../ui.js';
 import { abrirFormularioPaciente } from './pacientes.js';
 import { abrirFormularioCita } from './formCita.js';
 import { abrirNuevoConsentimiento } from './consentimiento.js';
@@ -73,7 +74,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
         dato('Teléfono', p.telefono),
         dato('Correo', p.email),
         dato('Fecha de nacimiento', p.fecha_nacimiento ? `${fmtFechaCorta(p.fecha_nacimiento)} (${edad(p.fecha_nacimiento)} años)` : null),
-        dato('Sexo', p.sexo === 'F' ? 'Femenino' : p.sexo === 'M' ? 'Masculino' : p.sexo),
+        dato('Sexo', NOMBRE_SEXO[p.sexo] || p.sexo),
         dato('Ocupación', p.ocupacion),
         dato('Dirección', p.direccion),
         dato('Contacto de emergencia', p.contacto_emergencia),
@@ -182,13 +183,13 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
             titulo: f.nombre, ancho: true,
             cuerpo: el('div', {}, [
               el('img', { src: urlFoto(f), alt: f.nombre, style: 'width:100%;border-radius:10px' }),
-              el('p', { clase: 'mini', style: 'margin-top:8px', texto: `${f.tipo} · ${fmtMarca(f.creada_en)}${f.descripcion ? ` · ${f.descripcion}` : ''}` }),
+              el('p', { clase: 'mini', style: 'margin-top:8px', texto: `${NOMBRE_TIPO_IMAGEN[f.tipo] || f.tipo} · ${fmtMarca(f.creada_en)}${f.descripcion ? ` · ${f.descripcion}` : ''}` }),
             ]),
           }),
         }),
         el('figcaption', {}, [
           el('b', { texto: f.nombre }),
-          el('span', { texto: `${f.tipo} · ${fmtFechaCorta(f.creada_en)}` }),
+          el('span', { texto: `${NOMBRE_TIPO_IMAGEN[f.tipo] || f.tipo} · ${fmtFechaCorta(f.creada_en)}` }),
           f.cita_id ? el('div', {}, [el('a', { clase: 'mini', href: `#/cita/${f.cita_id}`, texto: 'Ver la cita' })]) : null,
         ]),
       ]))),
@@ -266,7 +267,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
           el('div', { clase: 'mini', texto: `${r.fecha_objetivo ? `Para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha'} · ${NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad}` }),
         ]),
         el('div', { clase: 'acciones' }, [
-          el('span', { clase: `eti ${r.estado}`, texto: r.estado }),
+          el('span', { clase: `eti ${r.estado}`, texto: NOMBRE_ESTADO_PENDIENTE[r.estado] || r.estado }),
           r.estado === 'pendiente'
             ? el('button', {
                 clase: 'btn sec chico', type: 'button', texto: 'Completar',

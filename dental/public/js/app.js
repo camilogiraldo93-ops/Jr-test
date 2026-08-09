@@ -218,7 +218,16 @@ export async function refrescar() {
   await renderVista();
 }
 
+/**
+ * Cada dibujado lleva su número de turno. Si mientras una pantalla espera datos
+ * la persona pulsa otra sección, la respuesta que llega tarde se descarta en vez
+ * de pintarse encima: antes el menú marcaba «Pacientes» y el contenido era la
+ * agenda del día, que para quien no sabe de sistemas es «la app se volvió loca».
+ */
+let turnoRender = 0;
+
 async function renderVista() {
+  const turno = ++turnoRender;
   const { nombre, param, param2 } = rutaActual();
   const vista = VISTAS[nombre] || VISTAS.hoy;
   // Al salir de una pantalla de firma se recupera la interfaz completa.
@@ -238,10 +247,12 @@ async function renderVista() {
   contenidoRef.appendChild(el('div', { clase: 'vacio', texto: 'Cargando…' }));
   try {
     const nodo = await vista({ param, param2, usuario: sesion.usuario, refrescar, navegar });
+    if (turno !== turnoRender) return;   // llegó tarde: ya se pidió otra pantalla
     limpiar(contenidoRef);
     contenidoRef.appendChild(nodo);
     window.scrollTo(0, 0);
   } catch (err) {
+    if (turno !== turnoRender) return;
     limpiar(contenidoRef);
     if (err instanceof ErrorApi && err.estado === 401) {
       sesion.token = null;

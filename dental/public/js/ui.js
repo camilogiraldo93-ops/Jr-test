@@ -174,6 +174,18 @@ export const NOMBRE_METODO_PAGO = {
 
 export const NOMBRE_PRIORIDAD = { baja: 'Puede esperar', media: 'Normal', alta: 'Urgente' };
 
+export const NOMBRE_TIPO_IMAGEN = {
+  radiografia: 'Radiografía', intraoral: 'Foto de la boca', extraoral: 'Foto de la cara',
+  documento: 'Documento', otro: 'Otra',
+};
+
+export const NOMBRE_SEXO = { F: 'Mujer', M: 'Hombre', O: 'Otro' };
+
+export const NOMBRE_CARA_DIENTE = {
+  general: 'toda la pieza', oclusal: 'cara masticadora', vestibular: 'cara de afuera',
+  lingual: 'cara de adentro', mesial: 'lado hacia el centro', distal: 'lado hacia atrás',
+};
+
 export const NOMBRE_ESTADO_PENDIENTE = {
   pendiente: 'Por hacer', completado: 'Hecho', cancelado: 'Ya no aplica',
 };

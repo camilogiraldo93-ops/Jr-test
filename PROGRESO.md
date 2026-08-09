@@ -380,4 +380,47 @@ Pruebas: **66 en verde**.
 
 ### Veredicto del revisor-ux sobre el ciclo 8
 
+**VEREDICTO GLOBAL: RECHAZADO** — pero la tarea 1 pasó por fin a **✅ con 3 pasos**.
+9 de 10 tareas y 4 de 5 auditorías en ✅; solo falla la 9 (exportar) y Lenguaje.
+
+Bloqueantes:
+1. **El Excel exportado no sirve para hacer cuentas**: separador `;` con
+   decimales `.`. En Excel en español los importes con centavos entran como
+   texto y la columna no suma; en Excel en inglés el `;` no separa nada. No hay
+   configuración en la que funcione, y contradecía el propio comentario del
+   código.
+2. Valores internos a la vista y **en papel**: «baja», «pendiente»,
+   «radiografia», «ausente», «general», «M», y «1 PIEZAS CON HALLAZGOS».
+3. **Pantalla que no corresponde con la conexión lenta**: al pulsar otra sección
+   mientras la anterior cargaba, la respuesta vieja pisaba a la nueva.
+4. Dos vocabularios para lo mismo: Baja/Media/Alta vs Puede esperar/Normal/
+   Urgente; «Obturado/Ausente» vs «Con calza/Falta»; «Facturado/Abonado/Saldo»
+   vs «Se le ha cobrado/Ya pagó/Le falta».
+5. El formulario de recordatorios en idioma de programador.
+6. Mensaje de sistema en la cita cancelada.
+
+---
+
+## Ciclo 9 — solo hallazgos bloqueantes
+
+1. **El CSV vuelve a servir para sumar.** Las tres convenciones van juntas: BOM,
+   `;` entre columnas y **coma decimal**. Los números se formatean como números,
+   no como texto. Y la descarga ahora avisa en pantalla.
+2. **Ningún valor interno llega a la persona**, ni en pantalla ni en el papel que
+   se le entrega: nuevos diccionarios para tipo de imagen, sexo y cara del
+   diente, y los que ya existían aplicados donde faltaban. «1 pieza con
+   hallazgos» concuerda.
+3. **Cada dibujado lleva su número de turno**: la respuesta que llega tarde se
+   descarta en vez de pintarse sobre la pantalla nueva.
+4. **Una sola palabra por concepto**: la urgencia se ofrece y se muestra igual,
+   el odontograma usa los mismos nombres al editar y al listar, y la cuenta del
+   paciente dice lo mismo en pantalla y en el expediente impreso.
+5. **El formulario de «cosas por hacer»** pregunta qué hay que hacer, para
+   cuándo y qué tan urgente.
+6. **La cita cancelada** explica qué hacer si al final sí se atendió.
+
+Pruebas: **66 en verde**.
+
+### Veredicto del revisor-ux sobre el ciclo 9
+
 _(pendiente)_

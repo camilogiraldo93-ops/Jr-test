@@ -1,6 +1,7 @@
 import { api, urlFoto } from '../api.js';
 import { el, vacio, fmtDinero, fmtFechaCorta, fmtFechaHora, fmtHora, fmtMarca, nombreDia,
-  ETIQUETAS_ESTADO, plural, nombreCompleto } from '../ui.js';
+  ETIQUETAS_ESTADO, plural, nombreCompleto, NOMBRE_SEXO, NOMBRE_CARA_DIENTE, NOMBRE_PRIORIDAD,
+  NOMBRE_ESTADO_PENDIENTE, NOMBRE_TIPO_IMAGEN, NOMBRE_DIENTE } from '../ui.js';
 import { documentoConsentimiento, bloqueFirmas, pieDocumento, ETIQUETA_ESTADO_CONSENT } from '../consentimiento-doc.js';
 
 /** Barra superior que no se imprime, con el botón que abre el diálogo de impresión. */
@@ -127,7 +128,7 @@ async function imprimirExpediente(id) {
       dato('Nombre', nombreCompleto(p.nombre, p.apellidos)),
       dato('Cédula', p.cedula),
       dato('Nacimiento', p.fecha_nacimiento ? fmtFechaCorta(p.fecha_nacimiento) : null),
-      dato('Sexo', p.sexo),
+      dato('Sexo', NOMBRE_SEXO[p.sexo] || p.sexo),
       dato('Teléfono', p.telefono),
       dato('Correo', p.email),
       dato('Dirección', p.direccion),
@@ -176,12 +177,12 @@ async function imprimirExpediente(id) {
           ])))
       : el('p', { clase: 'mini', texto: 'Sin consentimientos.' })),
 
-    seccion(`Odontograma (${exp.odontograma.length} piezas con hallazgos)`, exp.odontograma.length
-      ? tabla(['Pieza', 'Cara', 'Estado', 'Nota'],
+    seccion(`Odontograma (${plural(exp.odontograma.length, 'pieza con hallazgos', 'piezas con hallazgos')})`, exp.odontograma.length
+      ? tabla(['Pieza', 'Parte', 'Cómo está', 'Nota'],
           exp.odontograma.map((o) => el('tr', {}, [
             el('td', { texto: o.diente }),
-            el('td', { texto: o.cara }),
-            el('td', { texto: o.estado }),
+            el('td', { texto: NOMBRE_CARA_DIENTE[o.cara] || o.cara }),
+            el('td', { texto: NOMBRE_DIENTE[o.estado] || o.estado }),
             el('td', { texto: o.nota || '—' }),
           ])))
       : el('p', { clase: 'mini', texto: 'Sin hallazgos registrados.' })),
@@ -191,14 +192,14 @@ async function imprimirExpediente(id) {
           exp.recordatorios.map((r) => el('tr', {}, [
             el('td', { texto: r.titulo }),
             el('td', { texto: r.fecha_objetivo ? fmtFechaCorta(r.fecha_objetivo) : '—' }),
-            el('td', { texto: r.prioridad }),
-            el('td', { texto: r.estado }),
+            el('td', { texto: NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad }),
+            el('td', { texto: NOMBRE_ESTADO_PENDIENTE[r.estado] || r.estado }),
           ])))
       : el('p', { clase: 'mini', texto: 'Sin recordatorios.' })),
 
     seccion('Estado de cuenta', el('div', {}, [
       el('p', { clase: 'resumen-cuenta', texto:
-        `Facturado ${fmtDinero(ec.total_cargos)} · Abonado ${fmtDinero(ec.total_pagos)} · Saldo ${fmtDinero(ec.saldo)}` }),
+        `Se le ha cobrado ${fmtDinero(ec.total_cargos)} · ya pagó ${fmtDinero(ec.total_pagos)} · le falta ${fmtDinero(ec.saldo)}` }),
       ec.cargos.length
         ? tabla(['Fecha', 'Concepto', 'Monto'], ec.cargos.map((c) => el('tr', {}, [
             el('td', { texto: fmtFechaCorta(c.fecha) }),
@@ -212,7 +213,7 @@ async function imprimirExpediente(id) {
       ? seccion(`Imágenes (${exp.fotos.length})`, el('div', { clase: 'galeria-impresion' },
           exp.fotos.map((f) => el('figure', {}, [
             el('img', { src: urlFoto(f), alt: f.nombre }),
-            el('figcaption', { texto: `${f.nombre} · ${f.tipo} · ${fmtFechaCorta(f.creada_en)}` }),
+            el('figcaption', { texto: `${NOMBRE_TIPO_IMAGEN[f.tipo] || f.tipo} · ${fmtFechaCorta(f.creada_en)}${f.descripcion ? ` · ${f.descripcion}` : ''}` }),
           ]))))
       : null,
   ]);
@@ -283,14 +284,14 @@ async function imprimirCita(id) {
 
     seccion('Cobros', cargos.length
       ? el('div', {}, [
-          tabla(['Concepto', 'Monto', 'Pagado', 'Saldo'], cargos.map((x) => el('tr', {}, [
+          tabla(['Por qué', 'Cuánto', 'Ya pagó', 'Le falta'], cargos.map((x) => el('tr', {}, [
             el('td', { texto: x.concepto }),
             el('td', { clase: 'num', texto: fmtDinero(x.monto) }),
             el('td', { clase: 'num', texto: fmtDinero(x.pagado) }),
             el('td', { clase: 'num', texto: fmtDinero(x.saldo) }),
           ]))),
           el('p', { clase: 'resumen-cuenta', texto:
-            `Total ${fmtDinero(totalCargos)} · Pagado ${fmtDinero(totalPagado)} · Saldo ${fmtDinero(totalCargos - totalPagado)}` }),
+            `En total ${fmtDinero(totalCargos)} · ya pagó ${fmtDinero(totalPagado)} · le falta ${fmtDinero(totalCargos - totalPagado)}` }),
         ])
       : el('p', { clase: 'mini', texto: 'Sin cargos en esta cita.' })),
 
@@ -298,7 +299,7 @@ async function imprimirCita(id) {
       ? seccion(`Imágenes (${c.fotos.length})`, el('div', { clase: 'galeria-impresion' },
           c.fotos.map((f) => el('figure', {}, [
             el('img', { src: urlFoto(f), alt: f.nombre }),
-            el('figcaption', { texto: `${f.nombre} · ${f.tipo}` }),
+            el('figcaption', { texto: `${NOMBRE_TIPO_IMAGEN[f.tipo] || f.tipo}${f.descripcion ? ` · ${f.descripcion}` : ''}` }),
           ]))))
       : null,
 

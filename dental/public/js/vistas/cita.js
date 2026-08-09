@@ -1,7 +1,8 @@
 import { api, ErrorApi, urlFoto } from '../api.js';
 import { el, limpiar, modal, campo, entrada, area, selector, exito, error, vacio, confirmar,
   fmtDinero, fmtFechaHora, fmtFechaCorta, fmtMarca, etiquetaEstado, hoyIso, ETIQUETAS_ESTADO,
-  plural, NOMBRE_DIENTE, NOMBRE_METODO_PAGO, nombreCompleto } from '../ui.js';
+  plural, NOMBRE_DIENTE, NOMBRE_METODO_PAGO, NOMBRE_PRIORIDAD, NOMBRE_ESTADO_PENDIENTE,
+  NOMBRE_TIPO_IMAGEN, nombreCompleto } from '../ui.js';
 import { abrirFormularioCita } from './formCita.js';
 import { abrirNuevoConsentimiento } from './consentimiento.js';
 
@@ -166,10 +167,10 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     const m = modal({
       titulo: 'Subir radiografías y fotos',
       cuerpo: el('div', {}, [
-        campo('Archivos de imagen', input, 'Puedes seleccionar varias imágenes a la vez (PNG, JPG, WEBP o GIF).'),
+        campo('¿Qué archivos?', input, 'Puedes elegir varias fotos a la vez. Valen las que saca cualquier cámara o celular.'),
         lista,
-        campo('Tipo', selTipo),
-        campo('Descripción', inDesc),
+        campo('¿Qué son?', selTipo),
+        campo('¿Algún detalle?', inDesc),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
@@ -205,22 +206,22 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     const inDesc = area('descripcion', { placeholder: 'Qué debe revisarse o completarse' });
     const inFecha = entrada('fecha_objetivo', { type: 'date', value: hoyIso() });
     const selPrioridad = selector('prioridad', [
-      { valor: 'baja', texto: 'Baja' }, { valor: 'media', texto: 'Media' }, { valor: 'alta', texto: 'Alta' },
+      { valor: 'baja', texto: 'Puede esperar' }, { valor: 'media', texto: 'Normal' }, { valor: 'alta', texto: 'Urgente' },
     ], 'media');
-    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Crear recordatorio' });
+    const boton = el('button', { clase: 'btn', type: 'button', texto: 'Anotar' });
 
     const m = modal({
-      titulo: 'Nuevo recordatorio de seguimiento',
+      titulo: 'Anotar algo por hacer',
       cuerpo: el('div', {}, [
-        campo('Título *', inTitulo),
-        campo('Descripción', inDesc),
-        el('div', { clase: 'fila' }, [campo('Fecha objetivo', inFecha), campo('Prioridad', selPrioridad)]),
+        campo('¿Qué hay que hacer? *', inTitulo),
+        campo('¿Algún detalle?', inDesc),
+        el('div', { clase: 'fila' }, [campo('¿Para cuándo?', inFecha), campo('¿Qué tan urgente?', selPrioridad)]),
       ]),
       pie: [el('button', { clase: 'btn sec', type: 'button', texto: 'Cancelar', onclick: () => m.cerrar() }), boton],
     });
 
     boton.addEventListener('click', async () => {
-      if (!inTitulo.value.trim()) { error('El recordatorio necesita un título.'); return; }
+      if (!inTitulo.value.trim()) { error('Escribe qué hay que hacer, aunque sea en pocas palabras.'); return; }
       boton.disabled = true;
       try {
         await api.crearRecordatorio(cita.id, {
@@ -228,7 +229,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           fecha_objetivo: inFecha.value, prioridad: selPrioridad.value,
         });
         m.cerrar();
-        exito('Recordatorio creado y vinculado al expediente.');
+        exito('Listo, quedó anotado en las cosas por hacer del paciente.');
         await refrescar();
       } catch (err) {
         error(err instanceof ErrorApi ? err.message : 'No se pudo crear el recordatorio.');
@@ -389,14 +390,14 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
               cuerpo: el('img', { src: urlFoto(f), alt: f.nombre, style: 'width:100%;border-radius:10px' }),
             }),
           }),
-          el('figcaption', {}, [el('b', { texto: f.nombre }), el('span', { texto: `${f.tipo} · ${fmtFechaCorta(f.creada_en)}` })]),
+          el('figcaption', {}, [el('b', { texto: f.nombre }), el('span', { texto: `${NOMBRE_TIPO_IMAGEN[f.tipo] || f.tipo} · ${fmtFechaCorta(f.creada_en)}` })]),
         ])))
       : vacio('Sin imágenes cargadas en esta cita.'),
   ]);
 
   const seccionRecordatorios = el('div', { clase: 'tarjeta' }, [
     el('h3', {}, [
-      el('span', { texto: '🔔 Recordatorios creados en la cita' }),
+      el('span', { texto: '🔔 Cosas por hacer anotadas en esta cita' }),
       activa
         ? el('button', { clase: 'btn chico', type: 'button', texto: '➕ Nuevo', style: 'margin-left:auto', onclick: abrirRecordatorio })
         : null,
@@ -406,14 +407,14 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
           el('div', {}, [
             el('div', { clase: 'tit', texto: r.titulo }),
             el('div', { clase: 'det', texto: r.descripcion || '' }),
-            el('div', { clase: 'mini', texto: r.fecha_objetivo ? `Objetivo: ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha objetivo' }),
+            el('div', { clase: 'mini', texto: r.fecha_objetivo ? `Para el ${fmtFechaCorta(r.fecha_objetivo)}` : 'Sin fecha' }),
           ]),
           el('div', { clase: 'acciones' }, [
-            el('span', { clase: `eti ${r.prioridad}`, texto: r.prioridad }),
-            el('span', { clase: `eti ${r.estado}`, texto: r.estado }),
+            el('span', { clase: `eti ${r.prioridad}`, texto: NOMBRE_PRIORIDAD[r.prioridad] || r.prioridad }),
+            el('span', { clase: `eti ${r.estado}`, texto: NOMBRE_ESTADO_PENDIENTE[r.estado] || r.estado }),
           ]),
         ])))
-      : vacio('Sin recordatorios en esta cita.'),
+      : vacio('No quedó nada anotado por hacer en esta cita.'),
   ]);
 
   const seccionSeguimiento = el('div', { clase: 'tarjeta' }, [
@@ -538,7 +539,7 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
     ]),
 
     !activa
-      ? el('div', { clase: 'alerta-caja aviso', texto: `Esta cita está en estado "${ETIQUETAS_ESTADO[cita.estado]}": no admite registro clínico. Reactívala para volver a trabajar en ella.` })
+      ? el('div', { clase: 'alerta-caja aviso', texto: `Esta cita quedó como "${ETIQUETAS_ESTADO[cita.estado]}", así que no se le anota nada. Si al final sí se atendió, vuelve a ponerla en "Agendada" desde los botones de arriba.` })
       : null,
 
     consentPendientes.length
