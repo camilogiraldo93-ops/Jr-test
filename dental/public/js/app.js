@@ -62,7 +62,8 @@ function pantallaLogin() {
         await dibujar();
         exito(`Bienvenido/a, ${r.usuario.nombre}.`);
       } catch (err) {
-        msg.textContent = err instanceof ErrorApi ? err.message : 'Error inesperado al iniciar sesión.';
+        msg.textContent = err instanceof ErrorApi ? err.message
+          : 'No se pudo entrar. Revisa el correo y la contraseña, y vuelve a intentarlo.';
         msg.style.display = 'block';
       } finally {
         boton.disabled = false;

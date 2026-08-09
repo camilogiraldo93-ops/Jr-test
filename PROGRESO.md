@@ -339,4 +339,45 @@ Pruebas: **66 en verde**.
 
 ### Veredicto del revisor-ux sobre el ciclo 7
 
+**VEREDICTO GLOBAL: RECHAZADO** — 9 de 10 tareas y 4 de 5 auditorías en ✅.
+
+Bloqueantes:
+1. Agendar cuesta 6 pasos la primera vez. Y trajo la solución: «Con un
+   cubículo/doctor por defecto (el único disponible, o el más usado del
+   consultorio, o el que ya atiende esa franja) la tarea cae a 3 pasos sin
+   quitar la posibilidad de cambiarlos.»
+2. La ayuda de la app enseñaba un camino que fallaba: mandaba a elegir paciente
+   y guardar, y la app rechazaba dos veces por cubículo y doctor.
+3. Jerga: «Cédula / ID», «filtros seleccionados», «Error inesperado», números
+   internos impresos en documentos del paciente, «Vista/Agrupar», «MÉTODO».
+
+Además señaló que la app afirmaba algo falso al cerrar una cita («no se puede
+cambiar más») y que en tablet de 768 px la mitad del menú quedaba fuera de vista.
+
+---
+
+## Ciclo 8 — solo hallazgos bloqueantes
+
+1. **El cubículo y el doctor los propone el servidor.** Nueva ruta
+   `GET /api/citas/sugerencia`: devuelve el par que **más se usa en ese
+   consultorio y que además está libre a esa hora**; si no hay historial, el
+   primero libre; si no hay ninguno libre, nulos, para que la pantalla los pida
+   en vez de proponer algo imposible. Un doctor solo se propone a sí mismo. No
+   es «el primero de la lista» —ese fue el error que costó tres ciclos— y todo
+   sigue siendo editable.
+2. **La ayuda describe el formulario de verdad**, incluidos el cubículo y el
+   doctor y qué pasa si la hora choca.
+3. **Jerga**: «Cédula», «No hay citas en estas fechas», «No se pudo entrar»,
+   «¿Día o semana?», «¿Agrupado cómo?», «Cómo pagó», y los números internos
+   fuera de los documentos que se le entregan al paciente.
+4. **El texto de la cita cerrada dice la verdad**: el estado no cambia más, pero
+   lo que quedó sin anotar todavía se puede añadir, que es lo que la app permite
+   a propósito.
+5. **El menú cabe en tablet**: se envuelve en varias líneas en vez de esconderse
+   en una tira deslizante, y el buscador conserva un ancho utilizable.
+
+Pruebas: **66 en verde**.
+
+### Veredicto del revisor-ux sobre el ciclo 8
+
 _(pendiente)_

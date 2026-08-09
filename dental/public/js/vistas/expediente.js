@@ -69,7 +69,7 @@ export async function vistaExpediente({ param, usuario, navegar, refrescar }) {
       el('h3', { texto: 'Datos personales' }),
       el('div', { clase: 'rejilla c4' }, [
         dato('Nombre completo', nombreCompleto(p.nombre, p.apellidos)),
-        dato('Cédula / ID', p.cedula),
+        dato('Cédula', p.cedula),
         dato('Teléfono', p.telefono),
         dato('Correo', p.email),
         dato('Fecha de nacimiento', p.fecha_nacimiento ? `${fmtFechaCorta(p.fecha_nacimiento)} (${edad(p.fecha_nacimiento)} años)` : null),

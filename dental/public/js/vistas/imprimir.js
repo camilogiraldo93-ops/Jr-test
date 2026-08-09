@@ -102,7 +102,7 @@ async function imprimirConsentimiento(id) {
       c.estado === 'anulado' ? 'ANULADO' : 'PENDIENTE DE FIRMA' }), hoja.firstChild);
   }
   return el('div', { clase: 'vista-impresion' }, [
-    barra(`Consentimiento #${c.id} — ${ETIQUETA_ESTADO_CONSENT[c.estado]}`, `#/consentimiento/${c.id}`),
+    barra(`Consentimiento informado — ${ETIQUETA_ESTADO_CONSENT[c.estado]}`, `#/consentimiento/${c.id}`),
     hoja,
   ]);
 }
@@ -233,7 +233,7 @@ async function imprimirCita(id) {
 
   const hoja = el('div', { clase: 'hoja' }, [
     membrete(c.consultorio_nombre, `${c.cubiculo_nombre} · ${c.doctor_nombre}`,
-      `Resumen de la cita #${c.id} — ${fmtFechaHora(c.inicio)} a ${c.fin.slice(11)}`),
+      `Resumen de la atención — ${fmtFechaHora(c.inicio)} a ${c.fin.slice(11)}`),
 
     seccion('Datos de la atención', el('div', { clase: 'rejilla-impresion' }, [
       el('div', { clase: 'dato-impreso' }, [

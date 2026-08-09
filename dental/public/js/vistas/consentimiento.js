@@ -165,7 +165,7 @@ export async function vistaConsentimiento({ param, usuario, navegar, refrescar }
   if (c.reemplaza_a) {
     contenedor.appendChild(el('div', { clase: 'alerta-caja aviso sin-imprimir' }, [
       el('span', { texto: 'Este documento reemplaza a uno anulado. ' }),
-      el('a', { href: `#/consentimiento/${c.reemplaza_a}`, texto: `Ver el anterior (#${c.reemplaza_a})` }),
+      el('a', { href: `#/consentimiento/${c.reemplaza_a}`, texto: 'Ver el que reemplaza' }),
     ]));
   }
   if (c.es_menor) {
@@ -333,7 +333,7 @@ function abrirAnulacion(c, navegar) {
   const boton = el('button', { clase: 'btn peligro', type: 'button', texto: 'Anular' });
 
   const m = modal({
-    titulo: `Anular el consentimiento #${c.id}`,
+    titulo: 'Anular este consentimiento',
     cuerpo: el('div', {}, [
       el('div', { clase: 'alerta-caja aviso', texto:
         'El documento firmado no se borra: queda archivado como anulado, con motivo, responsable y fecha, ' +

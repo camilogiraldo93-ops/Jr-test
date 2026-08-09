@@ -15,9 +15,10 @@ const TAREAS = [
     titulo: 'Agendar una cita',
     roles: ['admin', 'doctor', 'recepcion'],
     pasos: [
-      'En «El día de hoy», busca la hora que quieres y pulsa «＋ Agendar a las …».',
-      'Elige a la persona en la primera lista (si es nueva, créala antes desde Pacientes).',
-      'Pulsa «Agendar cita». Si esa hora está ocupada, la app te lo dice antes de guardar.',
+      'En «El día de hoy» ve al día que quieras («Mañana» está a un toque) y pulsa «＋ Agendar a las …».',
+      'Elige a la persona en la primera lista (si es nueva, créala antes desde Pacientes) y pulsa Enter.',
+      'El cubículo y el doctor vienen puestos y libres a esa hora; si quieres otros, cámbialos antes de guardar.',
+      'Si esa hora está ocupada, la app te lo dice antes de guardar y te sugiere a partir de cuándo hay hueco.',
     ],
   },
   {

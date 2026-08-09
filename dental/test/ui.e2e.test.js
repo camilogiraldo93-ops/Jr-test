@@ -845,7 +845,7 @@ test('UI · Anulación de un consentimiento firmado, con reemplazo', async () =>
 
   await pagina.waitForSelector('.documento');
   assert.match(await pagina.locator('.alerta-caja.aviso').first().innerText(), /reemplaza a uno anulado/);
-  const enlaceAnterior = pagina.locator('a:has-text("Ver el anterior")');
+  const enlaceAnterior = pagina.locator('a:has-text("Ver el que reemplaza")');
   assert.equal(await enlaceAnterior.count(), 1);
   await enlaceAnterior.click();
   await pagina.waitForSelector('.alerta-caja:has-text("Consentimiento anulado")');
@@ -869,7 +869,7 @@ test('UI · Impresión del expediente y de la cita', async () => {
   await pagina.goto(`${servidor.base}/#/imprimir/cita/${ctx.citaId}`, { waitUntil: 'networkidle' });
   await pagina.waitForSelector('.vista-impresion .hoja');
   const cita = await pagina.locator('.hoja').innerText();
-  assert.match(cita, new RegExp(`Resumen de la cita #${ctx.citaId}`));
+  assert.match(cita, /Resumen de la atención/);
   assert.match(cita, /Tratamientos realizados/i);
   assert.match(cita, /Cobros/i);
   assert.match(cita, /Firma del doctor/);

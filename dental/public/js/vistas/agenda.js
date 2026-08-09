@@ -121,7 +121,7 @@ export async function vistaAgenda({ navegar, usuario }) {
   ], estado.consultorio_id);
   const inFecha = entrada('fecha', { type: 'date', value: estado.fecha });
   const selEntidad = selector('entidad', [{ valor: '', texto: 'Todos' }], estado.entidad);
-  const campoEntidad = campo('Filtrar', selEntidad);
+  const campoEntidad = campo('¿Mostrar solo?', selEntidad);
 
   const btnAnterior = el('button', { clase: 'btn sec', type: 'button', texto: '‹' });
   const btnHoy = el('button', { clase: 'btn sec', type: 'button', texto: 'Hoy' });
@@ -171,7 +171,7 @@ export async function vistaAgenda({ navegar, usuario }) {
     zona.appendChild(estado.vista === 'semana' ? rejillaSemana(datos, navegar) : rejillaDia(datos, navegar));
 
     if (!datos.citas.length) {
-      zona.appendChild(vacio('No hay citas en este período con los filtros seleccionados.'));
+      zona.appendChild(vacio('No hay citas en estas fechas con lo que estás mirando ahora.'));
     }
   }
 
@@ -211,8 +211,8 @@ export async function vistaAgenda({ navegar, usuario }) {
   ]));
 
   contenedor.appendChild(el('div', { clase: 'agenda-controles' }, [
-    campo('Vista', selVista),
-    campo('Agrupar', selAgrupar),
+    campo('¿Día o semana?', selVista),
+    campo('¿Agrupado cómo?', selAgrupar),
     campo('Consultorio', selConsultorio),
     campo('Fecha', inFecha),
     campoEntidad,

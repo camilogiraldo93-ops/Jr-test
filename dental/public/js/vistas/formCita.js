@@ -81,14 +81,13 @@ export async function abrirFormularioCita(opciones = {}) {
     })),
   ], inicial.catalogo_id);
   const notaTratamiento = el('div', { clase: 'mini' });
+  const notaSugerencia = el('div', { clase: 'mini' });
 
   // El texto solo puede prometer lo que es cierto en cada caso: al reprogramar
   // vienen los de esa cita, no los de la última guardada.
   const ayudaPaciente = cita
     ? 'El cubículo y el doctor son los que ya tenía esta cita; cámbialos si hace falta.'
-    : (inicial.cubiculo_id && inicial.doctor_id)
-      ? 'Elige a la persona y pulsa Enter: el cubículo y el doctor son los de la última cita que guardaste.'
-      : 'Elige a la persona, el cubículo y el doctor. La próxima vez esos dos vendrán ya puestos.';
+    : 'Elige a la persona y pulsa Enter. El cubículo y el doctor ya vienen puestos.';
 
   const inFecha = entrada('fecha', { type: 'date', value: inicial.fecha, required: true });
   const inInicio = entrada('hora_inicio', { type: 'time', value: inicial.hora_inicio, required: true, step: 300 });
@@ -169,11 +168,42 @@ export async function abrirFormularioCita(opciones = {}) {
     verificar();
   });
 
+  /**
+   * Rellena cubículo y doctor con lo que propone el servidor: el par que más se
+   * usa en ese consultorio y que además está libre a esa hora. No es «el primero
+   * de la lista» —eso ya costó citas con el doctor equivocado— y se puede
+   * cambiar. Solo se pide cuando falta alguno de los dos.
+   */
+  let sugiriendo = false;
+  async function sugerirSiFalta() {
+    if (cita || sugiriendo) return;
+    if (inicial.cubiculo_id && inicial.doctor_id) return;
+    if (!selConsultorio.value || !inFecha.value || !inInicio.value || !inFin.value) return;
+    sugiriendo = true;
+    try {
+      const s = await api.sugerenciaCita({
+        consultorio_id: Number(selConsultorio.value),
+        inicio: `${inFecha.value}T${inInicio.value}`,
+        fin: `${inFecha.value}T${inFin.value}`,
+      });
+      if (s.cubiculo_id && s.doctor_id) {
+        inicial.cubiculo_id = s.cubiculo_id;
+        inicial.doctor_id = s.doctor_id;
+        refrescarCubiculos();
+        notaSugerencia.textContent =
+          'El cubículo y el doctor vienen puestos con los de siempre, y están libres a esa hora. ' +
+          'Cámbialos si hace falta.';
+      }
+    } catch { /* si no se puede sugerir, se eligen a mano */ } finally {
+      sugiriendo = false;
+    }
+  }
+
   selConsultorio.addEventListener('change', () => {
     inicial.cubiculo_id = null;
     inicial.doctor_id = null;
     refrescarCubiculos();
-    verificar();
+    sugerirSiFalta().then(verificar);
   });
   refrescarCubiculos();
   aplicarTratamiento(false);
@@ -254,7 +284,8 @@ export async function abrirFormularioCita(opciones = {}) {
       campo('Consultorio', selConsultorio),
       campo('Cubículo', selCubiculo),
     ]),
-    campo('Doctor', selDoctor, 'Solo se listan los doctores asignados al consultorio seleccionado.'),
+    campo('Doctor', selDoctor, 'Solo se listan los doctores que atienden en ese consultorio.'),
+    notaSugerencia,
     el('div', { clase: 'fila' }, [
       campo('Fecha', inFecha),
       campo('Hora de inicio', inInicio),
@@ -340,6 +371,7 @@ export async function abrirFormularioCita(opciones = {}) {
     }
   });
 
+  await sugerirSiFalta();
   await verificar();
   return m;
 }

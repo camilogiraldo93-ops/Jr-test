@@ -527,12 +527,12 @@ export async function vistaCita({ param, usuario, refrescar, navegar }) {
             el('div', { clase: 'mini', style: 'margin-bottom:6px', texto: 'Pasarla a:' }),
             accionesEstado,
           ])
-        : el('p', { clase: 'mini', style: 'margin-top:10px', texto: 'Esta cita ya se cerró: no se puede cambiar más.' }),
+        : el('p', { clase: 'mini', style: 'margin-top:10px', texto: 'Esta cita ya se cerró. Su estado no cambia más, pero si algo quedó sin anotar todavía puedes añadirlo abajo.' }),
       cita.notas ? el('p', { clase: 'mini', style: 'margin-top:10px', texto: `Notas: ${cita.notas}` }) : null,
       cita.cita_origen_id
         ? el('p', { clase: 'mini', style: 'margin-top:6px' }, [
             document.createTextNode('Cita de seguimiento derivada de la '),
-            el('a', { href: `#/cita/${cita.cita_origen_id}`, texto: `cita #${cita.cita_origen_id}` }),
+            el('a', { href: `#/cita/${cita.cita_origen_id}`, texto: 'cita anterior' }),
           ])
         : null,
     ]),

@@ -106,6 +106,7 @@ export const api = {
   cambiarEstadoCita: (id, estado) => peticion('PATCH', `/api/citas/${id}/estado`, { estado }),
   verificarDisponibilidad: (d) => peticion('POST', '/api/citas/verificar', d),
   agenda: (p) => peticion('GET', `/api/agenda${qs(p)}`),
+  sugerenciaCita: (p) => peticion('GET', `/api/citas/sugerencia${qs(p)}`),
 
   // Clínico
   crearTratamiento: (citaId, d) => peticion('POST', `/api/citas/${citaId}/tratamientos`, d),

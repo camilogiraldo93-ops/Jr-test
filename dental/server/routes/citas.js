@@ -143,6 +143,63 @@ get('/api/citas', ({ consulta, usuario }) => {
   return todos(`${SQL_CITA} ${where} ORDER BY ci.inicio`, params);
 });
 
+/* ------------------------ Sugerencia de cubículo y doctor --------------- */
+
+/**
+ * Propone el cubículo y el doctor para una hora concreta.
+ *
+ * No es «el primero de la lista»: es el par que más se usa en ese consultorio
+ * y que además está libre a esa hora. Si solo hay uno posible, ese. Así la
+ * recepcionista no tiene que elegirlos en cada cita nueva, y sigue pudiendo
+ * cambiarlos. Devuelve nulos cuando no hay ninguno libre, para que la pantalla
+ * lo pida en vez de proponer algo imposible.
+ */
+get('/api/citas/sugerencia', ({ consulta, usuario }) => {
+  const consultorio_id = entero(consulta.get('consultorio_id'));
+  if (!consultorio_id) throw new ErrorApp(400, 'Falta decir de qué consultorio.');
+  const inicio = fechaHora(consulta.get('inicio'), 'inicio');
+  const fin = fechaHora(consulta.get('fin'), 'fin');
+
+  const cubiculos = todos(
+    'SELECT id FROM cubiculos WHERE consultorio_id = ? AND activo = 1 ORDER BY nombre', [consultorio_id]);
+  // Un doctor propone su propia agenda; los demás puestos, la de todos.
+  const soloSuyo = usuario.rol === 'doctor' && usuario.doctor_id;
+  const doctores = todos(
+    `SELECT d.id FROM doctores d
+     JOIN doctor_consultorio dc ON dc.doctor_id = d.id AND dc.consultorio_id = ?
+     WHERE d.activo = 1 ${soloSuyo ? 'AND d.id = ?' : ''} ORDER BY d.nombre`,
+    soloSuyo ? [consultorio_id, usuario.doctor_id] : [consultorio_id]);
+  if (!cubiculos.length || !doctores.length) return { cubiculo_id: null, doctor_id: null };
+
+  // Los pares que más se han usado últimamente van primero.
+  const usados = todos(
+    `SELECT cubiculo_id, doctor_id, COUNT(*) n FROM citas
+     WHERE consultorio_id = ? AND estado IN ('agendada','confirmada','en_curso','completada')
+     GROUP BY cubiculo_id, doctor_id ORDER BY n DESC`, [consultorio_id]);
+
+  const ocupados = todos(
+    `SELECT cubiculo_id, doctor_id FROM citas
+     WHERE estado IN (${ESTADOS_BLOQUEANTES.map(() => '?').join(',')})
+       AND inicio < ? AND fin > ?`, [...ESTADOS_BLOQUEANTES, fin, inicio]);
+  const cubiculosOcupados = new Set(ocupados.map((o) => o.cubiculo_id));
+  const doctoresOcupados = new Set(ocupados.map((o) => o.doctor_id));
+
+  const libre = (c, d) => !cubiculosOcupados.has(c) && !doctoresOcupados.has(d);
+
+  for (const u of usados) {
+    if (cubiculos.some((c) => c.id === u.cubiculo_id) && doctores.some((d) => d.id === u.doctor_id)
+        && libre(u.cubiculo_id, u.doctor_id)) {
+      return { cubiculo_id: u.cubiculo_id, doctor_id: u.doctor_id };
+    }
+  }
+  for (const c of cubiculos) {
+    for (const d of doctores) {
+      if (libre(c.id, d.id)) return { cubiculo_id: c.id, doctor_id: d.id };
+    }
+  }
+  return { cubiculo_id: null, doctor_id: null };
+});
+
 get('/api/citas/:id', ({ params, usuario }) => {
   const c = obtenerCita(params.id);
   if (!c) throw new ErrorApp(404, 'Cita no encontrada.');

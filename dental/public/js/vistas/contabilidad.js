@@ -239,7 +239,7 @@ export async function vistaContabilidad({ refrescar }) {
         el('h3', { texto: '💵 Pagos recibidos' }),
         pagosP.length
           ? el('div', { clase: 'tabla-envoltura' }, [el('table', { clase: 'tabla' }, [
-              el('thead', {}, [el('tr', {}, ['Fecha', 'Paciente', 'Método', 'Monto'].map((t) => el('th', { texto: t })))]),
+              el('thead', {}, [el('tr', {}, ['Fecha', 'Paciente', 'Cómo pagó', 'Cuánto'].map((t) => el('th', { texto: t })))]),
               el('tbody', {}, pagosP.map((p) => el('tr', {}, [
                 el('td', { texto: fmtFechaCorta(p.fecha) }),
                 el('td', {}, [el('a', { href: `#/paciente/${p.paciente_id}`, texto: nombreLista(p.paciente_nombre, p.paciente_apellidos) })]),
@@ -247,7 +247,7 @@ export async function vistaContabilidad({ refrescar }) {
                 el('td', { clase: 'num', texto: fmtDinero(p.monto) }),
               ]))),
             ])])
-          : vacio('Sin pagos en el período.'),
+          : vacio('No se cobró nada en estas fechas.'),
       ]),
       el('div', { clase: 'tarjeta' }, [
         el('h3', { texto: '🧾 Gastos apuntados' }),
@@ -261,7 +261,7 @@ export async function vistaContabilidad({ refrescar }) {
                 el('td', { clase: 'num', texto: fmtDinero(g.monto) }),
               ]))),
             ])])
-          : vacio('Sin gastos en el período.'),
+          : vacio('No se apuntó ningún gasto en estas fechas.'),
       ]),
     ]));
 
@@ -314,7 +314,7 @@ export async function vistaContabilidad({ refrescar }) {
                 el('td', { clase: 'num', texto: fmtDinero(m2.total) }),
               ]))),
             ])])
-          : vacio('Sin pagos en el período.'),
+          : vacio('No se cobró nada en estas fechas.'),
       ]),
     ]));
 

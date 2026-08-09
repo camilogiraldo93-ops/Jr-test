@@ -369,10 +369,12 @@ table.tabla td.num, table.tabla th.num {
   .marco { flex-direction: column; }
   .lateral {
     width: 100%; height: auto; position: static; flex-direction: row;
-    align-items: center; overflow-x: auto; gap: 8px; padding: 8px 10px;
+    align-items: center; flex-wrap: wrap; overflow: visible; gap: 8px; padding: 8px 10px;
   }
   .marca { padding: 6px 8px; font-size: 1rem; white-space: nowrap; }
-  .nav { display: flex; gap: 4px; padding: 0; overflow-x: auto; }
+  /* Envuelve en varias líneas en vez de esconderse en una tira que se desliza:
+     en 768 px la mitad del menú quedaba fuera de la vista sin ninguna pista. */
+  .nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 0; overflow: visible; }
   .nav a { margin-bottom: 0; padding: 9px 11px; white-space: nowrap; font-size: .86rem; }
   /* El nombre de cada sección se queda: en tablet la barra se desplaza de lado,
      que es mejor que dejar cuatro emoji sin explicación. */
@@ -505,6 +507,12 @@ body.modo-tablet .salir-tablet {
 /* ---------------- Buscador de pacientes en la barra lateral -------------- */
 
 .buscador-global { position: relative; padding: 0 12px 10px; }
+@media (max-width: 900px) {
+  /* En horizontal el buscador necesita un ancho mínimo utilizable: encogido a
+     unos pocos píxeles, buscar un teléfono dejaba de ser posible. */
+  .buscador-global { flex: 1 1 220px; min-width: 180px; padding: 0; }
+  .resultados-busqueda { left: 0; right: 0; }
+}
 .buscador-global input {
   width: 100%; padding: 9px 12px; border-radius: 9px; font-size: .88rem;
   border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff;
